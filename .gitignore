@@ -1,0 +1,22 @@
+# Generated
+*.pdf
+*.tex
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+.md2pdf-cache/
+
+# Keep examples source
+!examples/*.md
+
+# Editor / OS
+.DS_Store
+*~
+*.swp

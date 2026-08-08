@@ -1,0 +1,54 @@
+# AIC — production web UI (Oracle Cloud / any VPS)
+# Maps host :80 → container :3000 (Next.js)
+#
+#   docker compose up -d --build
+#   curl http://localhost/api/compile
+
+services:
+  aic-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: aic-web:latest
+    container_name: aic-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      AIC_ROOT: /app
+      AIC_FORCE_LOCAL: "1"
+      AIC_BACKEND_DEFAULT: local
+      # Keep job/temp files inside a volume (survives restarts, not lost in container overlay)
+      TMPDIR: /tmp/aic
+    volumes:
+      - aic-tmp:/tmp/aic
+    # Free-tier friendly defaults (uncomment/adjust for Always Free VM shape)
+    # mem_limit: 6g
+    # cpus: 2.0
+    healthcheck:
+      # busybox wget is available on Alpine-based pandoc/latex images
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/api/compile >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: aic-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - aic-web
+
+volumes:
+  aic-tmp:
+  caddy_data:
+  caddy_config:

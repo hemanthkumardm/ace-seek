@@ -1,0 +1,681 @@
+#!/usr/bin/env bash
+# aic — local Markdown + LaTeX math → PDF
+#
+# Pipeline: .md → Pandoc → .tex → xelatex|lualatex|pdflatex → .pdf
+# Same stack used by Quarto, R Markdown, and serious technical writing.
+#
+# Usage:
+#   aic file.md [out.pdf]
+#   aic --engine=lualatex huge.md
+#   aic --watch notes.md
+#   aic --docker notes.md
+#   aic --tex notes.md          # stop at .tex
+#   aic --help
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+TEMPLATE_DIR="${AIC_TEMPLATE_DIR:-${PROJECT_ROOT}/templates}"
+HEADER_INCLUDES="${AIC_HEADER:-${PROJECT_ROOT}/templates/header-includes.tex}"
+PREPROCESS="${SCRIPT_DIR}/aic-preprocess"
+
+# Defaults
+ENGINE="${PDF_ENGINE:-auto}"   # auto | tectonic | xelatex | lualatex | pdflatex
+FROM_FMT="markdown+tex_math_dollars+tex_math_single_backslash+raw_tex+fenced_divs+pipe_tables+strikeout+task_lists"
+MARGIN="0.7in"
+FONTSIZE="10pt"
+PAPER="${AIC_PAPER:-}"          # a4 | a3 | letter | legal | tabloid | custom
+LANDSCAPE=0
+# Optional raw geometry fragment, e.g. "paperwidth=20in,paperheight=11in"
+GEOMETRY_EXTRA="${AIC_GEOMETRY:-}"
+TOC=1
+TOC_DEPTH=3
+HIGHLIGHT="tango"
+STANDALONE=1
+WATCH=0
+# backend: auto | local | docker
+BACKEND="${AIC_BACKEND:-auto}"
+DOCKER=0
+TEX_ONLY=0
+FORMAT="pdf"
+USE_TEMPLATE=0
+TEMPLATE_NAME="sta-notes"
+VERBOSE=0
+SKIP_PREPROCESS=0
+# Files larger than this (bytes) prefer Docker + lualatex in auto mode
+SIZE_DOCKER_BYTES="${AIC_SIZE_DOCKER:-50000}"
+EXTRA_PANDOC_ARGS=()
+INPUT=""
+OUTPUT=""
+# Set after preprocess
+WORK_DIR=""
+PANDOC_INPUT_BASE=""
+PANDOC_INPUT_DIR=""
+# Resolved backend for logging / callers
+RESOLVED_BACKEND=""
+
+usage() {
+  cat <<'EOF'
+aic — Markdown + LaTeX math → PDF (Pandoc + TeX)
+
+Usage:
+  aic [options] file.md [out.pdf]
+
+Options:
+  -e, --engine ENGINE   auto | tectonic | xelatex | lualatex | pdflatex
+                        auto = tectonic (fast local) → xelatex → lualatex → pdflatex
+  --backend MODE        auto | local | docker  (default: auto)
+                          auto  = local for small files if a host engine exists,
+                                  Docker for large files or when host TeX missing
+                          local = host pandoc + TeX/tectonic only
+                          docker= always Docker (heavy but no host TeX)
+  -d, --docker          same as --backend=docker
+  -m, --margin SIZE     page margin (default: 0.7in)
+  -s, --fontsize SIZE   font size (default: 10pt)
+  --paper SIZE          a4 | a3 | letter | legal | tabloid
+  --landscape           landscape orientation (more horizontal space)
+  --wide                preset for huge tables:
+                          landscape + a3 + margin 0.5in + fontsize 10pt
+  --geometry OPTS       extra geometry opts, e.g.
+                          paperwidth=20in,paperheight=12in
+  --toc / --no-toc      table of contents (default: on)
+  --toc-depth N         TOC depth (default: 3)
+  -t, --template NAME   use Pandoc template (default name: sta-notes)
+  --no-template         do not use a custom template
+  --tex                 emit .tex only (no PDF)
+  -f, --format FMT      output format (pdf, docx, tex)
+  -w, --watch           recompile on change (latexmk -pvc when available)
+  --no-preprocess       skip Tcl/box/mermaid safety preprocessor
+  -v, --verbose         verbose pandoc/latex output
+  -h, --help            show this help
+
+Speed tips (localhost):
+  ./scripts/install-fast-deps.sh   # installs tectonic → small PDFs in ~5–15s
+  aic --backend=local --no-toc notes.md
+  aic --backend=auto huge.md    # large → Docker + lualatex
+
+Environment:
+  PDF_ENGINE            default engine
+  AIC_BACKEND        auto | local | docker
+  AIC_SIZE_DOCKER    byte threshold for auto→docker (default 50000)
+  AIC_PAPER          default paper size
+  AIC_GEOMETRY       default extra geometry options
+  AIC_TEMPLATE_DIR   template search path
+  AIC_HEADER         path to header-includes.tex
+  AIC_DOCKER_IMAGE   docker image (default: aic)
+
+Examples:
+  aic notes.md
+  aic --backend=local --engine=tectonic --no-toc notes.md
+  aic --backend=docker --wide huge.md
+  aic --engine=lualatex --margin=0.65in huge.md
+EOF
+}
+
+log()  { printf '→ %s\n' "$*" >&2; }
+die()  { printf 'error: %s\n' "$*" >&2; exit 1; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# Pandoc 3.x renamed --highlight-style → --syntax-highlighting
+highlight_args() {
+  local ver major
+  ver="$(pandoc --version 2>/dev/null | head -1 | awk '{print $2}')"
+  major="${ver%%.*}"
+  if [[ "${major:-0}" -ge 3 ]]; then
+    printf '%s\n' "--syntax-highlighting=${HIGHLIGHT}"
+  else
+    printf '%s\n' "--highlight-style=${HIGHLIGHT}"
+  fi
+}
+
+# --- parse args ---
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    -e|--engine)
+      ENGINE="${2:?}"; shift 2 ;;
+    --engine=*)
+      ENGINE="${1#*=}"; shift ;;
+    -m|--margin)
+      MARGIN="${2:?}"; shift 2 ;;
+    --margin=*)
+      MARGIN="${1#*=}"; shift ;;
+    -s|--fontsize)
+      FONTSIZE="${2:?}"; shift 2 ;;
+    --fontsize=*)
+      FONTSIZE="${1#*=}"; shift ;;
+    --paper)
+      PAPER="${2:?}"; shift 2 ;;
+    --paper=*)
+      PAPER="${1#*=}"; shift ;;
+    --landscape)
+      LANDSCAPE=1; shift ;;
+    --wide)
+      # Best default for huge SDC/STA box tables
+      # (article class only accepts 10/11/12pt — use 10pt + landscape A3)
+      LANDSCAPE=1
+      PAPER="a3"
+      MARGIN="0.5in"
+      FONTSIZE="10pt"
+      shift
+      ;;
+    --geometry)
+      GEOMETRY_EXTRA="${2:?}"; shift 2 ;;
+    --geometry=*)
+      GEOMETRY_EXTRA="${1#*=}"; shift ;;
+    --toc)     TOC=1; shift ;;
+    --no-toc)  TOC=0; shift ;;
+    --toc-depth)
+      TOC_DEPTH="${2:?}"; shift 2 ;;
+    --toc-depth=*)
+      TOC_DEPTH="${1#*=}"; shift ;;
+    -t|--template)
+      USE_TEMPLATE=1
+      if [[ $# -ge 2 && "$2" != -* ]]; then
+        TEMPLATE_NAME="$2"; shift 2
+      else
+        shift
+      fi
+      ;;
+    --template=*)
+      USE_TEMPLATE=1
+      TEMPLATE_NAME="${1#*=}"
+      shift
+      ;;
+    --no-template) USE_TEMPLATE=0; shift ;;
+    --tex)     TEX_ONLY=1; FORMAT="tex"; shift ;;
+    -f|--format) FORMAT="${2:?}"; shift 2 ;;
+    --format=*)  FORMAT="${1#*=}"; shift ;;
+    -w|--watch) WATCH=1; shift ;;
+    -d|--docker) BACKEND="docker"; DOCKER=1; shift ;;
+    --backend)
+      BACKEND="${2:?}"; shift 2 ;;
+    --backend=*)
+      BACKEND="${1#*=}"; shift ;;
+    --no-preprocess) SKIP_PREPROCESS=1; shift ;;
+    -v|--verbose) VERBOSE=1; shift ;;
+    --) shift; EXTRA_PANDOC_ARGS+=("$@"); break ;;
+    -*)
+      # pass unknown long/short flags through to pandoc
+      EXTRA_PANDOC_ARGS+=("$1")
+      if [[ $# -ge 2 && "$2" != -* && "$1" =~ ^--.*= ]]; then
+        :
+      elif [[ $# -ge 2 && "$2" != -* && "$1" =~ ^-[^-].* ]]; then
+        :
+      elif [[ $# -ge 2 && "$2" != -* && ! -f "$2" ]]; then
+        EXTRA_PANDOC_ARGS+=("$2"); shift
+      fi
+      shift
+      ;;
+    *)
+      if [[ -z "$INPUT" ]]; then
+        INPUT="$1"
+      elif [[ -z "$OUTPUT" ]]; then
+        OUTPUT="$1"
+      else
+        die "unexpected argument: $1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+[[ -n "$INPUT" ]] || { usage >&2; die "missing input .md file"; }
+[[ -f "$INPUT" ]] || die "input not found: $INPUT"
+
+# Resolve paths early (Docker bind-mount needs absolute dirs)
+INPUT_ABS="$(cd "$(dirname "$INPUT")" && pwd)/$(basename "$INPUT")"
+INPUT_DIR="$(dirname "$INPUT_ABS")"
+INPUT_BASE="$(basename "$INPUT_ABS")"
+STEM="${INPUT_BASE%.*}"
+
+if [[ -z "${OUTPUT:-}" ]]; then
+  if [[ "$FORMAT" == "tex" || "$TEX_ONLY" -eq 1 ]]; then
+    OUTPUT="${INPUT_DIR}/${STEM}.tex"
+  elif [[ "$FORMAT" == "docx" ]]; then
+    OUTPUT="${INPUT_DIR}/${STEM}.docx"
+  else
+    OUTPUT="${INPUT_DIR}/${STEM}.pdf"
+  fi
+else
+  # relative output → relative to cwd
+  if [[ "$OUTPUT" != /* ]]; then
+    OUTPUT="$(pwd)/$OUTPUT"
+  fi
+fi
+OUTPUT_DIR="$(dirname "$OUTPUT")"
+OUTPUT_BASE="$(basename "$OUTPUT")"
+mkdir -p "$OUTPUT_DIR"
+
+case "${FORMAT,,}" in
+  pdf) FORMAT="pdf" ;;
+  tex|latex) FORMAT="tex"; TEX_ONLY=1 ;;
+  docx) FORMAT="docx" ;;
+  *) die "unknown format '$FORMAT' (use pdf|tex|docx)" ;;
+esac
+
+case "${BACKEND,,}" in
+  auto|local|docker) BACKEND="${BACKEND,,}" ;;
+  *) die "unknown --backend '$BACKEND' (use auto|local|docker)" ;;
+esac
+if [[ "$BACKEND" == "docker" ]]; then DOCKER=1; fi
+
+pick_local_engine() {
+  # Prefer fast tectonic, then classic TeX engines on PATH
+  local e
+  for e in tectonic xelatex lualatex pdflatex; do
+    if have "$e"; then
+      echo "$e"
+      return 0
+    fi
+  done
+  return 1
+}
+
+resolve_engine() {
+  if [[ "$ENGINE" != "auto" ]]; then
+    case "$ENGINE" in
+      tectonic|xelatex|lualatex|pdflatex) ;;
+      *) die "unknown engine '$ENGINE' (use auto|tectonic|xelatex|lualatex|pdflatex)" ;;
+    esac
+    return 0
+  fi
+  if [[ "$BACKEND" == "docker" || "$DOCKER" -eq 1 ]]; then
+    # Docker image has xelatex; use lualatex for big docs
+    local sz
+    sz=$(wc -c <"$INPUT_ABS" | tr -d ' ')
+    if [[ "$sz" -ge "$SIZE_DOCKER_BYTES" ]]; then
+      ENGINE="lualatex"
+    else
+      ENGINE="xelatex"
+    fi
+    return 0
+  fi
+  local picked
+  if picked=$(pick_local_engine); then
+    ENGINE="$picked"
+  else
+    ENGINE="xelatex" # will fail later with install hint unless docker fallback
+  fi
+}
+
+resolve_backend() {
+  # docx/tex never need Docker TeX
+  if [[ "$FORMAT" == "docx" || "$FORMAT" == "tex" || "$TEX_ONLY" -eq 1 ]]; then
+    BACKEND="local"
+    DOCKER=0
+    RESOLVED_BACKEND="local"
+    return 0
+  fi
+
+  if [[ "$BACKEND" == "docker" ]]; then
+    DOCKER=1
+    RESOLVED_BACKEND="docker"
+    return 0
+  fi
+
+  if [[ "$BACKEND" == "local" ]]; then
+    DOCKER=0
+    RESOLVED_BACKEND="local"
+    return 0
+  fi
+
+  # auto
+  local sz
+  sz=$(wc -c <"$INPUT_ABS" | tr -d ' ')
+  local has_local=0
+  if pick_local_engine >/dev/null; then has_local=1; fi
+
+  if [[ "$sz" -ge "$SIZE_DOCKER_BYTES" ]]; then
+    if have docker; then
+      log "auto: large file (${sz} bytes ≥ ${SIZE_DOCKER_BYTES}) → docker"
+      BACKEND="docker"
+      DOCKER=1
+      RESOLVED_BACKEND="docker"
+      return 0
+    fi
+    log "auto: large file but docker missing → local (may be slow/fail)"
+  fi
+
+  if [[ "$has_local" -eq 1 ]]; then
+    log "auto: host engine available → local (fast path)"
+    BACKEND="local"
+    DOCKER=0
+    RESOLVED_BACKEND="local"
+    return 0
+  fi
+
+  if have docker; then
+    log "auto: no host TeX → docker"
+    BACKEND="docker"
+    DOCKER=1
+    RESOLVED_BACKEND="docker"
+    return 0
+  fi
+
+  die "no PDF engine on host and docker not found.
+  Fast local:  ./scripts/install-fast-deps.sh   # installs tectonic
+  Full TeX:    ./scripts/install-deps.sh
+  Or Docker:   docker build -t aic . && aic --backend=docker file.md"
+}
+
+# --- preprocess (Tcl $vars, box diagrams, mermaid) ---
+run_preprocess() {
+  PANDOC_INPUT_DIR="$INPUT_DIR"
+  PANDOC_INPUT_BASE="$INPUT_BASE"
+  if [[ "$SKIP_PREPROCESS" -eq 1 ]]; then
+    return 0
+  fi
+  if [[ ! -x "$PREPROCESS" && -f "$PREPROCESS" ]]; then
+    chmod +x "$PREPROCESS" || true
+  fi
+  if [[ ! -f "$PREPROCESS" ]]; then
+    log "preprocessor missing — continuing without it"
+    return 0
+  fi
+  have python3 || die "python3 required for preprocessor"
+
+  WORK_DIR="${INPUT_DIR}/.aic-cache"
+  mkdir -p "$WORK_DIR"
+  local pre_out="${WORK_DIR}/${STEM}.pre.md"
+  log "preprocess: fencing Tcl/SDC, box art; rendering mermaid if any"
+  python3 "$PREPROCESS" "$INPUT_ABS" -o "$pre_out" --assets-dir "$WORK_DIR"
+  PANDOC_INPUT_DIR="$WORK_DIR"
+  PANDOC_INPUT_BASE="$(basename "$pre_out")"
+}
+
+# Build geometry package options for page size / orientation.
+# Prints separate -V geometry:... tokens (null-delimited via caller).
+append_geometry_args() {
+  # $1 = name of bash array to append to
+  local -n _arr=$1
+  _arr+=(-V "geometry:margin=${MARGIN}")
+  case "${PAPER,,}" in
+    "" ) ;;
+    a4)      _arr+=(-V "geometry:a4paper") ;;
+    a3)      _arr+=(-V "geometry:a3paper") ;;
+    a2)      _arr+=(-V "geometry:a2paper") ;;
+    letter)  _arr+=(-V "geometry:letterpaper") ;;
+    legal)   _arr+=(-V "geometry:legalpaper") ;;
+    tabloid|ledger)
+      # 11×17" — great for very wide notes tables
+      _arr+=(-V "geometry:paperwidth=17in" -V "geometry:paperheight=11in")
+      ;;
+    *)
+      die "unknown --paper '${PAPER}' (use a4|a3|a2|letter|legal|tabloid)"
+      ;;
+  esac
+  if [[ "$LANDSCAPE" -eq 1 ]]; then
+    # tabloid already set as landscape dimensions when paper=tabloid
+    if [[ "${PAPER,,}" != "tabloid" && "${PAPER,,}" != "ledger" ]]; then
+      _arr+=(-V "geometry:landscape")
+    fi
+  fi
+  if [[ -n "$GEOMETRY_EXTRA" ]]; then
+    # allow comma-separated extras: paperwidth=20in,paperheight=12in
+    local IFS=','
+    local opt
+    for opt in $GEOMETRY_EXTRA; do
+      opt="$(echo "$opt" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+      [[ -n "$opt" ]] && _arr+=(-V "geometry:${opt}")
+    done
+  fi
+}
+
+# --- build pandoc arg list ---
+build_pandoc_args() {
+  local out="$1"
+  local src="${PANDOC_INPUT_BASE:-$INPUT_BASE}"
+  local rpath=".:${PANDOC_INPUT_DIR:-$INPUT_DIR}:${INPUT_DIR}"
+  local args=(
+    "$src"
+    -o "$out"
+    --from="$FROM_FMT"
+    -V "fontsize=${FONTSIZE}"
+    -V colorlinks=true
+    -V linkcolor=blue
+    -V urlcolor=blue
+    -V toccolor=black
+    "$(highlight_args)"
+    --resource-path="$rpath"
+  )
+  append_geometry_args args
+
+  # Unicode fonts: only for xelatex/lualatex with fontspec (Docker has DejaVu).
+  # tectonic uses its own bundle — custom mainfont often slows/breaks first runs.
+  if [[ "$ENGINE" == "xelatex" || "$ENGINE" == "lualatex" ]]; then
+    args+=(-V "mainfont=DejaVu Sans" -V "monofont=DejaVu Sans Mono")
+  fi
+
+  if [[ "$STANDALONE" -eq 1 ]]; then
+    args+=(--standalone)
+  fi
+
+  if [[ "$TOC" -eq 1 ]]; then
+    args+=(--toc --toc-depth="$TOC_DEPTH")
+  fi
+
+  # Math / science packages (critical for STA / formulas)
+  # Skip heavy header on tectonic fast path (pandoc already pulls amsmath for math)
+  if [[ "$ENGINE" != "tectonic" && -f "$HEADER_INCLUDES" ]]; then
+    args+=(-H "$HEADER_INCLUDES")
+  elif [[ "$ENGINE" != "tectonic" ]]; then
+    args+=(-V "header-includes=\usepackage{amsmath,amssymb,amsfonts}")
+  fi
+
+  if [[ "$USE_TEMPLATE" -eq 1 ]]; then
+    local tpl="${TEMPLATE_DIR}/${TEMPLATE_NAME}.latex"
+    if [[ -f "$tpl" ]]; then
+      args+=(--template="$tpl")
+    elif have pandoc && pandoc --list-output-templates 2>/dev/null | grep -qx "$TEMPLATE_NAME"; then
+      args+=(--template="$TEMPLATE_NAME")
+    elif [[ -f "${HOME}/.pandoc/templates/${TEMPLATE_NAME}.latex" ]]; then
+      args+=(--template="${HOME}/.pandoc/templates/${TEMPLATE_NAME}.latex")
+    else
+      log "template '${TEMPLATE_NAME}' not found — using Pandoc default"
+    fi
+  fi
+
+  if [[ "$FORMAT" == "docx" ]]; then
+    args+=(-t docx)
+  elif [[ "$TEX_ONLY" -eq 1 || "$FORMAT" == "tex" ]]; then
+    args+=(-t latex)
+  else
+    args+=(--pdf-engine="$ENGINE")
+  fi
+
+  if [[ "$VERBOSE" -eq 1 ]]; then
+    args+=(--verbose)
+  fi
+
+  # Extra user args last
+  args+=("${EXTRA_PANDOC_ARGS[@]+"${EXTRA_PANDOC_ARGS[@]}"}")
+  printf '%s\0' "${args[@]}"
+}
+
+run_local() {
+  # Ensure ~/.local/bin (tectonic) is visible when launched from systemd/Next
+  export PATH="${HOME}/.local/bin:${PATH}"
+
+  have pandoc || die "pandoc not found. Install: sudo apt install pandoc  (or use --backend=docker)"
+
+  if [[ "$FORMAT" == "pdf" && "$TEX_ONLY" -eq 0 ]]; then
+    have "$ENGINE" || die "${ENGINE} not found on host.
+  Fast path (recommended for small files):
+    ./scripts/install-fast-deps.sh    # installs tectonic → ~/.local/bin
+  Full TeX:
+    ./scripts/install-deps.sh
+  Or:
+    aic --backend=docker ${INPUT_BASE}"
+  fi
+
+  run_preprocess
+
+  log "backend: local"
+  log "input : $INPUT_ABS"
+  log "output: $OUTPUT"
+  log "engine: $ENGINE$( [[ $FORMAT != pdf ]] && echo " (format=$FORMAT)" )"
+
+  local work="${PANDOC_INPUT_DIR:-$INPUT_DIR}"
+  (
+    cd "$work"
+    local -a args=()
+    mapfile -d '' -t args < <(build_pandoc_args "$OUTPUT")
+    if [[ "$VERBOSE" -eq 1 ]]; then
+      log "pandoc ${args[*]}"
+    fi
+    pandoc "${args[@]}"
+  )
+
+  log "done  : $OUTPUT"
+}
+
+run_docker() {
+  have docker || die "docker not found"
+  local image="${AIC_DOCKER_IMAGE:-aic}"
+
+  if ! docker image inspect "$image" >/dev/null 2>&1; then
+    log "building Docker image '${image}'..."
+    docker build -t "$image" -f "${PROJECT_ROOT}/Dockerfile" "$PROJECT_ROOT"
+  fi
+
+  local docker_out="/work/${OUTPUT_BASE}"
+  # If output dir differs from input dir, mount both or use single workdir
+  local mount_dir="$INPUT_DIR"
+  if [[ "$OUTPUT_DIR" != "$INPUT_DIR" ]]; then
+    # write next to input then we copy — keep simple: require same dir for docker
+    if [[ "$OUTPUT_DIR" != "$INPUT_DIR" ]]; then
+      docker_out="/work/$(basename "$OUTPUT")"
+      # We'll mount INPUT_DIR and copy after if needed
+      :
+    fi
+  fi
+
+  # Always preprocess on host (python) — saves a full Docker container start
+  run_preprocess
+
+  log "backend: docker ($image)"
+  log "input : $INPUT_ABS"
+  log "output: $OUTPUT"
+  log "engine: $ENGINE"
+
+  # Mount parent of cache (INPUT_DIR) so assets + original path resolve;
+  # pandoc reads preprocessed file from .aic-cache/
+  local src_in_docker=".aic-cache/${PANDOC_INPUT_BASE}"
+  if [[ "$SKIP_PREPROCESS" -eq 1 ]]; then
+    src_in_docker="$INPUT_BASE"
+  fi
+  local out_in_docker
+  out_in_docker="$(basename "$OUTPUT")"
+  # If output lives outside INPUT_DIR, write into INPUT_DIR then move
+  local write_name="$out_in_docker"
+  if [[ "$OUTPUT_DIR" != "$INPUT_DIR" ]]; then
+    write_name="$out_in_docker"
+  fi
+
+  local -a dargs=(
+    "$src_in_docker"
+    -o "$write_name"
+    --from="$FROM_FMT"
+    --pdf-engine="$ENGINE"
+    -V "fontsize=${FONTSIZE}"
+    -V colorlinks=true
+    -V linkcolor=blue
+    -V urlcolor=blue
+    -V "mainfont=DejaVu Sans"
+    -V "monofont=DejaVu Sans Mono"
+    --syntax-highlighting="$HIGHLIGHT"
+    --resource-path=".:.aic-cache"
+    --standalone
+  )
+  append_geometry_args dargs
+  if [[ "$TOC" -eq 1 ]]; then
+    dargs+=(--toc --toc-depth="$TOC_DEPTH")
+  fi
+  if [[ "$FORMAT" == "tex" || "$TEX_ONLY" -eq 1 ]]; then
+    dargs=(
+      "$src_in_docker" -o "$write_name"
+      --from="$FROM_FMT" -t latex --standalone
+      --resource-path=".:.aic-cache"
+    )
+    append_geometry_args dargs
+  elif [[ "$FORMAT" == "docx" ]]; then
+    dargs=(
+      "$src_in_docker" -o "$write_name"
+      --from="$FROM_FMT" -t docx
+      --resource-path=".:.aic-cache"
+    )
+    if [[ "$TOC" -eq 1 ]]; then
+      dargs+=(--toc --toc-depth="$TOC_DEPTH")
+    fi
+  fi
+  if [[ "$FORMAT" == "pdf" || "$FORMAT" == "tex" || "$TEX_ONLY" -eq 1 ]]; then
+    if [[ -f "$HEADER_INCLUDES" ]]; then
+      dargs+=(-H "/templates/header-includes.tex")
+    fi
+    if [[ "$USE_TEMPLATE" -eq 1 && -f "${TEMPLATE_DIR}/${TEMPLATE_NAME}.latex" ]]; then
+      dargs+=(--template="/templates/${TEMPLATE_NAME}.latex")
+    fi
+  fi
+  dargs+=("${EXTRA_PANDOC_ARGS[@]+"${EXTRA_PANDOC_ARGS[@]}"}")
+
+  docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    -v "${INPUT_DIR}:/work" \
+    -v "${TEMPLATE_DIR}:/templates:ro" \
+    -w /work \
+    "$image" \
+    "${dargs[@]}"
+
+  if [[ "$OUTPUT_DIR" != "$INPUT_DIR" && -f "${INPUT_DIR}/${write_name}" ]]; then
+    mv "${INPUT_DIR}/${write_name}" "$OUTPUT"
+  fi
+  log "done  : $OUTPUT"
+}
+
+run_watch() {
+  have pandoc || die "pandoc not found"
+  if have latexmk && have "$ENGINE"; then
+    log "watch mode via latexmk (-pvc) + $ENGINE"
+    local tex_out="${INPUT_DIR}/${STEM}.tex"
+    # Initial tex generation
+    TEX_ONLY=1 OUTPUT="$tex_out" run_local
+    (
+      cd "$INPUT_DIR"
+      latexmk -"$ENGINE" -pvc -interaction=nonstopmode -view=none "$STEM.tex"
+    )
+  else
+    log "watch mode (install inotify-tools for better UX)"
+    if have inotifywait; then
+      while true; do
+        if [[ "$DOCKER" -eq 1 ]]; then run_docker; else run_local; fi || true
+        inotifywait -q -e modify "$INPUT_ABS" >/dev/null
+      done
+    else
+      local prev=""
+      while true; do
+        local hash
+        hash="$(cksum "$INPUT_ABS" | awk '{print $1" "$2}')"
+        if [[ "$hash" != "$prev" ]]; then
+          prev="$hash"
+          if [[ "$DOCKER" -eq 1 ]]; then run_docker; else run_local; fi || true
+        fi
+        sleep 2
+      done
+    fi
+  fi
+}
+
+# --- main ---
+resolve_backend
+resolve_engine
+log "resolved: backend=${RESOLVED_BACKEND:-$BACKEND} engine=$ENGINE format=$FORMAT"
+
+if [[ "$WATCH" -eq 1 ]]; then
+  run_watch
+elif [[ "$DOCKER" -eq 1 || "$BACKEND" == "docker" ]]; then
+  run_docker
+else
+  run_local
+fi

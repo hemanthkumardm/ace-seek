@@ -1,0 +1,365 @@
+#!/usr/bin/env python3
+"""
+aic-preprocess — make messy technical Markdown safe for Pandoc → LaTeX.
+
+Problems this fixes (common in STA / Genus / SDC notes):
+  1. Bare Tcl/SDC with $T, {expr}, [get_ports] outside code fences
+     → Pandoc tex_math_dollars treats $...$ as math → "Extra }, or forgotten $."
+  2. ASCII / Unicode box-drawing "diagrams" not in fences
+     → wrap as monospace so layout survives PDF
+  3. ```mermaid blocks
+     → render to PNG (mmdc / docker) and replace with ![](image)
+
+Usage:
+  aic-preprocess input.md -o /tmp/safe.md
+  aic-preprocess input.md -o /tmp/safe.md --assets-dir /tmp/aic-assets
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+# --- patterns ---------------------------------------------------------------
+
+FENCE_RE = re.compile(r"^([ \t]*)(`{3,}|~{3,})([^\n]*)\n(.*?)(^[ \t]*\2[ \t]*$)", re.M | re.S)
+
+TCL_START = re.compile(
+    r"^\s*(?:"
+    r"create_(?:clock|generated_clock)|"
+    r"set_(?:clock|input|output|max|min|false|multi|case|load|driving|disable|timing|units|operating|wire|dont|annotated)|"
+    r"get_(?:ports|clocks|cells|pins|nets|lib_cells)|"
+    r"all_(?:inputs|outputs|registers|clocks)|"
+    r"remove_from_collection|"
+    r"group_path|report_timing|check_timing|update_timing|"
+    r"read_(?:sdc|lib|hdl|mmmc)|"
+    r"current_design|link|elaborate|syn_generic|syn_map|syn_opt|"
+    r"expr\s*\{|"
+    r"#\s*(?:SDC|TCL|tcl)\b"
+    r")"
+)
+
+TCL_CONT = re.compile(
+    r"^\s*(?:"
+    r"[\[\]\{\}]|"  # bracket-only continuation lines
+    r".*[\[\]\{\$\\].*|"  # still looks like code
+    r"set_|"
+    r"get_|"
+    r"all_|"
+    r"create_|"
+    r"remove_|"
+    r"report_|"
+    r"check_|"
+    r";#|"
+    r"\\$"  # line continuation
+    r")"
+)
+
+# Box-drawing / frame characters only (NOT list bullets • or prose arrows →)
+BOX_CHARS = set(
+    "┌┐└┘├┤┬┴┼─│═║╔╗╚╝╠╣╦╩╬╭╮╯╰"
+    "┃┏┓┗┛┣┫┳┻╋╴╵╶╷╸╹╺╻╼╽╾╿"
+    "┬┴┼║═"
+)
+
+# Real math often: $...$ with operators, not bare $T or $var alone in Tcl sense.
+# We only auto-fence code; remaining $ handled after fencing via optional escape.
+
+MERMAID_LANGS = {"mermaid", "mmd"}
+
+
+def split_fences(text: str) -> list[tuple[str, str]]:
+    """Return list of (kind, content) where kind is 'text' or 'fence'."""
+    parts: list[tuple[str, str]] = []
+    pos = 0
+    for m in FENCE_RE.finditer(text):
+        if m.start() > pos:
+            parts.append(("text", text[pos : m.start()]))
+        parts.append(("fence", m.group(0)))
+        pos = m.end()
+    if pos < len(text):
+        parts.append(("text", text[pos:]))
+    if not parts:
+        parts = [("text", text)]
+    return parts
+
+
+def parse_fence(fence: str) -> tuple[str, str, str, str]:
+    """indent, marker, info, body"""
+    m = FENCE_RE.match(fence)
+    if not m:
+        return "", "```", "", fence
+    return m.group(1), m.group(2), (m.group(3) or "").strip(), m.group(4)
+
+
+def is_box_heavy(line: str) -> bool:
+    if not line.strip():
+        return False
+    n = sum(1 for c in line if c in BOX_CHARS or c in "│┃─━")
+    # pure ruler lines like ───
+    if re.fullmatch(r"\s*[─═\-─]{3,}\s*", line):
+        return False  # section dividers stay as text
+    return n >= 2 or (n >= 1 and len(line.strip()) > 0 and n / max(len(line.strip()), 1) > 0.15)
+
+
+def is_tcl_line(line: str, in_block: bool) -> bool:
+    s = line.rstrip()
+    if not s.strip():
+        return in_block  # blank lines allowed inside a run
+    if TCL_START.search(s):
+        return True
+    if in_block and TCL_CONT.search(s):
+        return True
+    # continuation of bracketed tcl: lines that are only "  something]" style
+    if in_block and re.search(r"[\[\]\{\}$]", s):
+        return True
+    return False
+
+
+def wrap_runs(lines: list[str], predicate_start, predicate_cont, lang: str) -> list[str]:
+    """Wrap consecutive lines matching start/cont into fenced code."""
+    out: list[str] = []
+    i = 0
+    n = len(lines)
+    while i < n:
+        if predicate_start(lines[i]):
+            j = i + 1
+            while j < n and predicate_cont(lines[j]):
+                j += 1
+            # trim trailing blank lines from the code run
+            end = j
+            while end > i and not lines[end - 1].strip():
+                end -= 1
+            block = lines[i:end]
+            # don't wrap single non-code-looking short prose
+            if block:
+                out.append(f"```{lang}")
+                out.extend(block)
+                out.append("```")
+                # preserve trailing blanks that we trimmed
+                out.extend(lines[end:j])
+            i = j
+        else:
+            out.append(lines[i])
+            i += 1
+    return out
+
+
+def _map_text_regions(text: str, fn) -> str:
+    """Apply fn(text_region) to non-fenced regions only."""
+    parts = split_fences(text)
+    rebuilt: list[str] = []
+    for kind, content in parts:
+        if kind == "fence":
+            rebuilt.append(content)
+            continue
+        piece = fn(content)
+        if content.endswith("\n") and not piece.endswith("\n"):
+            piece += "\n"
+        rebuilt.append(piece)
+    return "".join(rebuilt)
+
+
+def protect_box_art(text: str) -> str:
+    def transform(region: str) -> str:
+        lines = region.splitlines()
+
+        def box_start(L: str) -> bool:
+            return is_box_heavy(L)
+
+        def box_cont(L: str) -> bool:
+            if not L.strip():
+                return True
+            return is_box_heavy(L) or bool(re.match(r"^\s{2,}\S", L))
+
+        return "\n".join(wrap_runs(lines, box_start, box_cont, "text"))
+
+    return _map_text_regions(text, transform)
+
+
+def protect_tcl(text: str) -> str:
+    def transform(region: str) -> str:
+        lines = region.splitlines()
+        return "\n".join(
+            wrap_runs(
+                lines,
+                lambda L: is_tcl_line(L, False),
+                lambda L: is_tcl_line(L, True),
+                "tcl",
+            )
+        )
+
+    return _map_text_regions(text, transform)
+
+
+def protect_text_region(text: str) -> str:
+    # Order: box art first (wide tables), then Tcl/SDC command runs
+    text = protect_box_art(text)
+    text = protect_tcl(text)
+    return text
+
+
+def which(cmd: str) -> str | None:
+    return shutil.which(cmd)
+
+
+def render_mermaid(body: str, assets_dir: Path, stem: str, idx: int) -> Path | None:
+    assets_dir.mkdir(parents=True, exist_ok=True)
+    h = hashlib.sha1(body.encode("utf-8")).hexdigest()[:10]
+    out_pdf = assets_dir / f"{stem}-mermaid-{idx}-{h}.pdf"
+    if out_pdf.exists() and out_pdf.stat().st_size > 0:
+        return out_pdf
+
+    mmd = assets_dir / f"{stem}-mermaid-{idx}-{h}.mmd"
+    mmd.write_text(body.strip() + "\n", encoding="utf-8")
+
+    # Prefer local mmdc, then npx, then docker
+    attempts = []
+    mmdc = which("mmdc")
+    if mmdc:
+        attempts.append([mmdc, "-i", str(mmd), "-o", str(out_pdf), "-b", "transparent"])
+    npx = which("npx")
+    if npx:
+        attempts.append(
+            [npx, "--yes", "@mermaid-js/mermaid-cli", "-i", str(mmd), "-o", str(out_pdf), "-b", "transparent"]
+        )
+    docker = which("docker")
+    if docker:
+        # mount assets dir
+        attempts.append(
+            [
+                docker,
+                "run",
+                "--rm",
+                "-u",
+                f"{os.getuid()}:{os.getgid()}",
+                "-v",
+                f"{assets_dir.resolve()}:/data",
+                "minlag/mermaid-cli",
+                "-i",
+                f"/data/{mmd.name}",
+                "-o",
+                f"/data/{out_pdf.name}",
+                "-b",
+                "transparent",
+            ]
+        )
+
+    for cmd in attempts:
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+            if r.returncode == 0 and out_pdf.exists() and out_pdf.stat().st_size > 0:
+                return out_pdf
+            # try next
+            sys.stderr.write(f"mermaid render failed ({cmd[0]}): {r.stderr[-400:]}\n")
+        except Exception as e:
+            sys.stderr.write(f"mermaid render error ({cmd[0]}): {e}\n")
+    return None
+
+
+def process_mermaid(text: str, assets_dir: Path, stem: str) -> str:
+    parts = split_fences(text)
+    out: list[str] = []
+    idx = 0
+    for kind, content in parts:
+        if kind != "fence":
+            out.append(content)
+            continue
+        indent, marker, info, body = parse_fence(content)
+        lang = (info.split()[0].lower() if info else "")
+        if lang not in MERMAID_LANGS:
+            out.append(content)
+            continue
+        idx += 1
+        pdf = render_mermaid(body, assets_dir, stem, idx)
+        if pdf:
+            # relative path from input dir perspective — assets next to preprocess output
+            rel = pdf.name
+            # if assets_dir is sibling, use relative
+            out.append(f"{indent}![Mermaid diagram {idx}]({rel})\n\n")
+            sys.stderr.write(f"→ mermaid[{idx}] → {pdf}\n")
+        else:
+            # fallback: keep as fenced text so PDF still builds
+            sys.stderr.write(f"→ mermaid[{idx}] render failed; keeping as code block\n")
+            out.append(f"{indent}```text\n{body}{indent}```\n")
+    return "".join(out)
+
+
+def escape_risky_dollars_outside_fences(text: str) -> str:
+    """
+    After fencing code, still-dangerous bare $vars (e.g. mid-prose $T in Tcl sense)
+    that are NOT math: $ followed by letter, no closing math.
+    Real math often has spaces or operators: $a + b$, $$...$$.
+    Strategy: escape $word$ or $word when it looks like a variable ($T, $clk)
+    only if the interior is a simple identifier (no spaces, no operators).
+    Actually $T$ would be math for T. In notes people write $T meaning Tcl var.
+    Escape: $Ident when not $$ and interior is [A-Za-z_][A-Za-z0-9_]* and next char isn't
+    starting a longer math expression with spaces.
+
+    Safer: only escape $Var patterns that match Tcl-style (single letter or known).
+    """
+    parts = split_fences(text)
+    out: list[str] = []
+
+    def esc(region: str) -> str:
+        # $$ display math — leave
+        # $...$ with spaces or operators — leave
+        # $Ident or $Ident$ simple — escape to prevent broken math
+        def repl(m: re.Match) -> str:
+            return "\\$" + m.group(1)
+
+        # $FOO or $FOO rest where FOO is identifier — but not $$
+        region = re.sub(r"(?<!\\)\$(?!\$)([A-Za-z_][A-Za-z0-9_]*)", repl, region)
+        return region
+
+    for kind, content in parts:
+        if kind == "fence":
+            out.append(content)
+        else:
+            out.append(esc(content))
+    return "".join(out)
+
+
+def preprocess(text: str, assets_dir: Path, stem: str, escape_dollars: bool = True) -> str:
+    # Normalize newlines
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    # Mermaid first (uses fences)
+    text = process_mermaid(text, assets_dir, stem)
+    # Protect box art + Tcl in plain regions
+    text = protect_text_region(text)
+    if escape_dollars:
+        text = escape_risky_dollars_outside_fences(text)
+    # Ensure file ends with newline
+    if not text.endswith("\n"):
+        text += "\n"
+    return text
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Preprocess Markdown for aic")
+    ap.add_argument("input", type=Path)
+    ap.add_argument("-o", "--output", type=Path, required=True)
+    ap.add_argument("--assets-dir", type=Path, default=None)
+    ap.add_argument("--no-escape-dollars", action="store_true")
+    args = ap.parse_args()
+
+    src = args.input.read_text(encoding="utf-8", errors="replace")
+    stem = args.input.stem
+    assets = args.assets_dir or args.output.parent
+    assets.mkdir(parents=True, exist_ok=True)
+
+    dst = preprocess(src, assets, stem, escape_dollars=not args.no_escape_dollars)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(dst, encoding="utf-8")
+    print(f"→ preprocessed: {args.output}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

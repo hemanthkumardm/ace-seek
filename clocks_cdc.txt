@@ -1,0 +1,96 @@
+Difference: CLOCKS_COMPLETE_USER_GUIDE vs CDC_USER_GUIDE
+
+They overlap a little, but they answer different questions.
+
+───
+
+One-line difference
+
+┌───────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Doc                           │ One-line focus                                                                                  │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CLOCKS_COMPLETE_USER_GUIDE.md │ Everything about defining and constraining clocks (any design, single- or multi-clock)          │
+├───────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CDC_USER_GUIDE.md             │ How data safely crosses between different clock domains (architecture, RTL, SDC for async, lab) │
+└───────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+───
+
+Side-by-side
+
+┌───────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────┐
+│               │ Clocks guide                                                                                                    │ CDC guide                                           │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ Main problem  │ “How do I model this clock in STA/SDC?”                                                                         │ “How do I cross from clk_a to clk_b safely?”        │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ Core topics   │ create_clock, generated clocks (-divide_by / -multiply_by / -edges), latency, uncertainty, transition, ideal vs │ Metastability, 2FF, pulse sync, handshake, FIFO,    │
+│               │ propagated, virtual clocks, mux clocks                                                                          │ bad multi-bit CDC                                   │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ set_clock_    │ Full flag manual (async / exclusive / allow_paths, why each)                                                    │ Used as CDC SDC tool; points to clocks guide for    │
+│ groups        │                                                                                                                 │ depth                                               │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ RTL           │ Little / none (except mux/div examples)                                                                         │ How to write sync modules + lab RTL                 │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ SDC           │ All clock constraints                                                                                           │ CDC-oriented SDC (async groups, per-clock I/O       │
+│               │                                                                                                                 │ delays)                                             │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ Checking      │ report_clocks, generated clocks, sink counts                                                                    │ Path launch/capture clocks, A→B timing,             │
+│               │                                                                                                                 │ unconstrained                                       │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ Lab           │ pad_top single clock, cdc examples for dual root                                                                │ cdc_lab (cdc_top)                                   │
+├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────┤
+│ Not the focus │ Synchronizer design, reconvergence                                                                              │ PLL edge math, every latency attr                   │
+└───────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────┘
+
+───
+
+How they relate
+
+Clocks guide          CDC guide
+─────────────         ─────────
+Define CLK_A, CLK_B
+  divide/multiply
+  uncertainty
+        │
+        ▼
+set_clock_groups -asynchronous   ← both mention; clocks doc is deeper on flags
+        │
+        ▼
+                 RTL 2FF / handshake / FIFO
+                 CDC matrix, lint, sim
+
+• Clocks guide = clock objects and relationships for STA.
+• CDC guide = data paths between those objects when they are async.
+
+───
+
+When to open which
+
+┌───────────────────────────────────────────┬────────────────────────────────────────────────────────────────┐
+│ You want to…                              │ Open                                                           │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Model /2 or PLL ×4                        │ Clocks                                                         │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Know -divide_by vs -multiply_by vs -edges │ Clocks                                                         │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Know why -asynchronous vs exclusive       │ Clocks §22 (and short form in CDC)                             │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Write a 2FF or handshake                  │ CDC                                                            │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Write a multi-clock CDC SDC file          │ CDC §7 (lab cdc_top.sdc)                                       │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Check which clock is on a timing path     │ Both (CDC §9 is path-focused; clocks §13–14 inventory-focused) │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Single-clock pad_top only                 │ Clocks (enough); CDC optional                                  │
+├───────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+│ Multi-clock / CDC lab                     │ CDC first, Clocks for groups/generated depth                   │
+└───────────────────────────────────────────┴────────────────────────────────────────────────────────────────┘
+
+───
+
+Practical rule
+
+1. One clock or related clocks (div/PLL) → start with CLOCKS_COMPLETE_USER_GUIDE.md.
+2. Two+ unrelated clocks and data between them → CDC_USER_GUIDE.md, and use the clocks guide when you need generated clocks or full set_clock_groups options.
+
+They are complements, not duplicates. After the merge, CDC is one file; clocks stay separate because generated clocks / latency / duty apply even when you have no CDC.
