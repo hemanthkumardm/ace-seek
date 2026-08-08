@@ -19,6 +19,11 @@ services:
       AIC_ROOT: /app
       AIC_FORCE_LOCAL: "1"
       AIC_BACKEND_DEFAULT: local
+      # Public URLs (also set as build-args in Dockerfile.web)
+      NEXT_PUBLIC_SITE_URL: https://ace-seek.com
+      NEXT_PUBLIC_DOC_URL: https://doc.ace-seek.com
+      NEXT_PUBLIC_TIMING_URL: https://timing.ace-seek.com
+      NEXT_PUBLIC_SCRIPTS_URL: https://scripts.ace-seek.com
       # Keep job/temp files inside a volume (survives restarts, not lost in container overlay)
       TMPDIR: /tmp/aic
     volumes:

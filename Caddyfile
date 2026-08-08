@@ -1,3 +1,24 @@
+# Ace-Seek — apex command center + product micro-SaaS subdomains
+# All hosts reverse-proxy the same Next.js app; middleware rewrites by Host.
+
 ace-seek.com, www.ace-seek.com {
-    reverse_proxy aic-web:3000
+	reverse_proxy aic-web:3000
+}
+
+# Product apps
+doc.ace-seek.com {
+	reverse_proxy aic-web:3000
+}
+
+timing.ace-seek.com {
+	reverse_proxy aic-web:3000
+}
+
+scripts.ace-seek.com {
+	reverse_proxy aic-web:3000
+}
+
+# Legacy tools hub (optional)
+tools.ace-seek.com {
+	reverse_proxy aic-web:3000
 }

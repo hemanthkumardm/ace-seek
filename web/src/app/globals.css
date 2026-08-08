@@ -6,118 +6,388 @@
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
-  --accent: #cdff00; /* Neon yellow/green */
-  --accent2: #ff00ff; /* Neon pink */
-  --border-color: #000000;
+  /* Skeuomorphic Dark Carbon Palette (Default & Dark) */
+  --bg-main: #0c0f14;
+  --bg-subtle: #11151c;
+  --surface-panel: #161b24;
+  --surface-raised: #1c222e;
+  --surface-recessed: #0a0d12;
+  
+  --foreground: #f1f5f9;
+  --muted: #8b99ad;
+  --muted-dark: #4b5563;
+  
+  --border-light: rgba(255, 255, 255, 0.12);
+  --border-dark: rgba(0, 0, 0, 0.6);
+  --bevel-highlight: rgba(255, 255, 255, 0.18);
+  --bevel-shadow: rgba(0, 0, 0, 0.5);
+
+  --accent-cyan: #06b6d4;
+  --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+  --accent-blue: #3b82f6;
+  --accent-purple: #8b5cf6;
+
+  --led-green: #10b981;
+  --led-green-glow: rgba(16, 185, 129, 0.6);
+  --led-amber: #f59e0b;
+  --led-amber-glow: rgba(245, 158, 11, 0.6);
+  --led-red: #ef4444;
+  
+  /* Tactical Skeuomorphic Multi-layer Shadows */
+  --shadow-panel: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 
+                  0 2px 4px rgba(0, 0, 0, 0.4), 
+                  inset 0 1px 0 rgba(255, 255, 255, 0.12);
+                  
+  --shadow-btn-3d: 0 4px 0 #0d1117, 
+                   0 6px 12px rgba(0, 0, 0, 0.4), 
+                   inset 0 1px 0 rgba(255, 255, 255, 0.25);
+                   
+  --shadow-btn-pressed: 0 1px 0 #0d1117, 
+                        0 2px 4px rgba(0, 0, 0, 0.3), 
+                        inset 0 2px 5px rgba(0, 0, 0, 0.5);
+                        
+  --shadow-recessed: inset 0 2px 6px rgba(0, 0, 0, 0.6), 
+                     inset 0 0 2px rgba(0, 0, 0, 0.8), 
+                     0 1px 0 rgba(255, 255, 255, 0.08);
+
+  --shadow-led-green: 0 0 10px var(--led-green-glow), 0 0 4px var(--led-green), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  --shadow-led-amber: 0 0 10px var(--led-amber-glow), 0 0 4px var(--led-amber), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  --shadow-led-cyan: 0 0 12px var(--accent-cyan-glow), 0 0 4px var(--accent-cyan), inset 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #000000;
-    --foreground: #ffffff;
-    --border-color: #ffffff;
+    --bg-main: #e2e8f0;
+    --bg-subtle: #cbd5e1;
+    --surface-panel: #f1f5f9;
+    --surface-raised: #ffffff;
+    --surface-recessed: #d1d5db;
+    
+    --foreground: #0f172a;
+    --muted: #475569;
+    --muted-dark: #94a3b8;
+    
+    --border-light: rgba(255, 255, 255, 0.9);
+    --border-dark: rgba(0, 0, 0, 0.15);
+    --bevel-highlight: rgba(255, 255, 255, 1);
+    --bevel-shadow: rgba(0, 0, 0, 0.15);
+
+    --shadow-panel: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+                    0 2px 4px rgba(0, 0, 0, 0.06), 
+                    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                    
+    --shadow-btn-3d: 0 4px 0 #94a3b8, 
+                     0 6px 12px rgba(0, 0, 0, 0.12), 
+                     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+                     
+    --shadow-btn-pressed: 0 1px 0 #94a3b8, 
+                          0 2px 4px rgba(0, 0, 0, 0.1), 
+                          inset 0 2px 4px rgba(0, 0, 0, 0.2);
+                          
+    --shadow-recessed: inset 0 2px 5px rgba(0, 0, 0, 0.15), 
+                       0 1px 0 rgba(255, 255, 255, 0.8);
   }
 }
 
+* {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-mono), monospace;
   margin: 0;
   padding: 0;
-  overflow-x: hidden;
-}
-
-/* Brutalist Utilities */
-.brutal-border {
-  border: 3px solid var(--border-color);
-}
-
-.brutal-shadow {
-  box-shadow: 6px 6px 0px 0px var(--border-color);
-  transition: all 0.1s ease-in-out;
-}
-
-.brutal-shadow:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 8px 8px 0px 0px var(--border-color);
-}
-
-.brutal-shadow:active:not(:disabled) {
-  transform: translate(4px, 4px);
-  box-shadow: 2px 2px 0px 0px var(--border-color);
-}
-
-.brutal-input {
-  background: var(--background);
+  min-height: 100%;
+  background-color: var(--bg-main);
   color: var(--foreground);
-  border: 3px solid var(--border-color);
-  padding: 0.75rem;
-  font-family: var(--font-mono);
-  outline: none;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.brutal-input:focus {
-  background: var(--accent);
-  color: #000;
-  border-color: #000;
+/* Background Subtle Metallic Grid Pattern */
+body {
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.07) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 24px 24px, 24px 24px;
 }
 
-.brutal-btn {
-  background: var(--accent);
-  color: #000;
-  border: 3px solid #000;
-  padding: 0.75rem 1.5rem;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Shell & Container Utilities */
+.m-shell {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.m-mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ----------------------------------------------------
+   SKEUOMORPHIC UI COMPONENTS & PRIMITIVES
+---------------------------------------------------- */
+
+/* Convex Physical Panel Card */
+.sk-panel {
+  background: linear-gradient(145deg, var(--surface-raised), var(--surface-panel));
+  border-top: 1px solid var(--bevel-highlight);
+  border-left: 1px solid var(--bevel-highlight);
+  border-bottom: 1px solid var(--bevel-shadow);
+  border-right: 1px solid var(--bevel-shadow);
+  border-radius: 0.875rem;
+  box-shadow: var(--shadow-panel);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sk-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  transform: skewX(-25deg);
+  transition: left 0.75s ease;
+}
+
+.sk-panel:hover::before {
+  left: 200%;
+}
+
+.sk-panel-interactive:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 35px -5px rgba(0, 0, 0, 0.6), 
+              0 4px 8px rgba(0, 0, 0, 0.4), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(6, 182, 212, 0.35);
+}
+
+/* Recessed Inset Panel (Wells, Terminal, Displays) */
+.sk-recessed {
+  background: var(--surface-recessed);
+  border-top: 1px solid var(--bevel-shadow);
+  border-left: 1px solid var(--bevel-shadow);
+  border-bottom: 1px solid var(--bevel-highlight);
+  border-right: 1px solid var(--bevel-highlight);
+  box-shadow: var(--shadow-recessed);
+  border-radius: 0.625rem;
+}
+
+/* 3D Tactile Push Button */
+.sk-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-}
-
-.brutal-btn.secondary {
-  background: var(--background);
+  padding: 0.55rem 1.15rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface-panel) 100%);
+  border-top: 1px solid var(--bevel-highlight);
+  border-left: 1px solid var(--bevel-highlight);
+  border-bottom: 1px solid var(--bevel-shadow);
+  border-right: 1px solid var(--bevel-shadow);
+  box-shadow: var(--shadow-btn-3d);
   color: var(--foreground);
-  border-color: var(--border-color);
+  transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
 }
 
-.brutal-btn:disabled {
-  opacity: 0.5;
+.sk-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, var(--surface-raised) 0%, #202735 100%);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.sk-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: var(--shadow-btn-pressed);
+  background: var(--surface-recessed);
+}
+
+.sk-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none !important;
-  box-shadow: 4px 4px 0px 0px var(--border-color) !important;
+  box-shadow: none;
+  border: 1px solid var(--border-dark);
 }
 
-/* Ready-to-download state (avoid inline style={{undefined}} hydration issues) */
-.brutal-btn.download-ready {
-  background: var(--accent2);
-  color: #fff;
-  border-color: #000;
+/* 3D Primary Vibrant Button (Cyan Glow) */
+.sk-btn-primary {
+  background: linear-gradient(180deg, #06b6d4 0%, #0284c7 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid #0369a1;
+  border-right: 1px solid #0369a1;
+  box-shadow: 0 4px 0 #0369a1, 0 6px 14px rgba(6, 182, 212, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.brutal-marquee {
-  background: var(--border-color);
-  color: var(--background);
-  padding: 0.25rem 0;
-  overflow: hidden;
-  white-space: nowrap;
-  font-weight: bold;
+.sk-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #22d3ee 0%, #0284c7 100%);
+  box-shadow: 0 5px 0 #0369a1, 0 8px 18px rgba(6, 182, 212, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.sk-btn-primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #0369a1, inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: #0284c7;
+}
+
+/* Metallic Ghost Button */
+.sk-btn-ghost {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(0, 0, 0, 0.2) 100%);
+  border: 1px solid var(--border-light);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.sk-btn-ghost:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border-color: rgba(6, 182, 212, 0.4);
+}
+
+/* Recessed Inset Input Field */
+.sk-input {
+  background: var(--surface-recessed);
+  color: var(--foreground);
+  border-top: 1px solid rgba(0, 0, 0, 0.8);
+  border-left: 1px solid rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-recessed);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.sk-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 0 8px var(--accent-cyan-glow);
+}
+
+/* Physical LED Status Light Indicator */
+.sk-led {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.sk-led-green {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #10b981 50%, #047857 100%);
+  box-shadow: var(--shadow-led-green);
+  animation: pulse-led 2.5s infinite ease-in-out;
+}
+
+.sk-led-amber {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f59e0b 50%, #b45309 100%);
+  box-shadow: var(--shadow-led-amber);
+}
+
+.sk-led-cyan {
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #06b6d4 50%, #0e7490 100%);
+  box-shadow: var(--shadow-led-cyan);
+  animation: pulse-led 2s infinite ease-in-out;
+}
+
+/* Skeuomorphic Icon Well (Inset Frame for Icons) */
+.sk-icon-well {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  background: linear-gradient(135deg, var(--surface-recessed) 0%, var(--surface-panel) 100%);
+  border-top: 1px solid rgba(0, 0, 0, 0.6);
+  border-left: 1px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+  color: var(--accent-cyan);
+}
+
+/* Metallic Badge Chip */
+.sk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface-recessed) 100%);
+  border-top: 1px solid var(--bevel-highlight);
+  border-bottom: 1px solid var(--bevel-shadow);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--muted);
 }
 
-/* Scrollbar */
+.sk-badge-live {
+  color: #10b981;
+  border-top-color: rgba(16, 185, 129, 0.4);
+}
+
+/* Hardware Display Screen (LCD look for technical data) */
+.sk-lcd {
+  background: #091210;
+  color: #34d399;
+  font-family: var(--font-mono), monospace;
+  border: 2px solid #132e27;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.9), 0 0 6px rgba(52, 211, 153, 0.15);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  text-shadow: 0 0 5px rgba(52, 211, 153, 0.7);
+}
+
+/* Animations */
+@keyframes pulse-led {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.8)); }
+  50% { opacity: 0.65; filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.3)); }
+}
+
+@keyframes sweep-shine {
+  0% { transform: translateX(-100%) skewX(-20deg); }
+  100% { transform: translateX(200%) skewX(-20deg); }
+}
+
+/* Quiet Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 9px;
+  height: 9px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
-  border-left: 2px solid var(--border-color);
+  background: var(--surface-recessed);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-color);
+  background: linear-gradient(180deg, #2a3342, #181e28);
+  border-radius: 4.5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
