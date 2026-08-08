@@ -438,13 +438,13 @@ export default function MdToPdfPage() {
         </div>
       </div>
 
-      {/* Control Console Toolbar */}
-      <div className="shrink-0 border-b border-[var(--bevel-shadow)] px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-panel)] shadow-inner">
-        <div className="flex flex-wrap items-center gap-3 text-xs">
+      {/* Neo-Brutalist Control Console Toolbar */}
+      <div className="shrink-0 border-b-3 border-black px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-panel)] shadow-[0_4px_0_#000000]">
+        <div className="flex flex-wrap items-center gap-3 text-xs font-black">
           <label className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Backend:</span>
+            <span className="text-[11px] uppercase tracking-wider text-white">Backend:</span>
             <select
-              className="sk-input text-xs"
+              className="brutal-input text-xs !py-1 !px-2"
               value={backend}
               onChange={(e) => setBackend(e.target.value)}
             >
@@ -455,9 +455,9 @@ export default function MdToPdfPage() {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Engine:</span>
+            <span className="text-[11px] uppercase tracking-wider text-white">Engine:</span>
             <select
-              className="sk-input text-xs"
+              className="brutal-input text-xs !py-1 !px-2"
               value={engine}
               onChange={(e) => setEngine(e.target.value)}
               disabled={format === "docx"}
@@ -471,9 +471,9 @@ export default function MdToPdfPage() {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">Format:</span>
+            <span className="text-[11px] uppercase tracking-wider text-white">Format:</span>
             <select
-              className="sk-input text-xs"
+              className="brutal-input text-xs !py-1 !px-2"
               value={format}
               onChange={(e) => {
                 setFormat(e.target.value);
@@ -492,9 +492,9 @@ export default function MdToPdfPage() {
           </label>
 
           <label className="flex items-center gap-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">File:</span>
+            <span className="text-[11px] uppercase tracking-wider text-white">File:</span>
             <input
-              className="sk-input w-28 text-xs"
+              className="brutal-input w-28 text-xs !py-1 !px-2"
               value={filename}
               onChange={(e) => setFilename(e.target.value)}
             />
@@ -511,7 +511,7 @@ export default function MdToPdfPage() {
           />
           <button
             type="button"
-            className="sk-btn sk-btn-ghost !text-xs !py-1.5"
+            className="brutal-btn !text-xs !py-1.5 !px-3 font-black"
             onClick={() => fileInputRef.current?.click()}
             disabled={isCompiling}
           >
@@ -521,19 +521,17 @@ export default function MdToPdfPage() {
 
           <button
             type="button"
-            className="sk-btn sk-btn-primary !text-xs !py-1.5"
+            className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-4 font-black"
             onClick={() => void compileDocument()}
             disabled={isCompiling || markdown.trim().length === 0}
           >
-            <Play className="w-3.5 h-3.5 fill-white" />
+            <Play className="w-3.5 h-3.5 fill-black" />
             <span>{isCompiling ? `Compiling (${elapsed}s)` : "Compile"}</span>
           </button>
 
           <button
             type="button"
-            className={`sk-btn !text-xs !py-1.5 ${
-              hasPreview ? "sk-btn-primary" : "sk-btn-ghost"
-            }`}
+            className="brutal-btn brutal-btn-cyan !text-xs !py-1.5 !px-3 font-black"
             onClick={downloadPreview}
             disabled={downloadDisabled}
           >
@@ -543,39 +541,39 @@ export default function MdToPdfPage() {
         </div>
       </div>
 
-      {/* Status Bar */}
-      <div className="shrink-0 px-4 py-2 text-[11px] font-mono text-[var(--muted)] border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] flex items-center justify-between">
+      {/* Neo-Brutalist Status Bar */}
+      <div className="shrink-0 px-4 py-2 text-[11px] font-mono font-black text-[var(--brutal-yellow)] border-b-3 border-black bg-[var(--surface-recessed)] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span suppressHydrationWarning>{sizeLabel()} · {markdown.length} chars</span>
           {previewStale && hasPreview ? (
-            <span className="text-[var(--led-amber)] font-bold flex items-center gap-1">
-              <span className="sk-led sk-led-amber" /> Outdated Preview
+            <span className="brutal-badge brutal-badge-pink">
+              ● OUTDATED PREVIEW
             </span>
           ) : null}
           {statusMsg && !errorMsg ? <span>{statusMsg}</span> : null}
         </div>
 
         {errorMsg ? (
-          <span className="text-[var(--led-red)] font-bold truncate max-w-md" title={errorMsg}>
+          <span className="text-rose-400 font-black truncate max-w-md" title={errorMsg}>
             ERR: {errorMsg.split("\n")[0]}
           </span>
         ) : null}
       </div>
 
       {/* Main Split Console: Editor & Preview */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden font-mono">
         {/* Left Side: Markdown Source Editor */}
-        <div className="flex-1 flex flex-col min-h-0 min-w-0 border-b lg:border-b-0 lg:border-r border-[var(--bevel-shadow)]">
-          <div className="px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[var(--muted)] border-b border-[var(--bevel-shadow)] bg-[var(--surface-raised)] flex justify-between items-center">
+        <div className="flex-1 flex flex-col min-h-0 min-w-0 border-b-3 lg:border-b-0 lg:border-r-3 border-black">
+          <div className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white border-b-3 border-black bg-[var(--surface-panel)] flex justify-between items-center">
             <span className="flex items-center gap-1.5">
-              <Terminal className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+              <Terminal className="w-3.5 h-3.5 text-[var(--brutal-yellow)]" />
               <span>MARKDOWN SOURCE EDITOR</span>
             </span>
-            <span className="sk-badge text-[9px]">TCL / MATH READY</span>
+            <span className="brutal-badge brutal-badge-lime text-[9px]">TEX / MATH READY</span>
           </div>
 
           <textarea
-            className="flex-1 w-full p-4 font-mono text-xs leading-relaxed resize-none outline-none bg-[var(--surface-recessed)] text-[var(--foreground)] min-h-[40vh] lg:min-h-0"
+            className="flex-1 w-full p-4 font-mono text-xs leading-relaxed resize-none outline-none bg-black text-[var(--brutal-lime)] min-h-[40vh] lg:min-h-0 font-semibold"
             value={markdown}
             onChange={(e) => setMarkdown(e.target.value)}
             spellCheck={false}
@@ -585,23 +583,23 @@ export default function MdToPdfPage() {
 
         {/* Right Side: PDF Preview Screen */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 bg-[var(--surface-panel)]">
-          <div className="px-4 py-2 text-[10px] font-mono uppercase tracking-wider text-[var(--muted)] border-b border-[var(--bevel-shadow)] bg-[var(--surface-raised)] flex justify-between items-center">
+          <div className="px-4 py-2 text-[10px] font-black uppercase tracking-wider text-white border-b-3 border-black bg-[var(--surface-panel)] flex justify-between items-center">
             <span className="flex items-center gap-1.5">
-              <Cpu className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+              <Cpu className="w-3.5 h-3.5 text-[var(--brutal-cyan)]" />
               <span>DOCUMENT OUTPUT PREVIEW ({format.toUpperCase()})</span>
             </span>
             {isCompiling && (
-              <span className="text-[var(--accent-cyan)] animate-pulse font-bold">
+              <span className="text-[var(--brutal-yellow)] animate-pulse font-black">
                 RENDERING...
               </span>
             )}
           </div>
 
-          <div className="flex-1 min-h-[40vh] lg:min-h-0 relative bg-[#090d12]">
+          <div className="flex-1 min-h-[40vh] lg:min-h-0 relative bg-black">
             {errorMsg && (
-              <div className="absolute inset-0 z-10 overflow-auto p-6 bg-[#180909] text-red-300 font-mono text-xs whitespace-pre-wrap border-2 border-red-900">
-                <p className="font-bold text-sm mb-3 text-red-100 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-400" />
+              <div className="absolute inset-0 z-10 overflow-auto p-6 bg-rose-950 text-rose-200 font-mono text-xs whitespace-pre-wrap border-3 border-black font-bold">
+                <p className="font-black text-sm mb-3 text-white flex items-center gap-2 uppercase">
+                  <AlertCircle className="w-4 h-4 text-rose-400" />
                   <span>Compilation Error Detected</span>
                 </p>
                 {errorMsg}
@@ -610,12 +608,12 @@ export default function MdToPdfPage() {
 
             {!previewUrl && !isCompiling && !errorMsg && (
               <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
-                <div className="sk-panel p-8 max-w-xs space-y-3">
-                  <div className="sk-icon-well mx-auto w-10 h-10">
-                    <FileText className="w-5 h-5 text-[var(--accent-cyan)]" />
+                <div className="brutal-panel p-8 max-w-xs space-y-3 bg-[var(--surface-panel)] border-3 border-black shadow-[6px_6px_0_#000000]">
+                  <div className="w-10 h-10 rounded-md bg-[var(--brutal-yellow)] border-2 border-black flex items-center justify-center text-black mx-auto">
+                    <FileText className="w-5 h-5" />
                   </div>
-                  <p className="text-sm font-bold text-[var(--foreground)]">No Preview Loaded</p>
-                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  <p className="text-sm font-black text-white uppercase">No Preview Loaded</p>
+                  <p className="text-xs text-slate-300 font-bold leading-relaxed">
                     Enter Markdown markup on the left panel and hit Compile to build the document preview.
                   </p>
                 </div>
@@ -624,7 +622,7 @@ export default function MdToPdfPage() {
 
             {isCompiling && !previewUrl && (
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="sk-lcd p-6 text-center space-y-2">
+                <div className="brutal-lcd p-6 text-center space-y-2 font-black">
                   <div className="font-mono text-xs animate-pulse">
                     COMPILING PDF DOCUMENT... {elapsed}s
                   </div>
