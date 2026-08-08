@@ -32,7 +32,16 @@
   --led-amber: #f59e0b;
   --led-amber-glow: rgba(245, 158, 11, 0.6);
   --led-red: #ef4444;
-  
+
+  /* Neo-Brutalism Color Accents */
+  --brutal-yellow: #fde047;
+  --brutal-cyan: #22d3ee;
+  --brutal-pink: #f43f5e;
+  --brutal-lime: #a3e635;
+  --brutal-purple: #c084fc;
+  --brutal-orange: #fb923c;
+  --brutal-black: #000000;
+
   /* Tactical Skeuomorphic Multi-layer Shadows */
   --shadow-panel: 0 10px 30px -5px rgba(0, 0, 0, 0.5), 
                   0 2px 4px rgba(0, 0, 0, 0.4), 
@@ -128,6 +137,142 @@ a {
 
 .m-mono {
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+/* ----------------------------------------------------
+   NEO-BRUTALISM UI PRIMITIVES & DESIGN TOKENS
+---------------------------------------------------- */
+
+/* Hard Neo-Brutalist Panel Container */
+.brutal-panel {
+  background: var(--surface-panel);
+  border: 3px solid #000000;
+  box-shadow: 5px 5px 0px #000000;
+  border-radius: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.brutal-panel-interactive:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 8px 8px 0px #000000;
+  border-color: #000000;
+}
+
+/* Neo-Brutalist Button Base */
+.brutal-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1.15rem;
+  font-size: 0.8125rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  user-select: none;
+  background: #ffffff;
+  color: #000000;
+  border: 3px solid #000000;
+  box-shadow: 4px 4px 0px #000000;
+  transition: all 0.1s ease-in-out;
+}
+
+.brutal-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #000000;
+}
+
+.brutal-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #000000;
+}
+
+/* Pop Color Button Variants */
+.brutal-btn-yellow {
+  background: var(--brutal-yellow);
+  color: #000000;
+}
+
+.brutal-btn-cyan {
+  background: var(--brutal-cyan);
+  color: #000000;
+}
+
+.brutal-btn-pink {
+  background: var(--brutal-pink);
+  color: #ffffff;
+}
+
+.brutal-btn-lime {
+  background: var(--brutal-lime);
+  color: #000000;
+}
+
+/* Hard Outline Input Box */
+.brutal-input {
+  background: var(--surface-recessed);
+  color: var(--foreground);
+  border: 3px solid #000000;
+  box-shadow: 3px 3px 0px #000000;
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.brutal-input:focus {
+  background: #000000;
+  color: var(--brutal-yellow);
+  border-color: var(--brutal-yellow);
+  box-shadow: 4px 4px 0px var(--brutal-yellow);
+}
+
+/* Raw Neo-Brutalist Badge */
+.brutal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 0.25rem;
+  background: var(--brutal-yellow);
+  color: #000000;
+  border: 2px solid #000000;
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.brutal-badge-cyan {
+  background: var(--brutal-cyan);
+}
+
+.brutal-badge-pink {
+  background: var(--brutal-pink);
+  color: #ffffff;
+}
+
+.brutal-badge-lime {
+  background: var(--brutal-lime);
+}
+
+/* High Contrast LCD Screen */
+.brutal-lcd {
+  background: #000000;
+  color: var(--brutal-lime);
+  font-family: var(--font-mono), monospace;
+  border: 3px solid var(--brutal-lime);
+  box-shadow: 4px 4px 0px #000000;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
 }
 
 /* ----------------------------------------------------

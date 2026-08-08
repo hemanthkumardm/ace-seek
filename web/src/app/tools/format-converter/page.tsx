@@ -34,33 +34,33 @@ export default function FormatConverterPage() {
   };
 
   return (
-    <div className="m-shell py-8 md:py-12 space-y-8">
-      <div className="flex items-center justify-between border-b border-[var(--bevel-shadow)] pb-4">
+    <div className="m-shell py-8 md:py-12 space-y-8 font-mono">
+      <div className="flex items-center justify-between border-b-4 border-black pb-4">
         <div className="flex items-center gap-3">
-          <div className="sk-icon-well">
-            <RefreshCw className="w-5 h-5 text-[var(--accent-cyan)]" />
+          <div className="w-10 h-10 rounded-md bg-[var(--brutal-pink)] border-2 border-black flex items-center justify-center text-white">
+            <RefreshCw className="w-5 h-5" />
           </div>
           <div>
-            <span className="font-mono text-xs text-[var(--accent-cyan)] font-bold">
+            <span className="font-mono text-xs text-[var(--brutal-pink)] font-black uppercase">
               TOOLS.ACE-SEEK.COM / FORMAT-CONVERTER
             </span>
-            <h1 className="text-xl font-bold">Multi-Format Data & Syntax Converter Suite</h1>
+            <h1 className="text-xl font-black uppercase text-white">Multi-Format Data & Syntax Converter Suite</h1>
           </div>
         </div>
-        <a href="/tools" className="sk-btn sk-btn-ghost !text-xs">
-          <ArrowLeft className="w-3.5 h-3.5" />
+        <a href="/tools" className="brutal-btn !text-xs font-black">
+          <ArrowLeft className="w-4 h-4" />
           <span>Tools Catalog</span>
         </a>
       </div>
 
       {/* Converter Control Bar */}
-      <div className="sk-panel p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="brutal-panel p-4 flex flex-wrap items-center justify-between gap-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
         <div className="flex items-center gap-3 text-xs">
-          <span className="font-bold uppercase text-[var(--muted)]">Conversion Mode:</span>
+          <span className="font-black uppercase text-white">Conversion Mode:</span>
           <select
             value={conversionType}
             onChange={(e) => setConversionType(e.target.value as any)}
-            className="sk-input text-xs"
+            className="brutal-input text-xs"
           >
             <option value="json-yaml">JSON → YAML</option>
             <option value="base64-encode">Base64 Encode</option>
@@ -68,37 +68,37 @@ export default function FormatConverterPage() {
           </select>
         </div>
 
-        <button type="button" onClick={handleConvert} className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-5">
-          <RefreshCw className="w-3.5 h-3.5" />
+        <button type="button" onClick={handleConvert} className="brutal-btn brutal-btn-pink !text-xs !py-1.5 !px-5 font-black">
+          <RefreshCw className="w-4 h-4" />
           <span>Convert Now</span>
         </button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Input Field */}
-        <div className="sk-panel p-6 space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted)] block border-b border-[var(--bevel-shadow)] pb-2">Input Source Data</span>
+        <div className="brutal-panel p-6 space-y-3 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
+          <span className="text-xs font-black uppercase text-white border-b-2 border-black pb-2 block">Input Source Data</span>
           <textarea
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
-            className="sk-input w-full h-64 font-mono text-xs p-3 leading-relaxed"
+            className="brutal-input w-full h-64 text-xs p-3 leading-relaxed"
             placeholder="Paste source data..."
           />
         </div>
 
         {/* Output Field */}
-        <div className="sk-panel p-6 space-y-3">
-          <div className="flex items-center justify-between border-b border-[var(--bevel-shadow)] pb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">Converted Result</span>
-            <button type="button" onClick={handleCopy} className="sk-btn sk-btn-ghost !text-xs !py-1 !px-2">
-              {copied ? <Check className="w-3 h-3 text-[#10b981]" /> : <Copy className="w-3 h-3" />}
+        <div className="brutal-panel p-6 space-y-3 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
+          <div className="flex items-center justify-between border-b-2 border-black pb-2">
+            <span className="text-xs font-black uppercase text-[var(--brutal-pink)]">Converted Result</span>
+            <button type="button" onClick={handleCopy} className="brutal-btn brutal-btn-yellow !text-xs !py-1 !px-2 font-black">
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copied ? "Copied" : "Copy"}</span>
             </button>
           </div>
           <textarea
             readOnly
             value={outputVal}
-            className="sk-input w-full h-64 font-mono text-xs p-3 leading-relaxed bg-[var(--surface-recessed)]"
+            className="brutal-input w-full h-64 text-xs p-3 leading-relaxed bg-black text-[var(--brutal-lime)] font-mono"
           />
         </div>
       </div>

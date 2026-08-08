@@ -393,19 +393,19 @@ export default function MdToPdfPage() {
   const canPreviewInline = format === "pdf";
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 h-[calc(100dvh-4rem)] bg-[var(--surface-panel)]">
-      {/* Instrument Header Bar */}
-      <div className="shrink-0 border-b border-[var(--bevel-shadow)] px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-raised)] shadow-sm">
+    <div className="flex-1 flex flex-col min-h-0 h-[calc(100dvh-4rem)] bg-[var(--surface-panel)] font-mono">
+      {/* Neo-Brutalist Instrument Header Bar */}
+      <div className="shrink-0 border-b-3 border-black px-4 py-3 flex flex-wrap items-center justify-between gap-3 bg-[var(--surface-panel)] shadow-[0_4px_0_#000000]">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="sk-icon-well w-8 h-8">
-            <FileText className="w-4 h-4 text-[var(--accent-cyan)]" />
+          <div className="w-8 h-8 rounded-md bg-[var(--brutal-yellow)] border-2 border-black flex items-center justify-center text-black">
+            <FileText className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-tight text-[var(--foreground)]">
+            <h1 className="text-sm font-black tracking-tight text-white uppercase">
               Markdown → PDF Compiler Workstation
             </h1>
-            <p className="text-[10px] font-mono text-[var(--muted)]">
-              doc.ace-seek.com · Engine v2.3
+            <p className="text-[10px] font-black text-[var(--brutal-yellow)]">
+              DOC.ACE-SEEK.COM · ENGINE V2.3
             </p>
           </div>
         </div>
@@ -413,26 +413,26 @@ export default function MdToPdfPage() {
         <div className="flex flex-wrap items-center gap-3 text-xs font-mono">
           {/* API Key Authorization Input Form */}
           <form onSubmit={handleActivateApiKey} className="flex items-center gap-1.5">
-            <span className="text-[10px] uppercase font-bold text-[var(--muted)]">API Key:</span>
+            <span className="text-[10px] uppercase font-black text-white">API Key:</span>
             <input
               type="password"
               placeholder="Paste Key from ace-seek.com"
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
-              className="sk-input text-[11px] !py-1 !px-2 w-48 font-mono"
+              className="brutal-input text-[11px] !py-1 !px-2 w-48 font-mono"
             />
-            <button type="submit" className="sk-btn sk-btn-primary !py-1 !px-2 text-[10px]">
+            <button type="submit" className="brutal-btn brutal-btn-yellow !py-1 !px-2 text-[10px] font-black">
               <span>{isProActive ? "Active" : "Activate"}</span>
             </button>
           </form>
 
           {isProActive ? (
-            <span className="sk-badge sk-badge-live" title="Pro License Active">
-              <span className="sk-led sk-led-green" /> PRO LICENSE
+            <span className="brutal-badge brutal-badge-lime" title="Pro License Active">
+              ● PRO LICENSE
             </span>
           ) : (
-            <span className="sk-badge" title="Free Mode - Paste API key from ace-seek.com">
-              <span className="sk-led sk-led-amber" /> FREE MODE
+            <span className="brutal-badge brutal-badge-cyan" title="Free Mode - Paste API key from ace-seek.com">
+              ● FREE MODE
             </span>
           )}
         </div>
