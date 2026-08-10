@@ -24,7 +24,13 @@ export type JobRecord = {
   logTail?: string;
 };
 
-const JOB_ROOT = path.join(os.tmpdir(), "aic-web-jobs");
+/**
+ * Job workspace must live under $HOME so Docker Desktop / Colima can mount it.
+ * macOS /var/folders (os.tmpdir) is NOT shared into Colima by default → empty mounts.
+ */
+const JOB_ROOT =
+  process.env.AIC_JOB_ROOT ||
+  path.join(os.homedir(), ".cache", "aic-web-jobs");
 
 function ensureJobRoot() {
   if (!existsSync(JOB_ROOT)) mkdirSync(JOB_ROOT, { recursive: true });
@@ -49,9 +55,22 @@ export function projectRoot(): string {
 
 export function enrichedPath(): string {
   const home = process.env.HOME || os.homedir();
-  const extra = path.join(home, ".local/bin");
-  const cur = process.env.PATH || "";
-  return cur.includes(extra) ? cur : `${extra}:${cur}`;
+  // macOS Homebrew + common user bins — Next may start without a full shell PATH
+  const extras = [
+    path.join(home, ".local/bin"),
+    path.join(home, "Library/Python/3.9/bin"),
+    path.join(home, "Library/Python/3.11/bin"),
+    path.join(home, "Library/Python/3.12/bin"),
+    "/opt/homebrew/bin",
+    "/opt/homebrew/sbin",
+    "/usr/local/bin",
+  ];
+  const cur = process.env.PATH || "/usr/bin:/bin";
+  const parts = cur.split(path.delimiter).filter(Boolean);
+  for (const e of extras) {
+    if (existsSync(e) && !parts.includes(e)) parts.unshift(e);
+  }
+  return parts.join(path.delimiter);
 }
 
 export function which(bin: string): boolean {
@@ -228,7 +247,9 @@ async function runJob(
   if (process.env.AIC_FORCE_LOCAL === "1") {
     backend = "local";
   } else if (backend === "auto" && process.env.AIC_BACKEND_DEFAULT) {
-    // optional default override
+    // Local Mac dev: AIC_BACKEND_DEFAULT=docker (TeX only in container)
+    const def = process.env.AIC_BACKEND_DEFAULT.toLowerCase();
+    if (def === "docker" || def === "local") backend = def;
   }
 
   let engine = input.engine;

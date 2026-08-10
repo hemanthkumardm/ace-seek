@@ -4,14 +4,14 @@ import { NextRequest, NextResponse } from "next/server";
  * Host-based routing, Protected Dashboard Route & Auth Cookie validation:
  *
  *   ace-seek.com/dashboard -> Protected Route (Redirects unauthenticated users to /login)
- *   doc.ace-seek.com/*     -> /tools/md-to-pdf
+ *   doc.ace-seek.com/*     -> /tools/doc-compiler
  *   timing.ace-seek.com/*  -> /tools/sdc-calculator
  *   scripts.ace-seek.com/* -> /tools/script-helper
  *   tools.ace-seek.com/*   -> /tools/*
  */
 
 const HOST_APP_ROOT: Record<string, string> = {
-  doc: "/tools/md-to-pdf",
+  doc: "/tools/doc-compiler",
   diff: "/tools/diff-comparator",
   convert: "/tools/format-converter",
   sanitizer: "/tools/ai-sanitizer",

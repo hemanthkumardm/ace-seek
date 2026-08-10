@@ -1,130 +1,360 @@
 "use client";
 
-import React, { useState } from "react";
-import { Sparkles, Copy, Check, ArrowLeft } from "lucide-react";
-
-const TEMPLATES = [
-  { name: "Einstein Energy", tex: "E = mc^2" },
-  { name: "Quadratic Formula", tex: "x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" },
-  { name: "Clock Frequency Math", tex: "T_{clk} \\ge t_{cq} + t_{pd} + t_{su}" },
-  { name: "Summation Series", tex: "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}" },
-  { name: "Integral Calculus", tex: "\\int_{a}^{b} f(x) \\, dx = F(b) - F(a)" },
-];
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
+import {
+  Sparkles,
+  Copy,
+  Check,
+  Wand2,
+  Download,
+  Eraser,
+  AlertCircle,
+} from "lucide-react";
+import {
+  MATH_TEMPLATES,
+  MathWrapMode,
+  SYMBOL_CHIPS,
+  WRAP_MODES,
+  normalizeTex,
+  templateCategories,
+  wrapTex,
+} from "@/lib/tex-math";
 
 export default function TexFormatterPage() {
-  const [inputTex, setInputTex] = useState("E = mc^2");
-  const [isDisplayMode, setIsDisplayMode] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [tex, setTex] = useState("T_{clk} \\ge t_{cq} + t_{pd} + t_{su}");
+  const [wrapMode, setWrapMode] = useState<MathWrapMode>("display-dollar");
+  const [category, setCategory] = useState<string>("STA / VLSI");
+  const [copied, setCopied] = useState<"out" | "raw" | null>(null);
+  const [toast, setToast] = useState("");
+  const [renderError, setRenderError] = useState("");
+  const taRef = useRef<HTMLTextAreaElement>(null);
 
-  const formattedOutput = isDisplayMode
-    ? `$$\n${inputTex}\n$$`
-    : `$${inputTex}$`;
+  const categories = useMemo(() => templateCategories(), []);
+  const templates = useMemo(
+    () => MATH_TEMPLATES.filter((t) => t.category === category),
+    [category]
+  );
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(formattedOutput);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const cleanTex = useMemo(() => normalizeTex(tex), [tex]);
+  const formatted = useMemo(() => wrapTex(cleanTex, wrapMode), [cleanTex, wrapMode]);
+
+  const safePreviewHtml = useMemo(() => {
+    try {
+      return katex.renderToString(cleanTex || "\\ ", {
+        displayMode: wrapMode !== "inline-dollar" && wrapMode !== "inline-paren",
+        throwOnError: false,
+        strict: "ignore",
+        trust: false,
+        output: "html",
+      });
+    } catch {
+      return "";
+    }
+  }, [cleanTex, wrapMode]);
+
+  useEffect(() => {
+    try {
+      katex.renderToString(cleanTex || "\\ ", {
+        displayMode: true,
+        throwOnError: true,
+        strict: "ignore",
+      });
+      setRenderError("");
+    } catch (e: unknown) {
+      setRenderError(e instanceof Error ? e.message : String(e));
+    }
+  }, [cleanTex]);
+
+  const flash = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(""), 1800);
+  };
+
+  const insertAtCursor = useCallback((snippet: string) => {
+    const el = taRef.current;
+    if (!el) {
+      setTex((t) => t + snippet);
+      return;
+    }
+    const start = el.selectionStart ?? tex.length;
+    const end = el.selectionEnd ?? tex.length;
+    const next = tex.slice(0, start) + snippet + tex.slice(end);
+    setTex(next);
+    // restore caret after React update
+    requestAnimationFrame(() => {
+      el.focus();
+      const pos = start + snippet.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }, [tex]);
+
+  const copyText = async (text: string, which: "out" | "raw") => {
+    await navigator.clipboard.writeText(text);
+    setCopied(which);
+    flash(which === "out" ? "Formatted math copied" : "Raw TeX copied");
+    window.setTimeout(() => setCopied(null), 1600);
+  };
+
+  const downloadSnippet = () => {
+    const blob = new Blob([formatted + "\n"], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "formula.md";
+    a.click();
+    URL.revokeObjectURL(url);
+    flash("Downloaded formula.md");
   };
 
   return (
-    <div className="m-shell py-8 md:py-12 space-y-8 font-mono">
-      <div className="flex items-center justify-between border-b-4 border-black pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-md bg-[var(--brutal-yellow)] border-2 border-black flex items-center justify-center text-black">
-            <Sparkles className="w-5 h-5" />
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-[#f0f2f5] text-slate-800">
+      {/* Header */}
+      <header className="shrink-0 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-700 shrink-0">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-[15px] font-semibold text-slate-900">
+                LaTeX formula builder
+              </h1>
+              <p className="text-[11px] text-slate-400">
+                Live preview · templates · clean unicode · copy for Markdown
+              </p>
+            </div>
           </div>
-          <div>
-            <span className="font-mono text-xs text-[var(--brutal-yellow)] font-black uppercase">
-              TOOLS.ACE-SEEK.COM / TEX-BUILDER
-            </span>
-            <h1 className="text-xl font-black uppercase text-white">LaTeX Formula Builder & Math Formatter</h1>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setTex(normalizeTex(tex));
+                flash("Cleaned expression");
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Wand2 className="h-3.5 w-3.5" />
+              Clean
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyText(formatted, "out")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
+            >
+              {copied === "out" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {copied === "out" ? "Copied" : "Copy for MD"}
+            </button>
           </div>
         </div>
-        <a href="/tools" className="brutal-btn !text-xs font-black">
-          <ArrowLeft className="w-4 h-4" />
-          <span>Tools Catalog</span>
-        </a>
-      </div>
+      </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Left Side: Builder Console */}
-        <div className="brutal-panel p-6 space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
-          <div className="flex items-center justify-between border-b-2 border-black pb-3">
-            <span className="text-xs font-black uppercase text-white">
-              Equation Input & Templates
-            </span>
-            <span className="brutal-badge brutal-badge-cyan">TEX ENGINE</span>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold text-slate-300">Quick Formula Templates:</label>
-            <div className="flex flex-wrap gap-2">
-              {TEMPLATES.map((tmpl) => (
+      <div className="grid min-h-0 flex-1 gap-3 p-3 sm:p-4 lg:grid-cols-2">
+        {/* Left: editor */}
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
+          {/* Templates */}
+          <section className="shrink-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-800">Templates</p>
+              <div className="flex flex-wrap gap-1">
+                {categories.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCategory(c)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                      category === c
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {templates.map((t) => (
                 <button
-                  key={tmpl.name}
+                  key={t.name}
                   type="button"
-                  onClick={() => setInputTex(tmpl.tex)}
-                  className="brutal-btn !text-[11px] !py-1 !px-2 font-bold"
+                  onClick={() => {
+                    setTex(t.tex);
+                    flash(t.name);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 hover:border-amber-300 hover:bg-amber-50"
+                  title={t.tex}
                 >
-                  {tmpl.name}
+                  {t.name}
                 </button>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="space-y-1.5">
-            <label className="text-[11px] font-black uppercase text-slate-300">Raw TeX Expression:</label>
+          {/* Symbol chips */}
+          <section className="shrink-0 max-h-[28%] overflow-auto rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="mb-2 text-xs font-semibold text-slate-800">Insert symbols</p>
+            <div className="space-y-2">
+              {SYMBOL_CHIPS.map((g) => (
+                <div key={g.group}>
+                  <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                    {g.group}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {g.items.map((item) => (
+                      <button
+                        key={item.label + item.insert}
+                        type="button"
+                        title={item.title || item.insert}
+                        onClick={() => insertAtCursor(item.insert)}
+                        className="min-w-[2rem] rounded-md border border-slate-200 bg-white px-1.5 py-1 text-xs font-medium text-slate-800 hover:border-sky-300 hover:bg-sky-50"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Editor */}
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2">
+              <div>
+                <p className="text-xs font-semibold text-slate-800">TeX expression</p>
+                <p className="text-[11px] text-slate-400">Type or paste · unicode is cleaned on Clean</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTex("");
+                  taRef.current?.focus();
+                }}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+              >
+                <Eraser className="h-3 w-3" />
+                Clear
+              </button>
+            </div>
             <textarea
-              value={inputTex}
-              onChange={(e) => setInputTex(e.target.value)}
-              className="brutal-input w-full h-32 text-xs p-3"
+              ref={taRef}
+              value={tex}
+              onChange={(e) => setTex(e.target.value)}
+              spellCheck={false}
               placeholder="e.g. E = mc^2"
+              className="min-h-[8rem] flex-1 resize-none border-0 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-900 outline-none placeholder:text-slate-300"
             />
-          </div>
-
-          <div className="flex items-center gap-4 text-xs font-bold text-white">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="mode"
-                checked={isDisplayMode}
-                onChange={() => setIsDisplayMode(true)}
-              />
-              <span>Display Block ($$...$$)</span>
-            </label>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="radio"
-                name="mode"
-                checked={!isDisplayMode}
-                onChange={() => setIsDisplayMode(false)}
-              />
-              <span>Inline ($...$)</span>
-            </label>
-          </div>
+          </section>
         </div>
 
-        {/* Right Side: Output Preview & Copy */}
-        <div className="brutal-panel p-6 space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
-          <div className="flex items-center justify-between border-b-2 border-black pb-3">
-            <span className="text-xs font-black uppercase text-white">
-              Formatted Markdown Result
-            </span>
-            <button type="button" onClick={handleCopy} className="brutal-btn brutal-btn-yellow !text-xs !py-1 !px-3 font-black">
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span>{copied ? "Copied!" : "Copy Markdown"}</span>
-            </button>
-          </div>
+        {/* Right: preview + export */}
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
+          {/* Live preview — hero */}
+          <section className="flex min-h-[40%] flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2">
+              <div>
+                <p className="text-xs font-semibold text-slate-800">Live preview</p>
+                <p className="text-[11px] text-slate-400">Rendered with KaTeX</p>
+              </div>
+              {renderError ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-medium text-rose-700">
+                  <AlertCircle className="h-3 w-3" />
+                  TeX issue
+                </span>
+              ) : (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+                  OK
+                </span>
+              )}
+            </div>
+            <div className="flex min-h-[10rem] flex-1 items-center justify-center overflow-auto bg-gradient-to-b from-slate-50 to-white p-6">
+              {safePreviewHtml ? (
+                <div
+                  className="max-w-full overflow-x-auto text-slate-900 [&_.katex]:text-[1.15em] sm:[&_.katex]:text-[1.35em]"
+                  dangerouslySetInnerHTML={{ __html: safePreviewHtml }}
+                />
+              ) : (
+                <p className="text-sm text-slate-400">Preview appears here</p>
+              )}
+            </div>
+            {renderError && (
+              <div className="border-t border-rose-100 bg-rose-50 px-3 py-2 text-[11px] text-rose-700 font-mono">
+                {renderError}
+              </div>
+            )}
+          </section>
 
-          <div className="brutal-lcd min-h-[160px] flex items-center justify-center p-4">
-            <pre className="text-sm font-mono whitespace-pre-wrap">{formattedOutput}</pre>
-          </div>
+          {/* Export mode */}
+          <section className="shrink-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+            <p className="mb-2 text-xs font-semibold text-slate-800">Export format</p>
+            <div className="flex flex-wrap gap-1.5">
+              {WRAP_MODES.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  title={m.hint}
+                  onClick={() => setWrapMode(m.id)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                    wrapMode === m.id
+                      ? "bg-slate-900 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </section>
 
-          <p className="text-xs text-slate-300 font-bold leading-relaxed">
-            Copy and paste this formatted snippet directly into your Markdown files for compilation on Ace-Seek.
-          </p>
+          {/* Output snippet */}
+          <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-3 py-2">
+              <div>
+                <p className="text-xs font-semibold text-slate-800">Ready to paste</p>
+                <p className="text-[11px] text-slate-400">
+                  {WRAP_MODES.find((m) => m.id === wrapMode)?.hint}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => void copyText(cleanTex, "raw")}
+                  className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  {copied === "raw" ? "Copied raw" : "Copy raw"}
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadSnippet}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  <Download className="h-3 w-3" />
+                  .md
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void copyText(formatted, "out")}
+                  className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800"
+                >
+                  {copied === "out" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  Copy
+                </button>
+              </div>
+            </div>
+            <pre className="min-h-[6rem] flex-1 overflow-auto bg-slate-50/80 px-3 py-3 font-mono text-[12px] leading-relaxed text-slate-800 whitespace-pre-wrap">
+              {formatted || " "}
+            </pre>
+          </section>
         </div>
       </div>
+
+      {toast && (
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

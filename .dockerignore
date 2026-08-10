@@ -1,0 +1,16 @@
+.git
+.gitignore
+**/.next
+**/node_modules
+**/dist
+**/.aic-cache
+**/*.pdf
+**/*.log
+web/.next
+web/node_modules
+node_modules
+.DS_Store
+*.pem
+.env*
+docs
+md_docs

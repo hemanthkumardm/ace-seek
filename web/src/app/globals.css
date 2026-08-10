@@ -102,15 +102,25 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  height: 100%;
   background-color: var(--bg-main);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Tools workstation pages: lock to viewport so editor/preview fill height */
+body:has([data-tools-shell]) {
+  overflow: hidden;
 }
 
 /* Background Subtle Metallic Grid Pattern */
@@ -535,4 +545,129 @@ a {
   background: linear-gradient(180deg, #2a3342, #181e28);
   border-radius: 4.5px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ----------------------------------------------------
+   LIGHT NEUMORPHISM DESIGN SYSTEM (.neu-*)
+---------------------------------------------------- */
+:root {
+  --neu-bg: #e6ecf5;
+  --neu-shadow-dark: #c0c8d6;
+  --neu-shadow-light: #ffffff;
+  --neu-text: #1e293b;
+  --neu-text-muted: #64748b;
+  --neu-accent: #0284c7;
+  --neu-accent-light: #e0f2fe;
+}
+
+.neu-panel {
+  background: var(--neu-bg);
+  box-shadow: 8px 8px 16px var(--neu-shadow-dark), -8px -8px 16px var(--neu-shadow-light);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.neu-panel-sm {
+  background: var(--neu-bg);
+  box-shadow: 5px 5px 10px var(--neu-shadow-dark), -5px -5px 10px var(--neu-shadow-light);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.neu-inset {
+  background: var(--neu-bg);
+  box-shadow: inset 4px 4px 8px var(--neu-shadow-dark), inset -4px -4px 8px var(--neu-shadow-light);
+  border-radius: 14px;
+}
+
+.neu-input {
+  background: var(--neu-bg);
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #0f172a;
+  transition: all 0.15s ease-in-out;
+}
+
+.neu-input:focus {
+  outline: none;
+  box-shadow: inset 4px 4px 8px #b4bccb, inset -4px -4px 8px #ffffff;
+  border-color: #0284c7;
+}
+
+.neu-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 10px;
+  background: var(--neu-bg);
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+  border-radius: 8px;
+  outline: none;
+}
+
+.neu-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffffff, #d6dee9);
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+  border: 2px solid #0284c7;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.neu-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.neu-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #ffffff, #d6dee9);
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+  border: 2px solid #0284c7;
+  cursor: pointer;
+}
+
+.neu-btn {
+  background: var(--neu-bg);
+  box-shadow: 5px 5px 10px var(--neu-shadow-dark), -5px -5px 10px var(--neu-shadow-light);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  color: #1e293b;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.neu-btn:hover {
+  box-shadow: 3px 3px 6px var(--neu-shadow-dark), -3px -3px 6px var(--neu-shadow-light);
+  transform: translateY(-1px);
+}
+
+.neu-btn:active, .neu-btn-active {
+  box-shadow: inset 3px 3px 6px var(--neu-shadow-dark), inset -3px -3px 6px var(--neu-shadow-light);
+  border-color: rgba(2, 132, 199, 0.3);
+  transform: translateY(0);
+}
+
+.neu-btn-primary {
+  background: linear-gradient(145deg, #0284c7, #0369a1);
+  box-shadow: 5px 5px 10px #b8c1d1, -5px -5px 10px #ffffff;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.neu-btn-primary:hover {
+  background: linear-gradient(145deg, #0369a1, #0284c7);
+  box-shadow: 3px 3px 6px #b8c1d1, -3px -3px 6px #ffffff;
+}
+
+.neu-badge {
+  background: var(--neu-bg);
+  box-shadow: inset 2px 2px 4px var(--neu-shadow-dark), inset -2px -2px 4px var(--neu-shadow-light);
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
 }

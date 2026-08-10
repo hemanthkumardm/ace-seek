@@ -90,7 +90,7 @@ export default function DocsPage() {
             </p>
             <p className="flex items-center justify-between">
               <span>doc.ace-seek.com</span>
-              <span className="text-[var(--accent-cyan)]">Markdown → PDF Compiler</span>
+              <span className="text-[var(--accent-cyan)]">Doc Compiler</span>
             </p>
             <p className="flex items-center justify-between">
               <span>timing.ace-seek.com</span>

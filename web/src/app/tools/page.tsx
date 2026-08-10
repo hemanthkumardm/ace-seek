@@ -148,7 +148,7 @@ export default async function ToolsHome() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {/* Tool 1: AI MD to PDF */}
+          {/* Tool 1: Doc Compiler */}
           <div className="brutal-panel brutal-panel-interactive p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -157,12 +157,12 @@ export default async function ToolsHome() {
                 </div>
                 <span className="brutal-badge brutal-badge-lime">LIVE</span>
               </div>
-              <h3 className="text-lg font-black uppercase text-white">AI Markdown → PDF Compiler</h3>
+              <h3 className="text-lg font-black uppercase text-white">Doc Compiler</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                Compile raw LLM Markdown outputs with TeX math, code blocks, and Mermaid diagrams into publication-grade PDFs.
+                Round-trip converter: MD ↔ PDF ↔ DOCX ↔ TeX ↔ HTML. From/To dropdowns for any pair.
               </p>
             </div>
-            <a href="/tools/md-to-pdf" className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black">
+            <a href="/tools/doc-compiler" className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black">
               <span>Open Compiler</span>
               <ChevronRight className="w-4 h-4" />
             </a>
@@ -179,7 +179,7 @@ export default async function ToolsHome() {
               </div>
               <h3 className="text-lg font-black uppercase text-white">Visual Diff Comparator</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                Side-by-side text, Markdown, and code comparison tool highlighting additions, deletions, and structural changes.
+                Myers algorithm · split/unified · word/char highlight · collapse · jump · export .diff patch.
               </p>
             </div>
             <a href="/tools/diff-comparator" className="brutal-btn brutal-btn-cyan !text-xs w-full justify-between font-black">
@@ -199,7 +199,7 @@ export default async function ToolsHome() {
               </div>
               <h3 className="text-lg font-black uppercase text-white">Multi-Format Converter</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                Convert JSON ↔ YAML ↔ TOML, CSV ↔ JSON, Markdown ↔ HTML, and Base64 instantly without sending data to servers.
+                JSON ↔ YAML ↔ TOML ↔ CSV · Base64 · URL · Hex — live convert, detect, copy. Runs in your browser.
               </p>
             </div>
             <a href="/tools/format-converter" className="brutal-btn brutal-btn-pink !text-xs w-full justify-between font-black">
@@ -239,7 +239,7 @@ export default async function ToolsHome() {
               </div>
               <h3 className="text-lg font-black uppercase text-white">LaTeX Formula Builder</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                Visual & text LaTeX math formula generator, equation cleaner, and inline/display math syntax normalizer.
+                Live KaTeX preview · STA templates · symbol chips · clean unicode · copy $$ for Markdown.
               </p>
             </div>
             <a href="/tools/tex-formatter" className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black">

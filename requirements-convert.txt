@@ -1,0 +1,6 @@
+# PDF → DOCX layout conversion (Doc Compiler)
+# Install:  pip3 install --user -r requirements-convert.txt
+#
+# Pin PyMuPDF: newer 1.26+ breaks pdf2docx 0.5.x (Rect.get_area removed).
+pdf2docx==0.5.8
+pymupdf==1.23.26

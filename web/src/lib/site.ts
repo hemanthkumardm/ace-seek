@@ -2,13 +2,13 @@
  * Ace-Seek site model
  *
  *   ace-seek.com          → command center (marketing, auth, billing, dashboard, SEO)
- *   doc.ace-seek.com      → MD → PDF compiler
+ *   doc.ace-seek.com      → Doc Compiler (MD → PDF / TeX / DOCX)
  *   timing.ace-seek.com   → SDC / timing utilities
  *   (future micro-SaaS on their own subdomains)
  *
  * Local (no DNS):
  *   /                     → command center
- *   /tools/md-to-pdf      → doc product
+ *   /tools/doc-compiler   → doc product
  *   /tools/sdc-calculator → timing product
  */
 
@@ -72,12 +72,12 @@ export const PRODUCTS: Product[] = [
   {
     id: "doc",
     slug: "doc",
-    name: "AI Markdown → PDF Compiler",
+    name: "Doc Compiler",
     host: "doc.tools.ace-seek.com",
-    appPath: "/tools/md-to-pdf",
-    blurb: "Compile AI Markdown notes + LaTeX math + code syntax → publication PDF.",
+    appPath: "/tools/doc-compiler",
+    blurb: "Round-trip docs: MD ↔ PDF ↔ DOCX ↔ TeX ↔ HTML and more.",
     overview:
-      "Convert raw LLM Markdown outputs into production-grade PDFs with TeX math, code syntax, tables, and Mermaid diagrams without burning LLM tokens.",
+      "Pick any input and output format — Markdown, PDF, Word, TeX, HTML, ODT. Engineering notes with math and Tcl/SDC stay first-class on the Markdown path.",
     status: "live",
     originEnv: "NEXT_PUBLIC_DOC_URL",
   },
@@ -87,9 +87,9 @@ export const PRODUCTS: Product[] = [
     name: "Visual Diff Comparator",
     host: "diff.tools.ace-seek.com",
     appPath: "/tools/diff-comparator",
-    blurb: "Side-by-side text, Markdown, and code comparison tool.",
+    blurb: "Myers text/code diff — split & unified, word/char highlight, patch export.",
     overview:
-      "Visual line-by-line diff inspector highlighting additions, deletions, and structural code changes side by side.",
+      "Max-quality visual diff: aligned side-by-side or unified view, word/character highlights, collapse unchanged, jump changes, and unified .diff export.",
     status: "live",
   },
   {
@@ -98,9 +98,9 @@ export const PRODUCTS: Product[] = [
     name: "Multi-Format Converter Suite",
     host: "convert.tools.ace-seek.com",
     appPath: "/tools/format-converter",
-    blurb: "Bi-directional JSON ↔ YAML ↔ TOML, CSV ↔ JSON, Base64 converter.",
+    blurb: "JSON ↔ YAML ↔ TOML ↔ CSV, Base64, URL, Hex — live, local, copy/save.",
     overview:
-      "Convert configuration files, data formats, and Base64 encoding instantly in 1 click without server data transmission.",
+      "Friendly bi-directional data converter: structured formats and text codecs, all in the browser.",
     status: "live",
   },
   {
@@ -120,9 +120,9 @@ export const PRODUCTS: Product[] = [
     name: "LaTeX Formula Builder & Formatter",
     host: "tex.tools.ace-seek.com",
     appPath: "/tools/tex-formatter",
-    blurb: "Visual & text LaTeX math formula generator and equation cleaner.",
+    blurb: "Live KaTeX preview, STA templates, symbol palette, multi-format export.",
     overview:
-      "Generates, cleans, and normalizes inline $E=mc^2$ and display math equations for TeX document processing.",
+      "Build and clean LaTeX math with live preview, VLSI/STA templates, unicode cleanup, and copy as $, $$, or raw TeX.",
     status: "live",
   },
   {
@@ -186,10 +186,10 @@ export const PRICING: PricingTier[] = [
     cta: "Get started",
     ctaHref: "/signup",
     features: [
-      "Doc Compiler with fair-use limits",
+      "Doc Compiler (Editable PDF → DOCX)",
+      "Standard convert engines",
+      "Fair-use daily limits",
       "Community templates",
-      "1 workspace",
-      "Email support",
     ],
   },
   {
@@ -202,11 +202,11 @@ export const PRICING: PricingTier[] = [
     ctaHref: "/signup?plan=pro",
     highlighted: true,
     features: [
+      "Pro MAX engine for PDF → DOCX",
+      "Exact look @ 300–400 DPI",
+      "Multi-core editable layout parse",
       "Unlimited Doc compiles*",
-      "Priority TeX queue",
-      "Timing tools when live",
-      "Private snippet vault",
-      "API access (beta)",
+      "API license key for tools",
     ],
   },
   {
@@ -219,7 +219,7 @@ export const PRICING: PricingTier[] = [
     ctaHref: "/signup?plan=team",
     features: [
       "Everything in Pro",
-      "Shared workspace & templates",
+      "Shared workspace & seats",
       "Central billing (Stripe)",
       "SSO roadmap",
       "Invoice / PO support",

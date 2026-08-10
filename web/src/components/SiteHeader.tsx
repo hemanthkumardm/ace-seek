@@ -210,7 +210,7 @@ export function SiteFooter() {
             <Boxes className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>Subdomain Specs</span>
           </p>
-          <span className="block text-xs text-[var(--muted)]">doc.ace-seek.com (MD → PDF)</span>
+          <span className="block text-xs text-[var(--muted)]">doc.ace-seek.com (PDF · TeX · DOCX)</span>
           <span className="block text-xs text-[var(--muted)]">timing.ace-seek.com (SDC Math)</span>
           <span className="block text-xs text-[var(--muted)]">scripts.ace-seek.com (Glue Scripts)</span>
         </div>

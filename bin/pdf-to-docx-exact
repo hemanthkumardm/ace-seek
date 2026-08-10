@@ -1,0 +1,192 @@
+#!/usr/bin/env python3
+"""
+Exact-look PDF → DOCX: each PDF page becomes a full-page high-quality image in Word.
+
+Visual fidelity is near-identical to the PDF. Text is NOT editable.
+Use editable mode (pdf2docx) when you need to edit text.
+
+Usage:
+  pdf-to-docx-exact input.pdf output.docx [--dpi 300] [--pro]
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+import tempfile
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Exact-look PDF → DOCX (page images, max quality)")
+    ap.add_argument("input_pdf")
+    ap.add_argument("output_docx")
+    ap.add_argument("--dpi", type=int, default=300, help="Render DPI (default 300, max 400)")
+    ap.add_argument(
+        "--pro",
+        action="store_true",
+        help="Pro engine: floor DPI at 300, max antialias render",
+    )
+    args = ap.parse_args()
+
+    src = args.input_pdf
+    dst = args.output_docx
+    dpi = max(72, min(400, args.dpi))
+    if args.pro:
+        dpi = max(dpi, 300)
+
+    if not os.path.isfile(src):
+        print(f"not found: {src}", file=sys.stderr)
+        return 2
+
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        print(
+            "PyMuPDF (fitz) is required.\n"
+            "  pip3 install --user 'pymupdf==1.23.26'",
+            file=sys.stderr,
+        )
+        return 3
+
+    try:
+        from docx import Document
+        from docx.enum.section import WD_ORIENT
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.shared import Inches, Pt, Emu
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement
+    except ImportError:
+        print(
+            "python-docx is required.\n"
+            "  pip3 install --user python-docx",
+            file=sys.stderr,
+        )
+        return 3
+
+    try:
+        pdf = fitz.open(src)
+    except Exception as e:
+        print(f"cannot open PDF: {e}", file=sys.stderr)
+        return 1
+
+    page_count = pdf.page_count
+    if page_count < 1:
+        print("PDF has no pages", file=sys.stderr)
+        return 1
+
+    zoom = dpi / 72.0
+    # Slight oversample then display at page size = sharper text edges
+    mat = fitz.Matrix(zoom, zoom)
+
+    doc = Document()
+
+    def set_no_spacing(paragraph) -> None:
+        pf = paragraph.paragraph_format
+        pf.space_before = Pt(0)
+        pf.space_after = Pt(0)
+        pf.line_spacing = 1.0
+        pf.left_indent = Pt(0)
+        pf.right_indent = Pt(0)
+        pf.first_line_indent = Pt(0)
+        try:
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception:
+            pass
+        # Remove spacing after via XML for Word quirks
+        try:
+            pPr = paragraph._p.get_or_add_pPr()
+            spacing = OxmlElement("w:spacing")
+            spacing.set(qn("w:before"), "0")
+            spacing.set(qn("w:after"), "0")
+            spacing.set(qn("w:line"), "240")
+            spacing.set(qn("w:lineRule"), "auto")
+            pPr.append(spacing)
+        except Exception:
+            pass
+
+    with tempfile.TemporaryDirectory(prefix="pdfexact-") as tmp:
+        for i in range(page_count):
+            page = pdf[i]
+            # Prefer cropbox (visible area) when present
+            try:
+                rect = page.cropbox
+                if rect.is_empty or rect.width < 1 or rect.height < 1:
+                    rect = page.rect
+            except Exception:
+                rect = page.rect
+
+            width_in = float(rect.width) / 72.0
+            height_in = float(rect.height) / 72.0
+            width_in = max(1.0, min(22.0, width_in))
+            height_in = max(1.0, min(22.0, height_in))
+
+            # Max quality pixmap: RGB, no alpha, include annotations
+            try:
+                pix = page.get_pixmap(
+                    matrix=mat,
+                    alpha=False,
+                    annots=True,
+                    clip=rect,
+                )
+            except TypeError:
+                # Older pymupdf
+                pix = page.get_pixmap(matrix=mat, alpha=False)
+
+            # PNG = lossless for text/UI; best fidelity for exact mode
+            png_path = os.path.join(tmp, f"page-{i:04d}.png")
+            pix.save(png_path)
+
+            if i == 0:
+                section = doc.sections[0]
+            else:
+                section = doc.add_section()
+
+            section.page_width = Inches(width_in)
+            section.page_height = Inches(height_in)
+            for attr in (
+                "left_margin",
+                "right_margin",
+                "top_margin",
+                "bottom_margin",
+                "header_distance",
+                "footer_distance",
+                "gutter",
+            ):
+                try:
+                    setattr(section, attr, Inches(0))
+                except Exception:
+                    pass
+
+            try:
+                section.orientation = (
+                    WD_ORIENT.LANDSCAPE if width_in > height_in else WD_ORIENT.PORTRAIT
+                )
+            except Exception:
+                pass
+
+            if i == 0 and len(doc.paragraphs) >= 1 and not doc.paragraphs[0].text:
+                p = doc.paragraphs[0]
+                # Clear default empty run
+                for child in list(p._element):
+                    if child.tag.endswith("}r"):
+                        p._element.remove(child)
+                set_no_spacing(p)
+                run = p.add_run()
+                run.add_picture(png_path, width=Inches(width_in))
+            else:
+                p = doc.add_paragraph()
+                set_no_spacing(p)
+                run = p.add_run()
+                run.add_picture(png_path, width=Inches(width_in))
+
+        pdf.close()
+        # Word compatibility: avoid extra compression if available
+        doc.save(dst)
+
+    tag = "pro-max" if args.pro else "max"
+    print(f"wrote {dst} ({page_count} page image(s) @ {dpi} dpi, {tag})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

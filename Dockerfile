@@ -1,8 +1,10 @@
 # Dockerfile — isolated aic (Pandoc + TeX Live + Unicode fonts)
-# Build:  docker build -t aic .
+# Build:  docker build --platform linux/amd64 -t aic .
 # Run:    ./bin/aic --docker notes.md
+#
+# Note: pandoc/latex is amd64-only. On Apple Silicon use amd64 (QEMU via Colima/Docker).
 
-FROM pandoc/latex:latest
+FROM --platform=linux/amd64 pandoc/latex:latest
 
 USER root
 

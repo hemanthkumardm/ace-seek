@@ -25,6 +25,9 @@ export type TierPermissions = {
   hasPriorityQueue: boolean;
   hasPrivateVault: boolean;
   hasApiAccess: boolean;
+  /** PDF → DOCX Exact look + Pro engine */
+  hasProEngine: boolean;
+  hasExactPdfDocx: boolean;
 };
 
 export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
@@ -34,6 +37,8 @@ export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
     hasPriorityQueue: false,
     hasPrivateVault: false,
     hasApiAccess: false,
+    hasProEngine: false,
+    hasExactPdfDocx: false,
   },
   free: {
     tier: "free",
@@ -41,6 +46,8 @@ export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
     hasPriorityQueue: false,
     hasPrivateVault: false,
     hasApiAccess: false,
+    hasProEngine: false,
+    hasExactPdfDocx: false,
   },
   pro: {
     tier: "pro",
@@ -48,6 +55,8 @@ export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
     hasPriorityQueue: true,
     hasPrivateVault: true,
     hasApiAccess: true,
+    hasProEngine: true,
+    hasExactPdfDocx: true,
   },
   team: {
     tier: "team",
@@ -55,6 +64,8 @@ export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
     hasPriorityQueue: true,
     hasPrivateVault: true,
     hasApiAccess: true,
+    hasProEngine: true,
+    hasExactPdfDocx: true,
   },
 };
 

@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+"""
+Layout-aware PDF → DOCX (editable) using pdf2docx — max-quality settings.
+
+Usage:
+  pdf-to-docx input.pdf output.docx [--pro]
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Editable PDF → DOCX (max quality pdf2docx)")
+    ap.add_argument("input_pdf")
+    ap.add_argument("output_docx")
+    ap.add_argument(
+        "--pro",
+        action="store_true",
+        help="Pro engine: multi-process + tighter parse thresholds",
+    )
+    args = ap.parse_args()
+
+    src, dst = args.input_pdf, args.output_docx
+    if not os.path.isfile(src):
+        print(f"not found: {src}", file=sys.stderr)
+        return 2
+
+    try:
+        from pdf2docx import Converter
+    except ImportError:
+        print(
+            "pdf2docx is not installed.\n"
+            "Install:\n"
+            "  pip3 install --user -r requirements-convert.txt\n"
+            "  # or: pip3 install --user 'pdf2docx==0.5.8' 'pymupdf==1.23.26'",
+            file=sys.stderr,
+        )
+        return 3
+
+    # Max-quality parse / layout kwargs for pdf2docx
+    # (names match pdf2docx PageParser / convert kwargs)
+    quality_kwargs = {
+        "multi_processing": True,
+        # Keep more small fragments / borders
+        "connected_border_tolerance": 0.5,
+        "min_border_clearance": 2.0,
+        "float_image_ignorable_gap": 5.0,
+        "line_overlap_threshold": 0.9,
+        "line_break_width_ratio": 0.1,
+        "line_break_free_space_ratio": 0.1,
+        "line_separate_threshold": 5.0,
+        "new_paragraph_free_space_ratio": 0.85,
+        "lines_left_aligned_threshold": 1.0,
+        "lines_right_aligned_threshold": 1.0,
+        "lines_center_aligned_threshold": 2.0,
+        "curve_path_min_spaces": 1.5,
+        "delete_end_line_hyphen": True,
+    }
+    if args.pro:
+        # Pro: more CPU workers when available
+        try:
+            quality_kwargs["cpu_count"] = max(2, min(8, (os.cpu_count() or 2)))
+        except Exception:
+            pass
+
+    try:
+        cv = Converter(src)
+        cv.convert(dst, start=0, end=None, **quality_kwargs)
+        cv.close()
+    except TypeError:
+        # Older pdf2docx may not accept all kwargs — retry with core max flags only
+        try:
+            cv = Converter(src)
+            try:
+                cv.convert(dst, start=0, end=None, multi_processing=True)
+            except TypeError:
+                cv.convert(dst, start=0, end=None)
+            cv.close()
+        except Exception as e:
+            print(f"pdf2docx failed: {e}", file=sys.stderr)
+            return 1
+    except AttributeError as e:
+        print(
+            f"pdf2docx failed: {e}\n"
+            "Incompatible PyMuPDF. Fix with:\n"
+            "  pip3 install --user 'pymupdf==1.23.26'",
+            file=sys.stderr,
+        )
+        return 1
+    except Exception as e:
+        print(f"pdf2docx failed: {e}", file=sys.stderr)
+        return 1
+
+    if not os.path.isfile(dst):
+        print("pdf2docx produced no output file", file=sys.stderr)
+        return 1
+
+    mode = "pro-max" if args.pro else "max"
+    print(f"wrote {dst} (editable/{mode})")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

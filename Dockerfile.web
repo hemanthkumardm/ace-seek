@@ -6,7 +6,8 @@
 #
 # Inside this image, compiles use host TeX (local backend) — no Docker-in-Docker.
 
-FROM pandoc/latex:latest
+# pandoc/latex is amd64-only (use QEMU on Apple Silicon)
+FROM --platform=linux/amd64 pandoc/latex:latest
 
 USER root
 
