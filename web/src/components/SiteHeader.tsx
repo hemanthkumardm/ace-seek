@@ -33,10 +33,16 @@ type Props = {
 /** Client-safe auth chrome (useAuth; avoid server-only Show in client trees). */
 function ClerkHeaderAuth() {
   const { isLoaded, isSignedIn } = useAuth();
+  const [timedOut, setTimedOut] = useState(false);
 
-  if (!isLoaded) {
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!isLoaded && !timedOut) {
     return (
-      <span className="text-[10px] font-mono text-[var(--muted)] px-2">…</span>
+      <span className="text-[10px] font-mono text-[var(--muted)] px-2 animate-pulse">…</span>
     );
   }
 
