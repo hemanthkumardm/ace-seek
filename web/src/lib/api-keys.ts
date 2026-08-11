@@ -16,26 +16,23 @@ function pepper(): string {
 }
 
 function planPrefix(plan: UserPlan): string {
-  if (plan === "pro") return "ace_pro_usr";
   if (plan === "team") return "ace_team_usr";
+  if (plan === "max") return "ace_max_usr";
+  if (plan === "pro") return "ace_pro_usr";
   return "ace_free_usr";
 }
 
-/** Encode Clerk user id into key body (strip optional user_ prefix) */
 function encodeUserId(userId: string): string {
   return userId.startsWith("user_") ? userId.slice("user_".length) : userId;
 }
 
 function decodeUserId(idPart: string): string {
   if (idPart.startsWith("user_")) return idPart;
-  // Clerk ids are typically user_<alphanum>
   return `user_${idPart}`;
 }
 
 /**
- * Deterministic personal API key for a signed-in user.
- * Multi-device: same id + plan → same key.
- * Format: ace_{free|pro|team}_usr_<idPart>_<16hex hmac>
+ * Format: ace_{free|pro|max|team}_usr_<idPart>_<16hex hmac>
  */
 export function apiKeyForUserId(userId: string, plan: UserPlan = "free"): string {
   const h = crypto
@@ -46,15 +43,12 @@ export function apiKeyForUserId(userId: string, plan: UserPlan = "free"): string
   return `${planPrefix(plan)}_${encodeUserId(userId)}_${h}`;
 }
 
-/**
- * Verify a key we issued and recover plan + userId.
- */
 export function verifyIssuedApiKey(
   apiKey: string
 ): { ok: true; plan: UserPlan; userId: string } | { ok: false } {
   const m = apiKey
     .trim()
-    .match(/^ace_(free|pro|team)_usr_(.+)_([a-f0-9]{16})$/);
+    .match(/^ace_(free|pro|max|team)_usr_(.+)_([a-f0-9]{16})$/);
   if (!m) return { ok: false };
   const plan = m[1] as UserPlan;
   const idPart = m[2];
@@ -68,7 +62,7 @@ export function verifyIssuedApiKey(
 }
 
 export function planFromApiKeyString(apiKey: string): UserPlan | null {
-  const m = apiKey.trim().match(/^ace_(free|pro|team)_usr_/);
+  const m = apiKey.trim().match(/^ace_(free|pro|max|team)_usr_/);
   if (!m) return null;
   return m[1] as UserPlan;
 }

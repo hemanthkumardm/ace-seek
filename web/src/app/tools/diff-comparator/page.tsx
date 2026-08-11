@@ -32,6 +32,8 @@ import {
   findNextChangeIndex,
   findPrevChangeIndex,
 } from "@/lib/diff-engine";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { FeatureLock, PlanPill } from "@/components/FeatureLock";
 
 const SAMPLE_A = `# Release notes
 
@@ -78,6 +80,13 @@ function InlineParts({
 }
 
 export default function DiffComparatorPage() {
+  const { ent } = useEntitlements();
+  const maxChars = ent.diff.maxChars ?? Number.POSITIVE_INFINITY;
+  const canUnified = ent.diff.unified;
+  const canChar = ent.diff.charHighlight;
+  const canPatch = ent.diff.patchExport;
+  const canUpload = ent.diff.fileUpload;
+
   const [textA, setTextA] = useState(SAMPLE_A);
   const [textB, setTextB] = useState(SAMPLE_B);
   const [nameA, setNameA] = useState("original.txt");
@@ -103,6 +112,26 @@ export default function DiffComparatorPage() {
   const syncing = useRef(false);
   const rowRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
+  // Fall back when plan doesn't allow current options
+  useEffect(() => {
+    if (!canUnified && viewMode === "unified") setViewMode("split");
+  }, [canUnified, viewMode]);
+
+  useEffect(() => {
+    if (!canChar && granularity === "char") setGranularity("word");
+  }, [canChar, granularity]);
+
+  const cappedA = useMemo(
+    () => (textA.length > maxChars ? textA.slice(0, maxChars) : textA),
+    [textA, maxChars]
+  );
+  const cappedB = useMemo(
+    () => (textB.length > maxChars ? textB.slice(0, maxChars) : textB),
+    [textB, maxChars]
+  );
+  const sizeLimited =
+    textA.length > maxChars || textB.length > maxChars;
+
   const opts = useMemo(
     () => ({
       ignoreWhitespace,
@@ -115,9 +144,14 @@ export default function DiffComparatorPage() {
     [ignoreWhitespace, ignoreCase, ignoreEmptyLines, ignoreComments, trimLines]
   );
 
+  const effectiveGranularity: DiffGranularity =
+    !canChar && granularity === "char" ? "word" : granularity;
+  const effectiveView: DiffViewMode =
+    !canUnified && viewMode === "unified" ? "split" : viewMode;
+
   const { rows: rawRows, stats } = useMemo(
-    () => buildAlignedDiff(textA, textB, opts, granularity),
-    [textA, textB, opts, granularity]
+    () => buildAlignedDiff(cappedA, cappedB, opts, effectiveGranularity),
+    [cappedA, cappedB, opts, effectiveGranularity]
   );
 
   const rows = useMemo(
@@ -134,8 +168,8 @@ export default function DiffComparatorPage() {
   };
 
   const patch = useMemo(
-    () => exportUnifiedPatch(nameA, nameB, textA, textB, 3),
-    [nameA, nameB, textA, textB]
+    () => exportUnifiedPatch(nameA, nameB, cappedA, cappedB, 3),
+    [nameA, nameB, cappedA, cappedB]
   );
 
   const hasChanges =
@@ -147,9 +181,19 @@ export default function DiffComparatorPage() {
   };
 
   const loadFile = (side: "a" | "b", file: File) => {
+    if (!canUpload) {
+      flash("File upload requires Free+ API key");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
-      const text = String(reader.result ?? "");
+      let text = String(reader.result ?? "");
+      if (text.length > maxChars) {
+        text = text.slice(0, maxChars);
+        flash(`Loaded ${file.name} (truncated to plan limit)`);
+      } else {
+        flash(`Loaded ${file.name}`);
+      }
       if (side === "a") {
         setTextA(text);
         setNameA(file.name);
@@ -157,14 +201,13 @@ export default function DiffComparatorPage() {
         setTextB(text);
         setNameB(file.name);
       }
-      flash(`Loaded ${file.name}`);
     };
     reader.readAsText(file);
   };
 
   const onSyncScroll = useCallback(
     (source: "left" | "right") => {
-      if (viewMode !== "split" || syncing.current) return;
+      if (effectiveView !== "split" || syncing.current) return;
       const from = source === "left" ? leftScrollRef.current : rightScrollRef.current;
       const to = source === "left" ? rightScrollRef.current : leftScrollRef.current;
       if (!from || !to) return;
@@ -174,7 +217,7 @@ export default function DiffComparatorPage() {
         syncing.current = false;
       });
     },
-    [viewMode]
+    [effectiveView]
   );
 
   const jumpTo = (idx: number) => {
@@ -426,6 +469,7 @@ export default function DiffComparatorPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 font-mono">
+            <PlanPill tier={ent.tier} />
             {!hasChanges ? (
               <span className="brutal-badge brutal-badge-lime text-xs">
                 <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" />
@@ -475,7 +519,7 @@ export default function DiffComparatorPage() {
             type="button"
             onClick={() => setViewMode("split")}
             className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-black transition ${
-              viewMode === "split" ? "bg-[var(--brutal-yellow)] text-black" : "text-slate-600"
+              effectiveView === "split" ? "bg-[var(--brutal-yellow)] text-black" : "text-slate-600"
             }`}
           >
             <Columns2 className="h-3 w-3" />
@@ -483,13 +527,20 @@ export default function DiffComparatorPage() {
           </button>
           <button
             type="button"
-            onClick={() => setViewMode("unified")}
+            onClick={() => {
+              if (!canUnified) {
+                flash("Combined view requires Free+ API key");
+                return;
+              }
+              setViewMode("unified");
+            }}
+            title={canUnified ? "Combined (unified) view" : "Free+ required"}
             className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-black transition ${
-              viewMode === "unified" ? "bg-[var(--brutal-cyan)] text-black" : "text-slate-600"
-            }`}
+              effectiveView === "unified" ? "bg-[var(--brutal-cyan)] text-black" : "text-slate-600"
+            } ${!canUnified ? "opacity-50" : ""}`}
           >
             <AlignJustify className="h-3 w-3" />
-            Combined
+            Combined{!canUnified ? " · Free+" : ""}
           </button>
         </div>
 
@@ -498,11 +549,20 @@ export default function DiffComparatorPage() {
           Granularity:
           <select
             className="brutal-input text-[11px] !py-1 !px-2 font-black"
-            value={granularity}
-            onChange={(e) => setGranularity(e.target.value as DiffGranularity)}
+            value={effectiveGranularity}
+            onChange={(e) => {
+              const g = e.target.value as DiffGranularity;
+              if (g === "char" && !canChar) {
+                flash("Character-level highlight requires Pro+");
+                return;
+              }
+              setGranularity(g);
+            }}
           >
             <option value="word">Word Level</option>
-            <option value="char">Character Level</option>
+            <option value="char" disabled={!canChar}>
+              Character Level{!canChar ? " · Pro+" : ""}
+            </option>
             <option value="line">Line Level</option>
           </select>
         </label>
@@ -594,24 +654,37 @@ export default function DiffComparatorPage() {
           </label>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons — patch export is Pro+ */}
         <div className="ml-auto flex items-center gap-2">
+          <FeatureLock locked={!canPatch} requires="pro" mode="badge" title="Patch export" />
           <button
             type="button"
+            disabled={!canPatch}
+            title={canPatch ? "Copy unified patch" : "Pro+ required"}
             onClick={async () => {
+              if (!canPatch) {
+                flash("Patch export requires Pro+");
+                return;
+              }
               await navigator.clipboard.writeText(patch);
               setCopied(true);
               flash("Patch copied");
               window.setTimeout(() => setCopied(false), 1800);
             }}
-            className="brutal-btn brutal-btn-lime !text-xs !py-1 !px-3 font-black"
+            className="brutal-btn brutal-btn-lime !text-xs !py-1 !px-3 font-black disabled:opacity-40"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            Copy Patch
+            Copy Patch{!canPatch ? " · Pro+" : ""}
           </button>
           <button
             type="button"
+            disabled={!canPatch}
+            title={canPatch ? "Download .diff" : "Pro+ required"}
             onClick={() => {
+              if (!canPatch) {
+                flash("Patch export requires Pro+");
+                return;
+              }
               const blob = new Blob([patch], { type: "text/plain" });
               const url = URL.createObjectURL(blob);
               const a = document.createElement("a");
@@ -621,13 +694,20 @@ export default function DiffComparatorPage() {
               URL.revokeObjectURL(url);
               flash("Downloaded changes.diff");
             }}
-            className="brutal-btn brutal-btn-cyan !text-xs !py-1 !px-3 font-black"
+            className="brutal-btn brutal-btn-cyan !text-xs !py-1 !px-3 font-black disabled:opacity-40"
           >
             <Download className="h-3.5 w-3.5" />
-            .diff
+            .diff{!canPatch ? " · Pro+" : ""}
           </button>
         </div>
       </div>
+
+      {sizeLimited && Number.isFinite(maxChars) && (
+        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] font-medium text-amber-900 sm:px-6">
+          Plan limit: only the first {maxChars.toLocaleString()} characters per side are compared.
+          Upgrade for larger diffs.
+        </div>
+      )}
 
       {/* ONE big result */}
       <main className="relative mx-3 mb-3 mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm sm:mx-4 sm:mb-4">
@@ -652,7 +732,7 @@ export default function DiffComparatorPage() {
           </button>
         </div>
 
-        {viewMode === "split" ? (
+        {effectiveView === "split" ? (
           <div className="grid min-h-0 flex-1 md:grid-cols-2">
             <div
               ref={leftScrollRef}
@@ -676,9 +756,11 @@ export default function DiffComparatorPage() {
             </div>
           </div>
         ) : (
-          <div className="min-h-0 flex-1 overflow-auto">
-            {rows.map((row, idx) => renderUnified(row, idx))}
-          </div>
+          <FeatureLock locked={!canUnified} requires="free" title="Combined (unified) view" className="min-h-0 flex-1">
+            <div className="min-h-0 flex-1 overflow-auto">
+              {rows.map((row, idx) => renderUnified(row, idx))}
+            </div>
+          </FeatureLock>
         )}
       </main>
 
@@ -730,11 +812,19 @@ export default function DiffComparatorPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => fileARef.current?.click()}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                      disabled={!canUpload}
+                      title={canUpload ? "Upload file" : "Free+ API key required"}
+                      onClick={() => {
+                        if (!canUpload) {
+                          flash("File upload requires Free+ API key");
+                          return;
+                        }
+                        fileARef.current?.click();
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                     >
                       <Upload className="h-3 w-3" />
-                      File
+                      File{!canUpload ? " · Free+" : ""}
                     </button>
                   </div>
                 </div>
@@ -783,11 +873,19 @@ export default function DiffComparatorPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => fileBRef.current?.click()}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                      disabled={!canUpload}
+                      title={canUpload ? "Upload file" : "Free+ API key required"}
+                      onClick={() => {
+                        if (!canUpload) {
+                          flash("File upload requires Free+ API key");
+                          return;
+                        }
+                        fileBRef.current?.click();
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                     >
                       <Upload className="h-3 w-3" />
-                      File
+                      File{!canUpload ? " · Free+" : ""}
                     </button>
                   </div>
                 </div>

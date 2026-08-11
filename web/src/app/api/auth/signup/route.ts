@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerUser, createSessionToken, UserPlan } from "@/lib/user-store";
+import { registerUser, createSessionToken, parseUserPlan } from "@/lib/user-store";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validPlan: UserPlan = plan === "pro" ? "pro" : plan === "team" ? "team" : "free";
+    const validPlan = parseUserPlan(plan);
     const user = registerUser(email, name || "", password, validPlan);
     const token = createSessionToken(user);
 

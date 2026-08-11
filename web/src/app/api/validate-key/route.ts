@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey } from "@/lib/user-store";
 import { verifyIssuedApiKey } from "@/lib/api-keys";
-import { entitlementsFromApiKey } from "@/lib/entitlements";
+import {
+  entitlementsFromApiKey,
+  publicEntitlements,
+  entitlementsForPlan,
+} from "@/lib/entitlements";
 
 /**
  * Validate dashboard API keys for subdomain login (vlsi / tools).
- * Accepts legacy in-memory keys + Clerk-issued HMAC keys.
+ * Returns plan + full public entitlements matrix for client-side UI locks.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +25,11 @@ export async function POST(req: NextRequest) {
 
     const legacy = findUserByApiKey(apiKey);
     if (legacy) {
+      const ent = {
+        ...entitlementsForPlan(legacy.plan),
+        email: legacy.email,
+        name: legacy.name,
+      };
       return NextResponse.json({
         valid: true,
         plan: legacy.plan,
@@ -28,6 +37,7 @@ export async function POST(req: NextRequest) {
         email: legacy.email,
         name: legacy.name,
         apiKey: legacy.apiKey,
+        entitlements: publicEntitlements(ent),
       });
     }
 
@@ -41,6 +51,7 @@ export async function POST(req: NextRequest) {
         email: ent.email,
         name: ent.name,
         apiKey,
+        entitlements: publicEntitlements(ent),
       });
     }
 
@@ -55,17 +66,13 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const apiKey = searchParams.get("key")?.trim();
-
+  const apiKey = req.nextUrl.searchParams.get("key")?.trim();
   if (!apiKey) {
     return NextResponse.json(
       { valid: false, error: "API Key is required" },
       { status: 400 }
     );
   }
-
-  // Reuse POST logic
   const fakeReq = {
     json: async () => ({ apiKey }),
   } as NextRequest;

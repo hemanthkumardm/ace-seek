@@ -1,14 +1,8 @@
 /**
  * Ace-Seek Cross-Subdomain Auth & Entitlement Helper
- *
- * Manages shared identity session tokens across:
- *   - apex domain (ace-seek.com)
- *   - doc.ace-seek.com
- *   - timing.ace-seek.com
- *   - scripts.ace-seek.com
  */
 
-export type UserTier = "guest" | "free" | "pro" | "team";
+export type UserTier = "guest" | "free" | "pro" | "max" | "team";
 
 export type UserSession = {
   userId: string;
@@ -25,62 +19,83 @@ export type TierPermissions = {
   hasPriorityQueue: boolean;
   hasPrivateVault: boolean;
   hasApiAccess: boolean;
-  /** PDF → DOCX Exact look + Pro engine */
   hasProEngine: boolean;
   hasExactPdfDocx: boolean;
+  hasTeamSeats: boolean;
+  hasSso: boolean;
 };
 
 export const TIER_PERMISSIONS: Record<UserTier, TierPermissions> = {
   guest: {
     tier: "guest",
-    maxCompilesPerDay: 5,
+    maxCompilesPerDay: 3,
     hasPriorityQueue: false,
     hasPrivateVault: false,
     hasApiAccess: false,
     hasProEngine: false,
     hasExactPdfDocx: false,
+    hasTeamSeats: false,
+    hasSso: false,
   },
   free: {
     tier: "free",
     maxCompilesPerDay: 25,
     hasPriorityQueue: false,
     hasPrivateVault: false,
-    hasApiAccess: false,
+    hasApiAccess: true,
     hasProEngine: false,
     hasExactPdfDocx: false,
+    hasTeamSeats: false,
+    hasSso: false,
   },
   pro: {
     tier: "pro",
-    maxCompilesPerDay: Infinity,
+    maxCompilesPerDay: 500,
     hasPriorityQueue: true,
     hasPrivateVault: true,
     hasApiAccess: true,
     hasProEngine: true,
     hasExactPdfDocx: true,
+    hasTeamSeats: false,
+    hasSso: false,
+  },
+  max: {
+    tier: "max",
+    maxCompilesPerDay: Number.POSITIVE_INFINITY,
+    hasPriorityQueue: true,
+    hasPrivateVault: true,
+    hasApiAccess: true,
+    hasProEngine: true,
+    hasExactPdfDocx: true,
+    hasTeamSeats: false,
+    hasSso: false,
   },
   team: {
     tier: "team",
-    maxCompilesPerDay: Infinity,
+    maxCompilesPerDay: Number.POSITIVE_INFINITY,
     hasPriorityQueue: true,
     hasPrivateVault: true,
     hasApiAccess: true,
     hasProEngine: true,
     hasExactPdfDocx: true,
+    hasTeamSeats: true,
+    hasSso: true,
   },
 };
 
 export const SESSION_COOKIE_NAME = "ace_seek_session";
 
-/** Domain attribute for cookie setting: .ace-seek.com in prod */
 export function getSessionCookieDomain(host?: string | null): string {
   if (!host) return "";
   const h = host.split(":")[0].toLowerCase();
   if (h.endsWith("ace-seek.com")) return ".ace-seek.com";
-  return ""; // default host-only in local dev
+  return "";
 }
 
-/** Mock session builder for preview state */
-export function createMockSession(email = "engineer@company.com", tier: UserTier = "free"): UserSession {
+export function createMockSession(
+  email = "engineer@company.com",
+  tier: UserTier = "free"
+): UserSession {
   return {
     userId: "usr_" + Math.random().toString(36).slice(2, 9),
     email,

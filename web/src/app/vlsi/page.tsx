@@ -14,12 +14,61 @@ import {
   Sparkles,
   ArrowUpRight,
   ArrowRight,
+  Lock,
 } from "lucide-react";
 import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { PlanPill } from "@/components/FeatureLock";
+import {
+  studioMinPlan,
+  studioUnlocked,
+  type VlsiStudioId,
+} from "@/components/VlsiStudioGate";
+import { planLabel } from "@/lib/entitlements";
+
+function StudioCardAction({
+  studio,
+  href,
+  label,
+  className,
+}: {
+  studio: VlsiStudioId;
+  href: string;
+  label: string;
+  className: string;
+}) {
+  const { ent } = useEntitlements();
+  const ok = studioUnlocked(ent.vlsi, studio);
+  const min = studioMinPlan(studio);
+  if (ok) {
+    return (
+      <a href={href} className={className}>
+        <span>{label}</span>
+        <ChevronRight className="w-4 h-4" />
+      </a>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <a
+        href={href}
+        className={`${className} opacity-90`}
+        title={`${planLabel(min)}+ required`}
+      >
+        <span className="inline-flex items-center gap-1">
+          <Lock className="w-3.5 h-3.5" />
+          {label} · {planLabel(min)}+
+        </span>
+        <ChevronRight className="w-4 h-4" />
+      </a>
+    </div>
+  );
+}
 
 export default function VlsiHome() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
+  const { ent } = useEntitlements();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
@@ -52,6 +101,7 @@ export default function VlsiHome() {
             <span className="text-[var(--brutal-cyan)] font-bold">// HARDWARE EDA SUITE</span>
           </div>
           <div className="flex items-center gap-2">
+            <PlanPill tier={ent.tier} />
             <span className="brutal-badge brutal-badge-lime">
               ● 5 WORKSTATIONS ONLINE
             </span>
@@ -169,20 +219,19 @@ export default function VlsiHome() {
                 <div className="w-10 h-10 rounded-md bg-slate-800 border-2 border-black flex items-center justify-center text-white">
                   <FolderOpen className="w-5 h-5" />
                 </div>
-                <span className="brutal-badge brutal-badge-lime">LIVE</span>
+                <span className="brutal-badge brutal-badge-lime">FREE+</span>
               </div>
               <h3 className="text-lg font-black uppercase text-white">Report Hub</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
                 Centralized dump manager. Drop STA reports, SDC constraints, UPF files, or MMMC setups — auto-classified and handoff ready.
               </p>
             </div>
-            <a
+            <StudioCardAction
+              studio="reports"
               href="/vlsi/reports"
+              label="Open Report Hub"
               className="brutal-btn bg-slate-800 text-white hover:bg-slate-700 !text-xs w-full justify-between font-black"
-            >
-              <span>Open Report Hub</span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+            />
           </div>
 
           {/* Tool 1: SDC Studio */}
@@ -192,17 +241,19 @@ export default function VlsiHome() {
                 <div className="w-10 h-10 rounded-md bg-[var(--brutal-cyan)] border-2 border-black flex items-center justify-center text-black">
                   <Cpu className="w-5 h-5" />
                 </div>
-                <span className="brutal-badge brutal-badge-lime">LIVE</span>
+                <span className="brutal-badge brutal-badge-lime">FREE+</span>
               </div>
               <h3 className="text-lg font-black uppercase text-white">SDC Constraint Studio</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
                 Hyper-interactive SDC constraint generator with dynamic waveforms, clock tree hierarchy, I/O timing budgets, and multicycle shift modeling.
               </p>
             </div>
-            <a href="/vlsi/sdc-studio" className="brutal-btn brutal-btn-cyan !text-xs w-full justify-between font-black">
-              <span>Open SDC Studio</span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+            <StudioCardAction
+              studio="sdc"
+              href="/vlsi/sdc-studio"
+              label="Open SDC Studio"
+              className="brutal-btn brutal-btn-cyan !text-xs w-full justify-between font-black"
+            />
           </div>
 
           {/* Tool 2: Timing Studio */}
@@ -212,17 +263,19 @@ export default function VlsiHome() {
                 <div className="w-10 h-10 rounded-md bg-[var(--brutal-yellow)] border-2 border-black flex items-center justify-center text-black">
                   <Activity className="w-5 h-5" />
                 </div>
-                <span className="brutal-badge brutal-badge-lime">LIVE</span>
+                <span className="brutal-badge brutal-badge-yellow">PRO+</span>
               </div>
               <h3 className="text-lg font-black uppercase text-white">Timing Studio</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
                 STA report analyzer for PrimeTime, Tempus, and OpenSTA. Interactive path schematic rendering, ECO prediction engine, and script export.
               </p>
             </div>
-            <a href="/vlsi/timing-studio" className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black">
-              <span>Open Timing Studio</span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+            <StudioCardAction
+              studio="timing"
+              href="/vlsi/timing-studio"
+              label="Open Timing Studio"
+              className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black"
+            />
           </div>
 
           {/* Tool 3: MMMC Studio */}
@@ -232,17 +285,19 @@ export default function VlsiHome() {
                 <div className="w-10 h-10 rounded-md bg-indigo-500 border-2 border-black flex items-center justify-center text-white">
                   <GitMerge className="w-5 h-5" />
                 </div>
-                <span className="brutal-badge brutal-badge-lime">LIVE</span>
+                <span className="brutal-badge brutal-badge-cyan">PRO+</span>
               </div>
               <h3 className="text-lg font-black uppercase text-white">MMMC Studio</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
                 Multi-Mode Multi-Corner view authoring suite. Build library sets, delay corners, constraint modes, and analysis views with Cadence & Synopsys generators.
               </p>
             </div>
-            <a href="/vlsi/mmmc-studio" className="brutal-btn bg-indigo-500 text-white hover:bg-indigo-600 !text-xs w-full justify-between font-black">
-              <span>Open MMMC Studio</span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+            <StudioCardAction
+              studio="mmmc"
+              href="/vlsi/mmmc-studio"
+              label="Open MMMC Studio"
+              className="brutal-btn bg-indigo-500 text-white hover:bg-indigo-600 !text-xs w-full justify-between font-black"
+            />
           </div>
 
           {/* Tool 4: Power Studio */}
@@ -252,20 +307,19 @@ export default function VlsiHome() {
                 <div className="w-10 h-10 rounded-md bg-rose-500 border-2 border-black flex items-center justify-center text-white">
                   <Zap className="w-5 h-5" />
                 </div>
-                <span className="brutal-badge brutal-badge-lime">LIVE</span>
+                <span className="brutal-badge brutal-badge-pink">MAX+</span>
               </div>
               <h3 className="text-lg font-black uppercase text-white">Power Studio</h3>
               <p className="text-xs text-slate-300 font-bold leading-relaxed">
                 IEEE 1801 UPF power intent configurator. Manage supply nets, power domains, isolation strategies, level shifters, and power state tables (PST).
               </p>
             </div>
-            <a
+            <StudioCardAction
+              studio="power"
               href="/vlsi/power-studio"
+              label="Open Power Studio"
               className="brutal-btn bg-rose-500 text-white hover:bg-rose-600 !text-xs w-full justify-between font-black"
-            >
-              <span>Open Power Studio</span>
-              <ChevronRight className="w-4 h-4" />
-            </a>
+            />
           </div>
         </div>
       </div>

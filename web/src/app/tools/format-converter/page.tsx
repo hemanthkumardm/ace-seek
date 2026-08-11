@@ -19,8 +19,14 @@ import {
   detectDataFormat,
   formatInfo,
 } from "@/lib/data-convert";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { PlanPill } from "@/components/FeatureLock";
 
 export default function FormatConverterPage() {
+  const { ent, isPremium } = useEntitlements();
+  const allowedFrom = ent.format.from as DataFormat[];
+  const allowedTo = ent.format.to as DataFormat[];
+
   const [from, setFrom] = useState<DataFormat>("json");
   const [to, setTo] = useState<DataFormat>("yaml");
   const [input, setInput] = useState(formatInfo("json").sample);
@@ -36,10 +42,22 @@ export default function FormatConverterPage() {
   const fromMeta = formatInfo(from);
   const toMeta = formatInfo(to);
   const pairOk = canConvertData(from, to);
+  const fromAllowed = allowedFrom.includes(from);
+  const toAllowed = allowedTo.includes(to);
 
   const runConvert = useCallback(
     (src?: string, f?: DataFormat, t?: DataFormat) => {
-      const result = convertData(src ?? input, f ?? from, t ?? to, { pretty });
+      const ff = f ?? from;
+      const tt = t ?? to;
+      if (!allowedFrom.includes(ff) || !allowedTo.includes(tt)) {
+        setOutput("");
+        setError(
+          `“${ff} → ${tt}” needs a higher plan (you’re on ${ent.label}). Upgrade at /pricing.`
+        );
+        setNote("");
+        return;
+      }
+      const result = convertData(src ?? input, ff, tt, { pretty });
       if (result.ok) {
         setOutput(result.output);
         setError("");
@@ -50,7 +68,7 @@ export default function FormatConverterPage() {
         setNote("");
       }
     },
-    [input, from, to, pretty]
+    [input, from, to, pretty, allowedFrom, allowedTo, ent.label]
   );
 
   // Live convert (debounced)
@@ -174,12 +192,13 @@ export default function FormatConverterPage() {
                 Format converter
               </h1>
               <p className="text-[11px] text-slate-400 truncate">
-                JSON · YAML · TOML · CSV · Base64 · URL · Hex
+                JSON · YAML · TOML · CSV · Base64 · URL · Hex — plan-gated
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <PlanPill tier={ent.tier} />
             <span
               className={`rounded-full px-3 py-1 text-xs font-medium ${
                 error
@@ -205,11 +224,15 @@ export default function FormatConverterPage() {
               onChange={(e) => onFromChange(e.target.value as DataFormat)}
               className="min-w-[8.5rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-200"
             >
-              {DATA_FORMATS.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
+              {DATA_FORMATS.map((f) => {
+                const ok = allowedFrom.includes(f.id);
+                return (
+                  <option key={f.id} value={f.id} disabled={!ok}>
+                    {f.label}
+                    {!ok ? " · Pro+" : ""}
+                  </option>
+                );
+              })}
             </select>
           </label>
 
@@ -229,11 +252,15 @@ export default function FormatConverterPage() {
               onChange={(e) => setTo(e.target.value as DataFormat)}
               className="min-w-[8.5rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-200"
             >
-              {DATA_FORMATS.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
+              {DATA_FORMATS.map((f) => {
+                const ok = allowedTo.includes(f.id);
+                return (
+                  <option key={f.id} value={f.id} disabled={!ok}>
+                    {f.label}
+                    {!ok ? " · Pro+" : ""}
+                  </option>
+                );
+              })}
             </select>
           </label>
 
@@ -276,12 +303,19 @@ export default function FormatConverterPage() {
             </button>
             <button
               type="button"
-              onClick={downloadOut}
-              disabled={!output}
+              onClick={() => {
+                if (!ent.format.download) {
+                  flash("Download requires Pro+");
+                  return;
+                }
+                downloadOut();
+              }}
+              disabled={!output || !ent.format.download}
+              title={ent.format.download ? "Download result" : "Pro+ required"}
               className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
             >
               <Download className="h-3.5 w-3.5" />
-              Save
+              Save{!ent.format.download ? " · Pro+" : ""}
             </button>
           </div>
         </div>
@@ -323,8 +357,15 @@ export default function FormatConverterPage() {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={detect}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                onClick={() => {
+                  if (!ent.format.detect) {
+                    flash("Detect requires Free+ API key or higher");
+                    return;
+                  }
+                  detect();
+                }}
+                disabled={!ent.format.detect && ent.tier === "guest"}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                 title="Auto-detect format"
               >
                 <Wand2 className="h-3 w-3" />

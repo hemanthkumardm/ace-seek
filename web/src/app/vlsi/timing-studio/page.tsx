@@ -120,6 +120,9 @@ import {
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
 import Link from "next/link";
+import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { FeatureLock } from "@/components/FeatureLock";
+import { useEntitlements } from "@/hooks/useEntitlements";
 
 // ---------------------------------------------------------------------------
 // Sub-components: Schematic + Waveform
@@ -614,7 +617,9 @@ function TimingWaveformView({
 // Main page
 // ---------------------------------------------------------------------------
 
-export default function InteractiveTimingStudioPage() {
+function InteractiveTimingStudioPage() {
+  const { ent } = useEntitlements();
+  const canEco = ent.vlsi.eco;
   const [reportText, setReportText] = useState("");
   const [designNameOverride, setDesignNameOverride] = useState("");
   const [activeFilename, setActiveFilename] = useState("");
@@ -1534,7 +1539,7 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
                     ["paths", "Paths & Wave", List, timingState.totalPaths],
                     ["schematic", "Schematic", GitBranch, null],
                     ["si", "SI / Noise", Radio, timingState.siSummary.highNoisePaths || null],
-                    ["eco", "ECO", Wrench, timingState.failingCount || null],
+                    ["eco", canEco ? "ECO" : "ECO · Max+", Wrench, timingState.failingCount || null],
                     ["violations", "Violations", AlertTriangle, timingState.failingCount],
                     ["compare", "Compare / Δ", GitBranch, compareReportId ? "Diff" : null],
                   ] as const
@@ -1547,7 +1552,7 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
                       activeTab === id
                         ? "neu-btn-active text-amber-600 font-black shadow-inner"
                         : "text-slate-500 hover:text-slate-800"
-                    }`}
+                    } ${id === "eco" && !canEco ? "opacity-70" : ""}`}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{label}</span>
@@ -2458,8 +2463,14 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
                   </p>
                 )}
 
-                {/* ECO */}
+                {/* ECO — Max+ */}
                 {activeTab === "eco" && (
+                  <FeatureLock
+                    locked={!canEco}
+                    requires="max"
+                    title="ECO engine & script export"
+                    className="min-h-[16rem]"
+                  >
                   <div className="space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
@@ -2846,6 +2857,7 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
                       </p>
                     )}
                   </div>
+                  </FeatureLock>
                 )}
 
                 {/* VIOLATIONS */}
@@ -3461,5 +3473,14 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function InteractiveTimingStudioPageGate() {
+  return (
+    <VlsiStudioGate studio="timing">
+      <InteractiveTimingStudioPage />
+    </VlsiStudioGate>
   );
 }

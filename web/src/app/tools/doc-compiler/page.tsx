@@ -86,9 +86,10 @@ export default function DocCompilerPage() {
   const [useProEngine, setUseProEngine] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [tier, setTier] = useState<"guest" | "free" | "pro" | "team">("guest");
+  const [tier, setTier] = useState<"guest" | "free" | "pro" | "max" | "team">("guest");
   const [tierEmail, setTierEmail] = useState("");
-  const isPremium = tier === "pro" || tier === "team";
+  const isPremium = tier === "pro" || tier === "max" || tier === "team";
+  const isMaxOrTeam = tier === "max" || tier === "team";
 
   const [isCompiling, setIsCompiling] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -167,30 +168,30 @@ export default function DocCompilerPage() {
         setStatusMsg("API key rejected — Free features only.");
         return;
       }
-      const t = (data.tier || "free") as "free" | "pro" | "team";
+      const t = (data.tier || data.plan || "free") as "free" | "pro" | "max" | "team";
       setApiKey(trimmed);
       setTier(t);
       setTierEmail(data.email || "");
       localStorage.setItem("ace_seek_api_key", trimmed);
       localStorage.setItem("ace_api_key", trimmed);
       setErrorMsg("");
-      setStatusMsg(
-        t === "pro" || t === "team"
-          ? `Pro unlocked (${t.toUpperCase()}) · ${data.email || "key active"}`
-          : `Free plan key active · ${data.email || ""}`
-      );
-      if (t === "pro" || t === "team") {
-        // Max quality defaults for premium
+      if (t === "max" || t === "team") {
+        setUseProEngine(true);
+        setPdfDocxMode("exact");
+        setExactDpi(400);
+        setStatusMsg(
+          `${t.toUpperCase()} unlocked · all features · Exact @ 400 DPI · ${data.email || ""}`
+        );
+      } else if (t === "pro") {
         setUseProEngine(true);
         setPdfDocxMode("exact");
         setExactDpi(300);
-        setStatusMsg(
-          `Pro MAX unlocked (${t.toUpperCase()}) · Exact @ 300 DPI + Pro engine · ${data.email || ""}`
-        );
+        setStatusMsg(`PRO unlocked · Exact @ 300 DPI · ${data.email || ""}`);
       } else {
         setUseProEngine(false);
         setPdfDocxMode((m) => (m === "exact" ? "editable" : m));
         setExactDpi(150);
+        setStatusMsg(`Free plan · core features only · ${data.email || ""}`);
       }
     } catch {
       setErrorMsg("Could not validate API key");

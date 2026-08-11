@@ -68,6 +68,7 @@ import {
   clearHubTransfer,
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
+import { VlsiStudioGate } from "@/components/VlsiStudioGate";
 
 type TabId =
   | "configure"
@@ -177,7 +178,7 @@ function PathListField({
   );
 }
 
-export default function MmmcStudioPage() {
+function MmmcStudioPage() {
   const [state, setState] = useState<MmmcState>(() =>
     normalizeMmmcState(structuredClone(DEFAULT_MMMC_STATE))
   );
@@ -1815,5 +1816,14 @@ export default function MmmcStudioPage() {
         )}
       </main>
     </div>
+  );
+}
+
+
+export default function MmmcStudioPageGate() {
+  return (
+    <VlsiStudioGate studio="mmmc">
+      <MmmcStudioPage />
+    </VlsiStudioGate>
   );
 }
