@@ -74,6 +74,7 @@ import { deriveCornerId } from "@/lib/corner-model";
 import {
   type EcoVendor,
   exportVendorEcoScript,
+  exportGenusSynthFlow,
   generateVendorEcoLine,
   vendorsForStage,
   defaultVendorForStage,
@@ -2779,6 +2780,29 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
                       >
                         <Download className="w-3.5 h-3.5" /> Export .tcl
                       </button>
+
+                      {ecoVendor === "genus" && (
+                        <button
+                          type="button"
+                          className="neu-btn bg-violet-600 text-white hover:bg-violet-700 px-3 py-2 text-[10px] font-black flex items-center gap-1 shadow-[2px_2px_0_#000]"
+                          onClick={() => {
+                            const list = selectedPath ? pathEco : sessionEco;
+                            const selectedList = list.filter((a) => ecoSelected[a.id]);
+                            const finalActions = selectedList.length ? selectedList : list;
+                            const flow = exportGenusSynthFlow({
+                              designName:
+                                displayDesignName !== "—" ? displayDesignName : "pad_top",
+                              sdcFile: "constraints.sdc",
+                              effort: "medium",
+                              ecoActions: finalActions.slice(0, 12),
+                            });
+                            downloadTextFile(flow, "genus_synth_flow.tcl");
+                            flash("Downloaded genus_synth_flow.tcl (full Common UI flow)");
+                          }}
+                        >
+                          <Download className="w-3.5 h-3.5" /> Genus full flow
+                        </button>
+                      )}
 
                       {/* Download Export Pack (.zip) */}
                       <button

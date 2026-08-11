@@ -5,7 +5,11 @@
 
 import { SdcStudioState, generateSdcCode } from "./sdc-engine";
 import { TimingStudioState, EcoAction } from "./timing-engine";
-import { EcoVendor, exportVendorEcoScript } from "./eco-scripts/index";
+import {
+  EcoVendor,
+  exportVendorEcoScript,
+  exportGenusSynthFlow,
+} from "./eco-scripts/index";
 import { computePredictedMetrics } from "./eco-session-model";
 
 export interface ExportPackFile {
@@ -178,6 +182,11 @@ export function generateExportPack(
     `----------------------------------------------------------------------`,
     `- constraints.sdc : Synthesizable SDC 2.1 constraint file`,
     `- eco.tcl         : Vendor-specific TCL ECO script (${vendor.toUpperCase()})`,
+    ...(vendor === "genus"
+      ? [
+          `- genus_synth_flow.tcl : Full Genus Common UI synth flow (libs→map→opt→write)`,
+        ]
+      : []),
     `- README.txt      : Execution instructions and ECO impact summary`,
     ``,
     `----------------------------------------------------------------------`,
@@ -195,13 +204,22 @@ export function generateExportPack(
     `----------------------------------------------------------------------`,
   ];
 
-  if (vendor === "innovus") {
+  if (vendor === "genus") {
+    readmeLines.push(`In Cadence Genus (Common UI — set_db / get_db):`);
+    readmeLines.push(`  Full flow:  source genus_synth_flow.tcl  (libs→RTL→SDC→syn_*→write)`);
+    readmeLines.push(`  Or incremental ECO on an open session:`);
+    readmeLines.push(`  1. Open session: genus`);
+    readmeLines.push(`  2. set_db library {...}; read_hdl ...; elaborate <top>`);
+    readmeLines.push(`  3. read_sdc constraints.sdc ; check_design ; check_timing`);
+    readmeLines.push(`  4. source eco.tcl  (exceptions / size / path groups / syn_opt -incremental)`);
+    readmeLines.push(`  5. report_qor ; report_timing ; LEC if netlist changed`);
+  } else if (vendor === "innovus") {
     readmeLines.push(`In Cadence Innovus:`);
     readmeLines.push(`  1. Open session: innovus -files init.tcl`);
     readmeLines.push(`  2. Sourced constraints: read_sdc constraints.sdc`);
     readmeLines.push(`  3. Source ECO script: source eco.tcl`);
-  } else if (vendor === "primetime") {
-    readmeLines.push(`In Synopsys PrimeTime:`);
+  } else if (vendor === "primetime" || vendor === "pt_shell") {
+    readmeLines.push(`In Synopsys PrimeTime (pt_shell):`);
     readmeLines.push(`  1. Open session: pt_shell`);
     readmeLines.push(`  2. Source SDC: read_sdc constraints.sdc`);
     readmeLines.push(`  3. Apply ECOs: source eco.tcl`);
@@ -210,10 +228,15 @@ export function generateExportPack(
     readmeLines.push(`  1. Open session: tempus`);
     readmeLines.push(`  2. Source SDC: read_sdc constraints.sdc`);
     readmeLines.push(`  3. Apply ECOs: source eco.tcl`);
+  } else if (vendor === "dc_shell") {
+    readmeLines.push(`In Synopsys Design Compiler (dc_shell):`);
+    readmeLines.push(`  1. Open session: dc_shell`);
+    readmeLines.push(`  2. Source SDC: read_sdc constraints.sdc`);
+    readmeLines.push(`  3. Apply ECOs: source eco.tcl`);
   } else {
-    readmeLines.push(`In OpenSTA:`);
-    readmeLines.push(`  1. Open session: sta`);
-    readmeLines.push(`  2. Read SDC: read_sdc constraints.sdc`);
+    readmeLines.push(`In ${vendor}:`);
+    readmeLines.push(`  1. Load design + liberty + SDC`);
+    readmeLines.push(`  2. Source SDC: read_sdc constraints.sdc (or equivalent)`);
     readmeLines.push(`  3. Apply ECOs: source eco.tcl`);
   }
 
@@ -223,8 +246,21 @@ export function generateExportPack(
   const files: ExportPackFile[] = [
     { filename: "constraints.sdc", content: sdcContent },
     { filename: "eco.tcl", content: ecoContent },
-    { filename: "README.txt", content: readmeLines.join("\n") },
   ];
+
+  if (vendor === "genus") {
+    files.push({
+      filename: "genus_synth_flow.tcl",
+      content: exportGenusSynthFlow({
+        designName: timingState.designName || "pad_top",
+        sdcFile: "constraints.sdc",
+        effort: "medium",
+        ecoActions: selectedActions.slice(0, 12),
+      }),
+    });
+  }
+
+  files.push({ filename: "README.txt", content: readmeLines.join("\n") });
 
   const zipBytes = buildZipArchive(files);
 

@@ -2452,7 +2452,12 @@ export type EcoActionType =
   | "reduce_freq"
   | "uncertainty"
   | "io_constraint"
-  | "compile_effort";
+  | "compile_effort"
+  /** Timing exceptions / freeze (Genus ECO guide) */
+  | "path_adjust"
+  | "false_path"
+  | "multicycle"
+  | "preserve";
 
 export interface EcoAction {
   id: string;
@@ -2476,6 +2481,14 @@ export interface EcoAction {
   clockName?: string;
   suggestedPeriodNs?: number;
   suggestedUncertaintyNs?: number;
+  /** path_adjust delay in picoseconds (Genus path_adjust -delay <ps>) */
+  pathAdjustPs?: number;
+  /** Exception -from object (pin/port/clock) */
+  exceptionFrom?: string;
+  /** Exception -to object */
+  exceptionTo?: string;
+  /** Multicycle setup cycles (hold usually setup-1 or 1) */
+  mcpCycles?: number;
 }
 
 export function generateEcoProposals(
@@ -2523,9 +2536,14 @@ export function generateEcoProposals(
       fromCell,
       toCell,
       cellPickSource: src === "none" && !toCell ? "none" : src,
-      scriptLine: toCell
-        ? `size_cell {${inst}} {${toCell}}  ;# ${fromCell || "?"} → ${toCell} · est +${gain.toFixed(3)} ns · ${src}`
-        : `size_cell {${inst}} <NEXT_DRIVE_CELL>  ;# est +${gain.toFixed(3)} ns · no ladder match`,
+      scriptLine:
+        stage === "synthesis"
+          ? toCell
+            ? `set_db [get_db insts ${inst}] .base_cell [get_db lib_cells ${toCell}]  ;# ${fromCell || "?"} → ${toCell} · +${gain.toFixed(3)} ns · ${src}`
+            : `syn_opt -incremental  ;# upsize via opt · ${inst} · no ladder match`
+          : toCell
+            ? `size_cell {${inst}} {${toCell}}  ;# ${fromCell || "?"} → ${toCell} · est +${gain.toFixed(3)} ns · ${src}`
+            : `size_cell {${inst}} <NEXT_DRIVE_CELL>  ;# est +${gain.toFixed(3)} ns · no ladder match`,
     });
   }
 
@@ -2553,9 +2571,14 @@ export function generateEcoProposals(
       fromCell,
       toCell,
       cellPickSource: src === "none" && !toCell ? "none" : src,
-      scriptLine: toCell
-        ? `size_cell {${inst}} {${toCell}}  ;# VT ${fromCell || "?"} → ${toCell} · ${src}`
-        : `# VT swap critical cells toward endpoint ${path.endpoint}`,
+      scriptLine:
+        stage === "synthesis"
+          ? toCell
+            ? `set_db [get_db insts ${inst}] .base_cell [get_db lib_cells ${toCell}]  ;# VT ${fromCell || "?"} → ${toCell}`
+            : `syn_opt -incremental  ;# VT via map/opt + LVT liberty`
+          : toCell
+            ? `size_cell {${inst}} {${toCell}}  ;# VT ${fromCell || "?"} → ${toCell} · ${src}`
+            : `# VT swap critical cells toward endpoint ${path.endpoint}`,
     });
   }
 
@@ -2571,7 +2594,10 @@ export function generateEcoProposals(
       risk: "med",
       stageOk: stageOk(["pnr", "signoff", "synthesis"]),
       solverPatch: { bufferOptPct: 30 },
-      scriptLine: `# buffer critical nets on path to ${path.endpoint}`,
+      scriptLine:
+        stage === "synthesis"
+          ? `set_db max_fanout 10; syn_opt -incremental  ;# buffer near ${path.endpoint}`
+          : `# buffer critical nets on path to ${path.endpoint}`,
     });
   }
 
@@ -2669,14 +2695,14 @@ export function generateEcoProposals(
       type: "path_group",
       title: `Path group weight: ${path.pathGroup || "critical"}`,
       detail:
-        "Bias compile/map effort onto this path group (group_path + high effort).",
+        "Bias Genus map/opt via define_cost_group + path_group + set_path_group_options -effort_level high.",
       target: path.endpoint,
       estGainNs: Math.min(Math.abs(path.slack) * 0.35, 0.15),
       risk: "low",
       stageOk: true,
       solverPatch: {},
       pathGroupName: grp,
-      scriptLine: `group_path -name ${grp} -to {/* endpoint */}`,
+      scriptLine: `define_cost_group -name ${grp}; path_group -group ${grp}; set_path_group_options ${grp} -effort_level high -weight 10; syn_opt -incremental`,
     });
 
     if (path.levels >= 5) {
@@ -2684,13 +2710,13 @@ export function generateEcoProposals(
         id: `eco_retime_${path.id}`,
         type: "retime",
         title: "Retiming / balance registers",
-        detail: `${path.levels} levels — enable retiming or move flops (RTL/synth).`,
+        detail: `${path.levels} levels — RTL pipeline preferred; Genus high-effort syn_opt / report_sequential.`,
         target: path.startpoint,
         estGainNs: Math.max(0.05, path.dataPathDelay * 0.2),
         risk: "high",
         stageOk: true,
         solverPatch: { pipelineStages: 1 },
-        scriptLine: `# retime path ${path.startpoint} -> ${path.endpoint}`,
+        scriptLine: `set_db syn_opt_effort high; syn_opt -incremental; report_sequential`,
       });
     }
 
@@ -2698,13 +2724,14 @@ export function generateEcoProposals(
       id: `eco_compile_${path.id}`,
       type: "compile_effort",
       title: "Raise synthesis effort (incremental)",
-      detail: "High-effort map/opt incremental compile focused on critical paths.",
+      detail:
+        "Genus: set_db syn_{generic,map,opt}_effort high then syn_opt -incremental (or full cascade).",
       target: path.endpoint,
       estGainNs: Math.min(Math.abs(path.slack) * 0.25, 0.1),
       risk: "med",
       stageOk: true,
       solverPatch: { gateUpsizePct: 20 },
-      scriptLine: `# compile / syn_opt high effort`,
+      scriptLine: `set_db syn_generic_effort high; set_db syn_map_effort high; set_db syn_opt_effort high; syn_opt -incremental`,
     });
 
     // Period / uncertainty only when badly failing
@@ -2774,6 +2801,106 @@ export function generateEcoProposals(
         stageOk: true,
         solverPatch: { outputRelaxPct: 15 },
         scriptLine: `# set_input_delay / set_output_delay review`,
+      });
+    }
+
+    // --- Exceptions / freeze (misc/GENUS_ECO_INCREMENTAL_EXCEPTIONS_GUIDE.md) ---
+    // path_adjust: small local margin only (ps), not free chip closure
+    if (path.slack < 0 && Math.abs(path.slack) <= 0.08) {
+      const ps = Math.min(200, Math.ceil(Math.abs(path.slack) * 1000 * 1.1));
+      actions.push({
+        id: `eco_path_adjust_${path.id}`,
+        type: "path_adjust",
+        title: `path_adjust +${ps} ps (local margin)`,
+        detail:
+          "Genus path_adjust in picoseconds for small residual — document owner; do not use to fake WNS.",
+        target: path.endpoint,
+        estGainNs: Math.min(Math.abs(path.slack), ps / 1000),
+        risk: "high",
+        stageOk: true,
+        solverPatch: {},
+        exceptionFrom: path.startpoint,
+        exceptionTo: path.endpoint,
+        pathAdjustPs: ps,
+        scriptLine: `path_adjust -delay ${ps} -setup -from {/*start*/} -to {/*end*/}`,
+      });
+    }
+
+    // Multicycle: deep reg2reg with large miss — only if architecture allows
+    if (
+      path.pathKind === "reg2reg" &&
+      path.slack < -0.15 &&
+      path.levels >= 8
+    ) {
+      const cycles = 2;
+      actions.push({
+        id: `eco_mcp_${path.id}`,
+        type: "multicycle",
+        title: `Multicycle setup×${cycles} (if arch allows)`,
+        detail:
+          "Deep R2R fail — MCP only when interface is truly multi-cycle; always pair hold MCP.",
+        target: path.endpoint,
+        estGainNs: Math.min(Math.abs(path.slack) * 0.5, 0.4),
+        risk: "high",
+        stageOk: true,
+        solverPatch: {},
+        exceptionFrom: path.startpoint,
+        exceptionTo: path.endpoint,
+        mcpCycles: cycles,
+        scriptLine: `set_multicycle_path ${cycles} -setup -from ... -to ...; set_multicycle_path 1 -hold ...`,
+      });
+    }
+
+    // False path: async-looking clocks or reset-ish startpoints
+    const sp = path.startpoint.toLowerCase();
+    const clkA = (path.clock || "").toLowerCase();
+    const clkB = (path.captureClock || path.clock || "").toLowerCase();
+    const looksAsyncClocks =
+      !!path.captureClock &&
+      path.clock &&
+      path.captureClock !== path.clock &&
+      !clkA.includes(clkB) &&
+      !clkB.includes(clkA);
+    const looksReset =
+      /rst|reset|por|async/.test(sp) || /rst|reset/.test(path.endpoint.toLowerCase());
+    if (looksAsyncClocks || looksReset) {
+      actions.push({
+        id: `eco_fp_${path.id}`,
+        type: "false_path",
+        title: looksReset
+          ? "False path on reset/async control"
+          : "False path / async clock group review",
+        detail: looksAsyncClocks
+          ? `Launch ${path.clock} vs capture ${path.captureClock} — prefer set_clock_groups -asynchronous if domains are async; FP only for proven non-functional points.`
+          : "Reset/static control often needs set_false_path — not a substitute for CDC sync.",
+        target: path.endpoint,
+        estGainNs: Math.abs(path.slack) * 0.9,
+        risk: "high",
+        stageOk: true,
+        solverPatch: {},
+        exceptionFrom: path.startpoint,
+        exceptionTo: path.endpoint,
+        clockName: path.clock,
+        scriptLine: looksAsyncClocks
+          ? `set_clock_groups -asynchronous -group {${path.clock}} -group {${path.captureClock}}`
+          : `set_false_path -from [get_ports ${path.startpoint}]`,
+      });
+    }
+
+    // Preserve: freeze non-critical after local ECO (high fanout / many levels elsewhere)
+    if (path.slack < 0 && path.levels >= 4) {
+      actions.push({
+        id: `eco_preserve_${path.id}`,
+        type: "preserve",
+        title: "Preserve / freeze unrelated IP during ECO",
+        detail:
+          "set_db insts .preserve true on frozen blocks so syn_opt -incremental only touches the failing cone.",
+        target: path.endpoint,
+        estGainNs: 0.01,
+        risk: "low",
+        stageOk: true,
+        solverPatch: {},
+        scriptLine: `set_db [get_db insts u_ip*] .preserve true; syn_opt -incremental`,
       });
     }
   }

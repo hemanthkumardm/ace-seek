@@ -128,6 +128,7 @@ import {
 
 import {
   exportVendorEcoScript,
+  exportGenusSynthFlow,
   generateVendorEcoLine,
   vendorsForStage,
   defaultVendorForStage,
@@ -396,15 +397,19 @@ assert(testActions.length >= 1, `Generated ${testActions.length} ECO actions for
 const innovusScript = exportVendorEcoScript(testActions, { vendor: "innovus", stage: "pnr" });
 const ptScript = exportVendorEcoScript(testActions, { vendor: "pt_shell", stage: "signoff" });
 const tempusScript = exportVendorEcoScript(testActions, { vendor: "tempus", stage: "signoff" });
-const genusScriptA4 = exportVendorEcoScript(testActions, { vendor: "genus", stage: "synthesis" });
+const genusScriptA4 = exportVendorEcoScript(testActions, {
+  vendor: "genus",
+  stage: "synthesis",
+  designName: "pad_top",
+});
 
 assert(innovusScript.includes("setEcoMode"), `Innovus script includes setEcoMode`);
 assert(ptScript.includes("update_timing"), `pt_shell script includes update_timing`);
 assert(tempusScript.includes("set_eco_option"), `Tempus script includes set_eco_option`);
-assert(
-  genusScriptA4.toLowerCase().includes("genus") || genusScriptA4.includes("PLACEHOLDER"),
-  `Genus synth script generated`
-);
+assert(genusScriptA4.includes("Genus Common UI"), `Genus preamble mentions Common UI`);
+assert(genusScriptA4.includes("syn_opt"), `Genus script uses syn_opt`);
+assert(genusScriptA4.includes("report_qor"), `Genus post-step report_qor`);
+assert(!genusScriptA4.includes("PLACEHOLDER [genus]"), `Genus actions have no PLACEHOLDER [genus] lines`);
 assert(innovusScript !== ptScript, `Vendor script outputs differ by tool format`);
 
 // A4.2: ECO session model
@@ -1205,6 +1210,254 @@ const pathGroupLine = generateVendorEcoLine(
   "dc_shell"
 );
 assert(pathGroupLine.includes("group_path"), `dc_shell path_group emits group_path`);
+
+// Genus-specific command cards from misc/GENUS_*.md
+const genusPg = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "path_group",
+    title: "pg",
+    detail: "",
+    target: "u_end/D",
+    estGainNs: 0.05,
+    risk: "low",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+    pathGroupName: "pg_crit",
+  },
+  "genus"
+);
+assert(genusPg.includes("define_cost_group"), `Genus path_group uses define_cost_group`);
+assert(genusPg.includes("path_group"), `Genus path_group uses path_group`);
+assert(genusPg.includes("set_path_group_options"), `Genus path_group uses set_path_group_options`);
+assert(genusPg.includes("-effort_level high"), `Genus path_group effort_level high`);
+assert(genusPg.includes("syn_opt -incremental"), `Genus path_group ends with syn_opt -incremental`);
+
+const genusCompile = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "compile_effort",
+    title: "ce",
+    detail: "",
+    target: "u_end/D",
+    estGainNs: 0.05,
+    risk: "low",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusCompile.includes("syn_generic_effort"), `Genus compile sets syn_generic_effort`);
+assert(genusCompile.includes("syn_map_effort"), `Genus compile sets syn_map_effort`);
+assert(genusCompile.includes("syn_opt_effort"), `Genus compile sets syn_opt_effort`);
+assert(genusCompile.includes("syn_opt -incremental"), `Genus compile uses syn_opt -incremental`);
+
+const genusUpsize = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "upsize",
+    title: "up",
+    detail: "",
+    target: "u_and0",
+    toCell: "AND2_X4",
+    fromCell: "AND2_X1",
+    estGainNs: 0.05,
+    risk: "low",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusUpsize.includes("base_cell"), `Genus upsize uses set_db .base_cell`);
+assert(genusUpsize.includes("AND2_X4"), `Genus upsize embeds toCell`);
+assert(genusUpsize.includes("syn_opt -incremental"), `Genus upsize re-opts`);
+
+const genusUnc = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "uncertainty",
+    title: "unc",
+    detail: "",
+    target: "u_end/D",
+    clockName: "CLK",
+    suggestedUncertaintyNs: 0.05,
+    estGainNs: 0.02,
+    risk: "low",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusUnc.includes("set_clock_uncertainty -setup"), `Genus uncertainty -setup`);
+assert(genusUnc.includes("set_clock_uncertainty -hold"), `Genus uncertainty -hold`);
+
+const genusCone = exportCriticalConeTcl(
+  [{ id: "u0/A", kind: "pin" } as never],
+  "crit_cone",
+  "genus"
+);
+assert(genusCone.includes("define_cost_group"), `Genus cone export define_cost_group`);
+assert(genusCone.includes("set_path_group_options"), `Genus cone export set_path_group_options`);
+
+// Genus exceptions + full synth flow
+console.log("\n--- Genus exceptions (path_adjust / FP / MCP / preserve) + full flow ---");
+
+const genusPa = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "path_adjust",
+    title: "pa",
+    detail: "",
+    target: "u_end/D",
+    exceptionFrom: "u_start/Q",
+    exceptionTo: "u_end/D",
+    pathAdjustPs: 50,
+    estGainNs: 0.05,
+    risk: "high",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusPa.includes("path_adjust"), `Genus path_adjust command`);
+assert(genusPa.includes("-delay 50"), `Genus path_adjust delay 50 ps`);
+assert(genusPa.includes("-setup"), `Genus path_adjust -setup`);
+
+const genusFp = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "false_path",
+    title: "fp",
+    detail: "Launch clk_a vs capture clk_b — prefer set_clock_groups",
+    target: "u_end/D",
+    exceptionFrom: "u_start/Q",
+    exceptionTo: "u_end/D",
+    estGainNs: 0.1,
+    risk: "high",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusFp.includes("set_clock_groups -asynchronous"), `Genus FP async uses clock_groups`);
+
+const genusFpReset = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "false_path",
+    title: "fp rst",
+    detail: "Reset/static control",
+    target: "u_end/D",
+    exceptionFrom: "rst_n",
+    estGainNs: 0.1,
+    risk: "high",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusFpReset.includes("set_false_path"), `Genus reset-style false_path`);
+
+const genusMcp = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "multicycle",
+    title: "mcp",
+    detail: "",
+    target: "u_end/D",
+    exceptionFrom: "u_start/Q",
+    exceptionTo: "u_end/D",
+    mcpCycles: 2,
+    estGainNs: 0.2,
+    risk: "high",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusMcp.includes("set_multicycle_path 2 -setup"), `Genus MCP setup×2`);
+assert(genusMcp.includes("set_multicycle_path 1 -hold"), `Genus MCP hold pair`);
+
+const genusPres = generateVendorEcoLine(
+  {
+    id: "t",
+    type: "preserve",
+    title: "pres",
+    detail: "",
+    target: "u_crit/A",
+    estGainNs: 0.01,
+    risk: "low",
+    stageOk: true,
+    solverPatch: {},
+    scriptLine: "",
+  },
+  "genus"
+);
+assert(genusPres.includes(".preserve true"), `Genus preserve uses set_db .preserve`);
+assert(genusPres.includes("syn_opt -incremental"), `Genus preserve then incremental opt`);
+
+const genusFlow = exportGenusSynthFlow({
+  designName: "pad_top",
+  libFiles: ["ss.lib", "io.lib"],
+  hdlFiles: ["core.v", "pad_top.sv"],
+  sdcFile: "func.sdc",
+  effort: "high",
+});
+assert(genusFlow.includes("set_db library"), `Genus flow set_db library`);
+assert(genusFlow.includes("read_hdl core.v"), `Genus flow read_hdl`);
+assert(genusFlow.includes("read_hdl -sv pad_top.sv"), `Genus flow read_hdl -sv`);
+assert(genusFlow.includes("elaborate $TOP"), `Genus flow elaborate`);
+assert(genusFlow.includes("read_sdc func.sdc"), `Genus flow read_sdc`);
+assert(genusFlow.includes("define_cost_group"), `Genus flow cost groups`);
+assert(genusFlow.includes("syn_generic"), `Genus flow syn_generic`);
+assert(genusFlow.includes("syn_map"), `Genus flow syn_map`);
+assert(genusFlow.includes("syn_opt"), `Genus flow syn_opt`);
+assert(genusFlow.includes("syn_generic_effort high"), `Genus flow high effort`);
+assert(genusFlow.includes("write_hdl"), `Genus flow write_hdl`);
+assert(genusFlow.includes("write_sdc"), `Genus flow write_sdc`);
+assert(genusFlow.includes("write_db"), `Genus flow write_db`);
+assert(genusFlow.includes("report_qor"), `Genus flow report_qor`);
+
+const genusPack = generateExportPack(
+  DEFAULT_SDC_STATE,
+  mcState,
+  testActions,
+  "genus"
+);
+assert(genusPack.files.length === 4, `Genus pack has 4 files (sdc+eco+flow+readme)`);
+assert(
+  genusPack.files.some((f) => f.filename === "genus_synth_flow.tcl"),
+  `Genus pack includes genus_synth_flow.tcl`
+);
+assert(
+  genusPack.files.find((f) => f.filename === "genus_synth_flow.tcl")!.content.includes("syn_map"),
+  `Genus pack flow has syn_map`
+);
+
+// Proposals can emit exception types on deep failing paths
+const deepFailPath = parseTimingReport(MOCK_STA_REPORTS.synopsys, "synopsys").paths[0];
+if (deepFailPath) {
+  const withDeep = {
+    ...deepFailPath,
+    slack: -0.2,
+    levels: 10,
+    pathKind: "reg2reg" as const,
+    type: "setup" as const,
+  };
+  const deepEco = generateEcoProposals(withDeep, "synthesis");
+  assert(
+    deepEco.some((a) => a.type === "multicycle" || a.type === "path_adjust" || a.type === "preserve"),
+    `Deep fail synthesis ECO includes exception/preserve type`
+  );
+}
 
 console.log("\n==================================================================");
 console.log(`  🎉 ALL VERIFICATION TESTS PASSED SUCCESSFULLY! (${passedAssertions}/${totalAssertions} assertions)`);

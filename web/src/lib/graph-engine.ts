@@ -978,6 +978,16 @@ export function exportCriticalConeTcl(
 
   switch (vendor) {
     case "genus":
+      // misc/GENUS_SYNTHESIS_LEARNING_NOTES.md §7.1 + GENUS_COMMANDS §10
+      return [
+        header,
+        `define_cost_group -name ${groupName} -design [get_db current_design .name]`,
+        `path_group -to [get_pins {${pinList}}] -group ${groupName} -name pg_${groupName}`,
+        `group_path -name ${groupName} -to [get_pins {${pinList}}] -weight 10`,
+        `set_path_group_options ${groupName} -effort_level high -weight 10`,
+        `syn_opt -incremental`,
+        `report_timing -group ${groupName} -nworst 10 -max_paths 20`,
+      ].join("\n");
     case "dc_shell":
     case "innovus":
     case "icc2":
