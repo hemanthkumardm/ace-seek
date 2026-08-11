@@ -1,9 +1,12 @@
 /**
  * Ace-Seek site model
  *
- *   www.ace-seek.com / ace-seek.com  → command center (pricing, signup, dashboard, SEO)
- *   vlsi.ace-seek.com                → VLSI platform intro + API-key login + studios
- *   tools.ace-seek.com               → Tools platform intro + API-key login + workstations
+ *   www.ace-seek.com   → primary command center (pricing, signup, dashboard, SEO)
+ *   main.ace-seek.com  → optional alias of main (if configured on Vercel)
+ *   vlsi.ace-seek.com  → VLSI platform intro + API-key login + studios
+ *   tools.ace-seek.com → Tools platform intro + API-key login + workstations
+ *
+ * Apex ace-seek.com is NOT required (prefer www only).
  *
  * Local (no DNS):
  *   /           → main
@@ -11,8 +14,10 @@
  *   /tools      → Tools intro
  */
 
+/** Canonical main marketing / signup / dashboard host */
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://ace-seek.com";
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+  "https://www.ace-seek.com";
 
 /** Absolute platform origins (production). Path-based fallbacks for local. */
 export const VLSI_URL =
@@ -86,10 +91,12 @@ export function productHostSlug(host: string | null | undefined): string | null 
   const m = h.match(/^([a-z0-9-]+)\.(?:localhost|ace-seek\.com)$/);
   if (!m) return null;
   const slug = m[1];
-  if (slug === "www" || slug === "ace-seek") return null;
+  // Main marketing hosts — not product subdomains
+  if (slug === "www" || slug === "main" || slug === "ace-seek") return null;
   return slug;
 }
 
+/** True for main marketing site (not vlsi/tools product hosts). */
 export function isApexHost(host: string | null | undefined): boolean {
   if (!host) return true;
   const h = host.split(":")[0].toLowerCase();
@@ -97,7 +104,8 @@ export function isApexHost(host: string | null | undefined): boolean {
     h === "localhost" ||
     h === "127.0.0.1" ||
     h === "ace-seek.com" ||
-    h === "www.ace-seek.com"
+    h === "www.ace-seek.com" ||
+    h === "main.ace-seek.com"
   );
 }
 

@@ -130,7 +130,7 @@ export default function VlsiHome() {
               <span>{isSignedIn || isAuthorized ? "API Key Active" : "API Key Login"}</span>
             </button>
             <a
-              href="https://ace-seek.com/pricing"
+              href="https://www.ace-seek.com/pricing"
               target="_blank"
               rel="noreferrer"
               className="brutal-btn brutal-btn-yellow !text-xs font-black"

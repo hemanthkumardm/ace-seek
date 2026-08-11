@@ -169,7 +169,7 @@ export function WorkstationAuthGuard({ children }: Props) {
             </a>
           </div>
           <p className="text-[11px] text-slate-400 font-bold leading-normal">
-            If you already created an account on <a href="https://ace-seek.com" className="text-[var(--accent-cyan)] underline" target="_blank" rel="noreferrer">ace-seek.com</a>, log in here to activate your session.
+            If you already created an account on <a href="https://www.ace-seek.com" className="text-[var(--accent-cyan)] underline" target="_blank" rel="noreferrer">www.ace-seek.com</a>, log in here to activate your session.
           </p>
         </div>
 
@@ -199,7 +199,7 @@ export function WorkstationAuthGuard({ children }: Props) {
 
           {keyStatus === "invalid" && (
             <p className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" /> Invalid API key. Please copy your key from the <a href="https://ace-seek.com/dashboard" className="underline" target="_blank" rel="noreferrer">Main Dashboard</a>.
+              <AlertCircle className="w-3.5 h-3.5" /> Invalid API key. Please copy your key from the <a href="https://www.ace-seek.com/dashboard" className="underline" target="_blank" rel="noreferrer">Main Dashboard</a>.
             </p>
           )}
         </div>
@@ -213,7 +213,7 @@ export function WorkstationAuthGuard({ children }: Props) {
             ← Back to Intro Landing Page
           </a>
           <a
-            href="https://ace-seek.com/signup"
+            href="https://www.ace-seek.com/signup"
             target="_blank"
             rel="noreferrer"
             className="text-[var(--accent-cyan)] hover:underline flex items-center gap-1 font-black"

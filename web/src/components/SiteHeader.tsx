@@ -169,17 +169,17 @@ export function SiteHeader({ active }: Props) {
           <nav className="hidden lg:flex items-center gap-1 p-1 rounded-lg bg-[var(--surface-recessed)] border border-[var(--bevel-shadow)]">
             {(isVlsi || isTools) && (
               <a
-                href="https://ace-seek.com/"
+                href="https://www.ace-seek.com/"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--accent-cyan)] hover:bg-[rgba(255,255,255,0.05)] transition-all"
               >
                 <Terminal className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
                 <span>Main Portal</span>
               </a>
             )}
-            {link("pricing", "https://ace-seek.com/pricing", "Pricing", CreditCard)}
-            {link("offers", "https://ace-seek.com/offers", "Offers", Tag)}
-            {link("advertise", "https://ace-seek.com/advertise", "Advertise", Megaphone)}
-            {link("docs", "https://ace-seek.com/docs", "Docs", FileText)}
+            {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
+            {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
+            {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
+            {link("docs", "https://www.ace-seek.com/docs", "Docs", FileText)}
           </nav>
         </div>
 

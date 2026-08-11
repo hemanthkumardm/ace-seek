@@ -25,7 +25,7 @@ Engines (STA/SDC math) can stay in the **browser**; **identity + data** must be 
 | 2 | **Supabase** | Create project → **SQL Editor** → run `supabase/schema.sql` → copy URL + **service_role** key |
 | 3 | **Vercel** | Import repo → root `web` → add env vars → deploy |
 | 4 | **Domain** | Apex + `www` + `vlsi.` / `doc.` / `tools.` → Vercel DNS |
-| 5 | **Clerk domains** | Allow production URLs (`https://ace-seek.com`, subdomains) |
+| 5 | **Clerk domains** | Allow production URLs (`https://www.ace-seek.com`, subdomains) |
 | 6 | *(later)* **Stripe** | Products Free/Pro/Team + webhook |
 | 7 | *(later)* Resend / Sentry / PostHog / Upstash | Email, errors, analytics, rate limits |
 
@@ -43,7 +43,7 @@ ACE_API_KEY_PEPPER=<long-random-string>   # stable API keys
 
 # Optional now
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-NEXT_PUBLIC_SITE_URL=https://ace-seek.com
+NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
 ```
 
 Without these on **Vercel**, production still falls back to local/demo behavior.
@@ -126,7 +126,7 @@ Day 1  Clerk app + Supabase SQL + .env.local → npm run dev
        → Sign in, edit SDC, see CLOUD badge, open second browser
 
 Day 2  Push git → Vercel → env vars → DNS
-       → Same test on https://ace-seek.com
+       → Same test on https://www.ace-seek.com
 
 Day 3  Decide: require login for VLSI (enforce in code)
 

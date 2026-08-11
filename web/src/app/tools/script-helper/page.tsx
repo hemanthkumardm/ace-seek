@@ -8,7 +8,7 @@ export const metadata = {
 export default async function ScriptHelperPage() {
   const host = (await headers()).get("host");
   const slug = productHostSlug(host);
-  const back = slug ? "https://ace-seek.com/dashboard" : "/dashboard";
+  const back = slug ? "https://www.ace-seek.com/dashboard" : "/dashboard";
 
   return (
     <div className="m-shell py-16 max-w-lg">

@@ -283,8 +283,8 @@ cd web
 npm run verify
 npx tsc --noEmit
 # After deploy:
-# - https://ace-seek.com/signup
-# - https://ace-seek.com/dashboard  (copy key)
+# - https://www.ace-seek.com/signup
+# - https://www.ace-seek.com/dashboard  (copy key)
 # - https://vlsi.ace-seek.com/login  (paste key)
 # - Edit SDC → second browser same account
 ```

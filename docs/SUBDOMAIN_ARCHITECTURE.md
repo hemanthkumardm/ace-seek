@@ -1,46 +1,78 @@
 # Ace-Seek Subdomain & Multi-Domain Architecture
 
-This document specifies the multi-domain routing, identity model, and subdomain setup for Ace-Seek.
+## 1. Domain topology
+
+| Host | Role |
+|------|------|
+| **`www.ace-seek.com`** | **Primary** main site: pricing, marketing, signup, dashboard, API keys |
+| `main.ace-seek.com` | Optional alias of main (if added in Vercel) |
+| **`vlsi.ace-seek.com`** | VLSI intro + API-key login + studios |
+| **`tools.ace-seek.com`** | Tools intro + API-key login + workstations |
+| `ace-seek.com` (apex) | **Not used** — skip apex DNS / Invalid Config is fine |
 
 ---
 
-## 1. Domain Topology
+## 2. Identity model
 
-| Host | Role | Routing / Target |
-|------|------|------------------|
-| **`ace-seek.com`** (Apex) | Pricing, marketing, user signup, dashboard, API license key generation | Main Next.js App Router |
-| **`vlsi.ace-seek.com`** | Neo-Brutalism intro page + API Key login + VLSI Workstations (SDC, Timing, MMMC, Power, Reports) | Rewritten to `/vlsi` |
-| **`tools.ace-seek.com`** | Neo-Brutalism intro page + API Key login + Developer Tools (Compiler, Diff, Converter, Sanitizer, TeX, Table) | Rewritten to `/tools` |
+- **Sign up / dashboard / get API key** → only on **www.ace-seek.com**
+- **Subdomain login** → paste API key only (`/login` on vlsi/tools)
+- No signup forms on subdomains
 
 ---
 
-## 2. Identity & Authentication Model
-
-- **Sign Up**: Centralized on the main domain (`https://ace-seek.com/signup`). No direct signup is performed on subdomains.
-- **Login on Subdomains**:
-  1. **Clerk SSO**: Session cookie shared across `.ace-seek.com`.
-  2. **API Key Authorization**: Users paste their Dashboard API License Key (`ace_free_usr_...` / `ace_pro_usr_...`) on `/vlsi/login` or `/tools/login`.
-- **API Key Validation**: Standardized via `/api/validate-key`.
-
----
-
-## 3. Environment Variables
-
-Set the following environment variables in Vercel / `.env.local`:
+## 3. Environment (Vercel + local)
 
 ```env
-NEXT_PUBLIC_SITE_URL=https://ace-seek.com
+NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
 NEXT_PUBLIC_VLSI_URL=https://vlsi.ace-seek.com
 NEXT_PUBLIC_TOOLS_URL=https://tools.ace-seek.com
 ```
 
+Redeploy after changing Vercel env vars.
+
 ---
 
-## 4. Vercel & DNS Setup
+## 4. DNS (Spaceship) — recommended set
 
-1. **Vercel Project**: Single Next.js project pointed to root directory `web`.
-2. **DNS CNAME Records**:
-   - `vlsi.ace-seek.com` $\rightarrow$ `cname.vercel-dns.com`
-   - `tools.ace-seek.com` $\rightarrow$ `cname.vercel-dns.com`
-3. **Clerk Dashboard**:
-   - Enable production domain `ace-seek.com` and include subdomains in allowed origins.
+| Type | Name | Value |
+|------|------|--------|
+| CNAME | `www` | `cname.vercel-dns.com` |
+| CNAME | `vlsi` | `cname.vercel-dns.com` |
+| CNAME | `tools` | `cname.vercel-dns.com` |
+| CNAME | `main` | `cname.vercel-dns.com` (optional) |
+
+**Do not** require apex `@` A record if you only use **www**.
+
+---
+
+## 5. Vercel Domains
+
+Add and mark **Valid**:
+
+- `www.ace-seek.com` ← primary production domain  
+- `vlsi.ace-seek.com`  
+- `tools.ace-seek.com`  
+- Optional: `main.ace-seek.com`  
+
+You can **remove** `ace-seek.com` from the project if it stays Invalid, or leave it unconfigured.
+
+---
+
+## 6. Clerk
+
+In Clerk Dashboard → Domains / allowed origins, include:
+
+- `https://www.ace-seek.com`
+- `https://vlsi.ace-seek.com`
+- `https://tools.ace-seek.com`
+- (optional `https://main.ace-seek.com`)
+
+---
+
+## 7. Local paths
+
+| Path | Same as |
+|------|---------|
+| `/` | Main (www) |
+| `/vlsi` | VLSI intro |
+| `/tools` | Tools intro |
