@@ -33,6 +33,7 @@ import {
   tagLabel,
 } from "@/lib/report-hub-engine";
 import { MOCK_STA_REPORTS } from "@/lib/timing-engine";
+import { VlsiStudioGate } from "@/components/VlsiStudioGate";
 
 const inputCls =
   "w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400";
@@ -82,7 +83,7 @@ function targetBtnClass(t: HubOpenTarget): string {
   }
 }
 
-export default function ReportHubPage() {
+function ReportHubPage() {
   const [entries, setEntries] = useState<ReportHubEntry[]>([]);
   const [filterTag, setFilterTag] = useState<string>("all");
   const [filterTarget, setFilterTarget] = useState<string>("all");
@@ -638,5 +639,14 @@ export default function ReportHubPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+
+export default function ReportHubPageGate() {
+  return (
+    <VlsiStudioGate studio="reports">
+      <ReportHubPage />
+    </VlsiStudioGate>
   );
 }

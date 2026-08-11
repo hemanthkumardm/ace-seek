@@ -155,19 +155,70 @@ export async function POST(req: NextRequest) {
         ? entitlements.canProEngine
         : String(proFlag) === "true";
 
+    // --- Plan gates: format allow-list ---
+    if (!entitlements.docAllowedInputFormats.includes(parsed.from)) {
+      return NextResponse.json(
+        {
+          error: `Input format “${parsed.from}” is locked on ${entitlements.label}`,
+          details: `Allowed inputs: ${entitlements.docAllowedInputFormats.join(", ")}\nUpgrade for more formats.`,
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "doc_input_format",
+          tier: entitlements.tier,
+        },
+        { status: 402 }
+      );
+    }
+    if (!entitlements.docAllowedOutputFormats.includes(parsed.to)) {
+      return NextResponse.json(
+        {
+          error: `Output format “${parsed.to}” is locked on ${entitlements.label}`,
+          details: `Allowed outputs: ${entitlements.docAllowedOutputFormats.join(", ")}\nUpgrade for DOCX/ODT/etc.`,
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "doc_output_format",
+          tier: entitlements.tier,
+        },
+        { status: 402 }
+      );
+    }
+    if (backend === "docker" && !entitlements.canDockerBackend) {
+      return NextResponse.json(
+        {
+          error: "Docker backend requires Pro+",
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "docker_backend",
+        },
+        { status: 402 }
+      );
+    }
+    if (wide && !entitlements.canWidePdf) {
+      return NextResponse.json(
+        {
+          error: "Wide / landscape preset requires Pro+",
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "wide_pdf",
+        },
+        { status: 402 }
+      );
+    }
+
     // --- Premium gates for PDF → DOCX ---
     if (parsed.from === "pdf" && parsed.to === "docx") {
       if (pdfDocxMode === "exact" && !entitlements.canExactPdfDocx) {
         return NextResponse.json(
           {
-            error: "Exact look is a Pro feature",
+            error: "Exact look requires Pro+",
             details:
-              "Exact look embeds each PDF page as a full-page image for near-perfect visual fidelity.\n\n" +
-              "Upgrade to Pro/Team and paste your API key from the dashboard.\n\n" +
-              "Demo Pro login: engineer@company.com / password123",
-            code: "PRO_REQUIRED",
+              "Exact look embeds each PDF page as a full-page image.\n\n" +
+              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).\n\n" +
+              "Demo: pro@ace-seek.com / password123  ·  max@ace-seek.com / password123",
+            code: "PLAN_LIMIT",
             upgradeUrl: "/pricing",
             feature: "exact",
+            tier: entitlements.tier,
           },
           { status: 402 }
         );
@@ -175,18 +226,17 @@ export async function POST(req: NextRequest) {
       if (wantProEngine && !entitlements.canProEngine) {
         return NextResponse.json(
           {
-            error: "Pro engine requires a premium plan",
+            error: "Pro engine requires Pro+",
             details:
-              "Pro engine unlocks max-fidelity PDF → DOCX (300–400 DPI Exact + multi-core editable).\n\n" +
-              "Get a Pro API key: sign up at /pricing, then paste the key here.",
-            code: "PRO_REQUIRED",
+              "Pro engine unlocks max-fidelity PDF → DOCX.\nUpgrade at /pricing and paste your API key.",
+            code: "PLAN_LIMIT",
             upgradeUrl: "/pricing",
             feature: "pro_engine",
+            tier: entitlements.tier,
           },
           { status: 402 }
         );
       }
-      // Clamp DPI to plan limits; Pro max quality floor
       exactDpi = Math.min(exactDpi, entitlements.maxExactDpi);
       if (wantProEngine && pdfDocxMode === "exact") {
         exactDpi = Math.max(exactDpi, entitlements.defaultExactDpi);

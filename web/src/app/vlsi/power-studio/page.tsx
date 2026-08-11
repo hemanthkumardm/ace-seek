@@ -48,6 +48,7 @@ import {
   clearHubTransfer,
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
+import { VlsiStudioGate } from "@/components/VlsiStudioGate";
 
 type TabId = "configure" | "strategies" | "states" | "diagram" | "script" | "lint";
 
@@ -55,7 +56,7 @@ const inputCls =
   "w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400";
 const labelCls = "text-[9px] font-black uppercase text-slate-600 block mb-0.5";
 
-export default function PowerStudioPage() {
+function PowerStudioPage() {
   const [state, setState] = useState<UpfState>(() =>
     normalizeUpfState(structuredClone(DEFAULT_UPF_STATE))
   );
@@ -1948,5 +1949,14 @@ export default function PowerStudioPage() {
         )}
       </main>
     </div>
+  );
+}
+
+
+export default function PowerStudioPageGate() {
+  return (
+    <VlsiStudioGate studio="power">
+      <PowerStudioPage />
+    </VlsiStudioGate>
   );
 }

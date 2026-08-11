@@ -21,21 +21,58 @@ import {
   templateCategories,
   wrapTex,
 } from "@/lib/tex-math";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { FeatureLock, PlanPill } from "@/components/FeatureLock";
+
+/** Free plan may use these categories; STA needs Pro; full library is Pro+ */
+const FREE_TEMPLATE_CATEGORIES = new Set(["Algebra", "Series", "Stats"]);
 
 export default function TexFormatterPage() {
-  const [tex, setTex] = useState("T_{clk} \\ge t_{cq} + t_{pd} + t_{su}");
+  const { ent } = useEntitlements();
+  const canSta = ent.tex.staTemplates;
+  const canAllTemplates = ent.tex.allTemplates;
+  const canDownload = ent.tex.download;
+  const canAlign = ent.tex.alignExport;
+
+  const [tex, setTex] = useState("E = mc^2");
   const [wrapMode, setWrapMode] = useState<MathWrapMode>("display-dollar");
-  const [category, setCategory] = useState<string>("STA / VLSI");
+  const [category, setCategory] = useState<string>("Algebra");
   const [copied, setCopied] = useState<"out" | "raw" | null>(null);
   const [toast, setToast] = useState("");
   const [renderError, setRenderError] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const categories = useMemo(() => templateCategories(), []);
+
+  const categoryAllowed = useCallback(
+    (c: string): boolean => {
+      if (c === "STA / VLSI") return canSta;
+      if (canAllTemplates) return true;
+      return FREE_TEMPLATE_CATEGORIES.has(c);
+    },
+    [canSta, canAllTemplates]
+  );
+
   const templates = useMemo(
     () => MATH_TEMPLATES.filter((t) => t.category === category),
     [category]
   );
+
+  // Drop to an allowed category if plan changes
+  useEffect(() => {
+    if (!categoryAllowed(category)) {
+      const fallback =
+        categories.find((c) => categoryAllowed(c)) || "Algebra";
+      setCategory(fallback);
+    }
+  }, [category, categoryAllowed, categories]);
+
+  // Align export is Pro+
+  useEffect(() => {
+    if (!canAlign && wrapMode === "align") {
+      setWrapMode("display-dollar");
+    }
+  }, [canAlign, wrapMode]);
 
   const cleanTex = useMemo(() => normalizeTex(tex), [tex]);
   const formatted = useMemo(() => wrapTex(cleanTex, wrapMode), [cleanTex, wrapMode]);
@@ -98,6 +135,10 @@ export default function TexFormatterPage() {
   };
 
   const downloadSnippet = () => {
+    if (!canDownload) {
+      flash("Download requires Pro+");
+      return;
+    }
     const blob = new Blob([formatted + "\n"], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -122,11 +163,12 @@ export default function TexFormatterPage() {
                 LaTeX formula builder
               </h1>
               <p className="text-[11px] text-slate-400">
-                Live preview · templates · clean unicode · copy for Markdown
+                Live preview · templates · plan-gated STA & export
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <PlanPill tier={ent.tier} />
             <button
               type="button"
               onClick={() => {
@@ -158,38 +200,72 @@ export default function TexFormatterPage() {
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-semibold text-slate-800">Templates</p>
               <div className="flex flex-wrap gap-1">
-                {categories.map((c) => (
+                {categories.map((c) => {
+                  const ok = categoryAllowed(c);
+                  const needsPro = c === "STA / VLSI" || !FREE_TEMPLATE_CATEGORIES.has(c);
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        if (!ok) {
+                          flash(
+                            c === "STA / VLSI"
+                              ? "STA templates require Pro+"
+                              : "Full template library requires Pro+"
+                          );
+                          return;
+                        }
+                        setCategory(c);
+                      }}
+                      title={
+                        ok
+                          ? c
+                          : c === "STA / VLSI"
+                            ? "Pro+ required"
+                            : "Pro+ required"
+                      }
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                        category === c
+                          ? "bg-amber-100 text-amber-900"
+                          : ok
+                            ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            : "bg-slate-50 text-slate-400 opacity-70"
+                      }`}
+                    >
+                      {c}
+                      {!ok && needsPro ? " · Pro+" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <FeatureLock
+              locked={!categoryAllowed(category)}
+              requires={category === "STA / VLSI" ? "pro" : "pro"}
+              title={
+                category === "STA / VLSI"
+                  ? "STA / VLSI templates"
+                  : "Full template library"
+              }
+            >
+              <div className="flex flex-wrap gap-1.5 min-h-[2rem]">
+                {templates.map((t) => (
                   <button
-                    key={c}
+                    key={t.name}
                     type="button"
-                    onClick={() => setCategory(c)}
-                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-                      category === c
-                        ? "bg-amber-100 text-amber-900"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                    onClick={() => {
+                      setTex(t.tex);
+                      flash(t.name);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 hover:border-amber-300 hover:bg-amber-50"
+                    title={t.tex}
                   >
-                    {c}
+                    {t.name}
                   </button>
                 ))}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {templates.map((t) => (
-                <button
-                  key={t.name}
-                  type="button"
-                  onClick={() => {
-                    setTex(t.tex);
-                    flash(t.name);
-                  }}
-                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 hover:border-amber-300 hover:bg-amber-50"
-                  title={t.tex}
-                >
-                  {t.name}
-                </button>
-              ))}
-            </div>
+            </FeatureLock>
           </section>
 
           {/* Symbol chips */}
@@ -288,23 +364,40 @@ export default function TexFormatterPage() {
 
           {/* Export mode */}
           <section className="shrink-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-            <p className="mb-2 text-xs font-semibold text-slate-800">Export format</p>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-xs font-semibold text-slate-800">Export format</p>
+              {!canAlign && (
+                <FeatureLock locked requires="pro" mode="badge" title="align* export" />
+              )}
+            </div>
             <div className="flex flex-wrap gap-1.5">
-              {WRAP_MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  title={m.hint}
-                  onClick={() => setWrapMode(m.id)}
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
-                    wrapMode === m.id
-                      ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
+              {WRAP_MODES.map((m) => {
+                const lockedAlign = m.id === "align" && !canAlign;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    title={lockedAlign ? "Pro+ required for align*" : m.hint}
+                    onClick={() => {
+                      if (lockedAlign) {
+                        flash("align* export requires Pro+");
+                        return;
+                      }
+                      setWrapMode(m.id);
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+                      wrapMode === m.id
+                        ? "bg-slate-900 text-white"
+                        : lockedAlign
+                          ? "bg-slate-50 text-slate-400 opacity-70"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {m.label}
+                    {lockedAlign ? " · Pro+" : ""}
+                  </button>
+                );
+              })}
             </div>
           </section>
 
@@ -327,11 +420,13 @@ export default function TexFormatterPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={!canDownload}
+                  title={canDownload ? "Download formula.md" : "Pro+ required"}
                   onClick={downloadSnippet}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
                 >
                   <Download className="h-3 w-3" />
-                  .md
+                  .md{!canDownload ? " · Pro+" : ""}
                 </button>
                 <button
                   type="button"

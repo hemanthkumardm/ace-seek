@@ -86,8 +86,9 @@ import {
   fetchActiveSdcProject,
   saveSdcProject,
 } from "@/lib/cloud-projects";
+import { VlsiStudioGate } from "@/components/VlsiStudioGate";
 
-export default function InteractiveSdcStudioPage() {
+function InteractiveSdcStudioPage() {
   const [state, setState] = useState<SdcStudioState>(() =>
     normalizeSdcState(DEFAULT_SDC_STATE)
   );
@@ -3402,5 +3403,14 @@ Slack:= -0.085`}
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function InteractiveSdcStudioPageGate() {
+  return (
+    <VlsiStudioGate studio="sdc">
+      <InteractiveSdcStudioPage />
+    </VlsiStudioGate>
   );
 }

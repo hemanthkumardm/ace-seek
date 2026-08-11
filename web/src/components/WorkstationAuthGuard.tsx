@@ -183,7 +183,7 @@ export function WorkstationAuthGuard({ children }: Props) {
           <form onSubmit={handleKeySubmit} className="flex gap-2">
             <input
               type="password"
-              placeholder="Paste Key (ace_free_usr_... or ace_pro_usr_...)"
+              placeholder="Paste key (ace_free|pro|max|team_usr_…)"
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
               className="flex-1 bg-black border-3 border-black text-white text-xs font-mono px-3 py-2.5 rounded outline-none focus:border-[var(--accent-cyan)] font-bold shadow-[3px_3px_0_#000000]"

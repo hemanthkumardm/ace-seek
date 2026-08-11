@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
+import { PlanFeatureTable } from "@/components/PlanFeatureTable";
 import { PRICING } from "@/lib/site";
 import {
   CreditCard,
@@ -7,13 +8,11 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  Zap,
-  Lock,
 } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Ace-Seek plans — Free, Pro, and Team for hardware engineering tools.",
+  description: "Ace-Seek plans — Free, Pro, Max, and Team. Feature locks via API key.",
 };
 
 export default function PricingPage() {
@@ -43,7 +42,7 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <ul className="grid gap-6 md:grid-cols-3">
+        <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {PRICING.map((tier) => (
             <li key={tier.id}>
               <div
@@ -109,6 +108,16 @@ export default function PricingPage() {
             </li>
           ))}
         </ul>
+
+        <section className="space-y-4">
+          <h2 className="text-lg font-bold tracking-tight">What each plan unlocks</h2>
+          <p className="text-xs text-[var(--muted)] max-w-2xl">
+            Subdomain tools read your API key and enable or lock features server-side.
+            Demo keys (dev): free@ / pro@ / max@ / team@ace-seek.com — password{" "}
+            <code className="font-mono">password123</code>.
+          </p>
+          <PlanFeatureTable />
+        </section>
 
         {/* Security & Billing Information Panel */}
         <div className="sk-panel p-8 space-y-4 max-w-3xl">
