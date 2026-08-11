@@ -1,0 +1,93 @@
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 10
+Design : sys_top_wrapper
+Version: V-2023.12-SP3
+Date   : Mon Aug 10 14:20:00 2026
+****************************************
+
+Startpoint: u_dma_engine/u_desc_fetch/reg_curr_ptr_reg[31] (rising edge-triggered flip-flop clocked by clk_sys)
+Endpoint: u_dma_engine/u_fifo_ctrl/reg_waddr_reg[7] (rising edge-triggered flip-flop clocked by clk_sys)
+Path Group: clk_sys
+Path Type: max
+
+Point                                                   Incr       Path
+----------------------------------------------------------------------------------
+clock clk_sys (rising edge)                             0.00       0.00
+clock source latency                                    0.10       0.10
+clock network delay (propagated)                        0.25       0.35
+u_dma_engine/u_desc_fetch/reg_curr_ptr_reg[31]/CP (DFFX1) 0.00    0.35 r
+u_dma_engine/u_desc_fetch/reg_curr_ptr_reg[31]/Q (DFFX1)  0.15    0.50 f
+u_dma_engine/u_desc_fetch/u_cmp/Y (COMP8X1)             0.32       0.82 r
+u_dma_engine/u_fifo_ctrl/u_addr_gen/Y (ADD4X2)          0.45       1.27 f
+u_dma_engine/u_fifo_ctrl/reg_waddr_reg[7]/D (DFFX1)     0.05       1.32 f
+data arrival time                                                  1.32
+
+clock clk_sys (rising edge)                             1.00       1.00
+clock source latency                                    0.10       1.10
+clock network delay (propagated)                        0.22       1.32
+clock uncertainty                                      -0.08       1.24
+u_dma_engine/u_fifo_ctrl/reg_waddr_reg[7]/setup (DFFX1) -0.06     1.18
+data required time                                                 1.18
+----------------------------------------------------------------------------------
+data required time                                                 1.18
+data arrival time                                                 -1.32
+----------------------------------------------------------------------------------
+slack (VIOLATED)                                                  -0.14
+
+Startpoint: u_pcie_phy/u_tlp_rx/reg_header_valid_reg (rising edge-triggered flip-flop clocked by clk_pcie)
+Endpoint: u_pcie_phy/u_tlp_rx/reg_payload_ready_reg (rising edge-triggered flip-flop clocked by clk_pcie)
+Path Group: clk_pcie
+Path Type: max
+
+Point                                                   Incr       Path
+----------------------------------------------------------------------------------
+clock clk_pcie (rising edge)                            0.00       0.00
+clock source latency                                    0.05       0.05
+clock network delay (propagated)                        0.18       0.23
+u_pcie_phy/u_tlp_rx/reg_header_valid_reg/CP (SDFFX2)   0.00       0.23 r
+u_pcie_phy/u_tlp_rx/reg_header_valid_reg/Q (SDFFX2)    0.11       0.34 r
+u_pcie_phy/u_tlp_rx/u_dec/Y (AND3X1)                    0.12       0.46 r
+u_pcie_phy/u_tlp_rx/reg_payload_ready_reg/D (SDFFX2)   0.03       0.49 r
+data arrival time                                                  0.49
+
+clock clk_pcie (rising edge)                            2.50       2.50
+clock source latency                                    0.05       2.55
+clock network delay (propagated)                        0.17       2.72
+clock uncertainty                                      -0.05       2.67
+u_pcie_phy/u_tlp_rx/reg_payload_ready_reg/setup (SDFFX2) -0.05    2.62
+data required time                                                 2.62
+----------------------------------------------------------------------------------
+data required time                                                 2.62
+data arrival time                                                 -0.49
+----------------------------------------------------------------------------------
+slack (MET)                                                        2.13
+
+Startpoint: u_sys_top/reg_hold_check_a[0] (rising edge-triggered flip-flop clocked by clk_sys)
+Endpoint: u_sys_top/reg_hold_check_b[0] (rising edge-triggered flip-flop clocked by clk_sys)
+Path Group: clk_sys
+Path Type: min
+
+Point                                                   Incr       Path
+----------------------------------------------------------------------------------
+clock clk_sys (rising edge)                             0.00       0.00
+clock source latency                                    0.10       0.10
+clock network delay (propagated)                        0.30       0.40
+u_sys_top/reg_hold_check_a[0]/CP (DFFX1)                0.00       0.40 r
+u_sys_top/reg_hold_check_a[0]/Q (DFFX1)                 0.08       0.48 r
+u_sys_top/reg_hold_check_b[0]/D (DFFX1)                 0.01       0.49 r
+data arrival time                                                  0.49
+
+clock clk_sys (rising edge)                             0.00       0.00
+clock source latency                                    0.10       0.10
+clock network delay (propagated)                        0.38       0.48
+clock uncertainty                                       0.04       0.52
+u_sys_top/reg_hold_check_b[0]/hold (DFFX1)              0.05       0.57
+data required time                                                 0.57
+----------------------------------------------------------------------------------
+data required time                                                 0.57
+data arrival time                                                 -0.49
+----------------------------------------------------------------------------------
+slack (VIOLATED)                                                  -0.08

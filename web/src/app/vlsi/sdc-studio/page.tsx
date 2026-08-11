@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
+import Link from "next/link";
 import {
   Clock,
   Cpu,
@@ -28,38 +29,256 @@ import {
   DEFAULT_SDC_STATE,
   SDC_PRESETS,
   VendorFormat,
+  SdcToolTarget,
   generateSdcCode,
   lintSdcState,
   parseSdcText,
+  normalizeSdcState,
   PrimaryClock,
   GeneratedClock,
   ClockGroupRelation,
   IoConstraint,
   MulticycleConstraint,
   FalsePathConstraint,
+  computeAllBudgets,
+  buildClockTreeSchematic,
+  buildClockWaveformModel,
+  buildMcpWaveformModel,
+  clockSvgPath,
+  parseTimingPathSnippet,
+  suggestionsFromTimingPath,
+  SdcSuggestion,
+  TimingBudget,
+  summarizeCdc,
+  buildCdcDomainMap,
+  cdcFixSuggestions,
+  suggestionsFromCdcPath,
+  applyCdcRelation,
+  getCdcRelation,
+  CDC_DOMAIN_COLORS,
+  CdcRelation,
+  getSdcGraphStats,
+  allClockNames,
 } from "@/lib/sdc-engine";
+import {
+  diffSdcStates,
+  type SdcDiffResult,
+} from "@/lib/diff-engine-vlsi";
+import { saveLastSdcStateJson, loadLastSdcStateJson } from "@/lib/studio-shared";
+import { GitBranch, Link2, Calculator, Network, Shield } from "lucide-react";
+import {
+  applySdcPullToStudio,
+  buildSdcProjectPack,
+  buildTransferFromPack,
+  clearSdcPull,
+  loadMmmcModeSnapshot,
+  loadSdcPull,
+  saveSdcTransfer,
+  summarizeFromSdcState,
+  upsertSdcProject,
+  type MmmcModeSnapshot,
+} from "@/lib/sdc-mmmc-bridge";
+import {
+  clearHubTransfer,
+  loadHubTransfer,
+} from "@/lib/report-hub-engine";
 
 export default function InteractiveSdcStudioPage() {
-  const [state, setState] = useState<SdcStudioState>(DEFAULT_SDC_STATE);
+  const [state, setState] = useState<SdcStudioState>(() =>
+    normalizeSdcState(DEFAULT_SDC_STATE)
+  );
   const [vendor, setVendor] = useState<VendorFormat>("synopsys");
+  const [tool, setTool] = useState<SdcToolTarget>("primetime");
   const [selectedClkId, setSelectedClkId] = useState<string>("clk_sys");
-  const [activeTab, setActiveTab] = useState<"clocks" | "cdc" | "io" | "exceptions">("clocks");
+  const [activeTab, setActiveTab] = useState<
+    "clocks" | "cdc" | "io" | "exceptions" | "schematic" | "budget" | "link"
+  >("clocks");
   const [copied, setCopied] = useState(false);
   const [toast, setToast] = useState("");
+  const [pathSnippet, setPathSnippet] = useState("");
+  const [cdcPathSnippet, setCdcPathSnippet] = useState("");
+  const [cdcPanel, setCdcPanel] = useState<"matrix" | "map" | "fixes" | "link">(
+    "matrix"
+  );
+  const [baselineState, setBaselineState] = useState<SdcStudioState | null>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [attachModeName, setAttachModeName] = useState("func");
+  const [attachFileName, setAttachFileName] = useState("constraints_func.sdc");
+  const [attachAction, setAttachAction] = useState<"auto" | "create" | "bind">("auto");
+  const [attachTargetModeId, setAttachTargetModeId] = useState("");
+  const [mmmcModes, setMmmcModes] = useState<MmmcModeSnapshot | null>(null);
+  const [linkedModeLabel, setLinkedModeLabel] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const diffFileInputRef = useRef<HTMLInputElement>(null);
+
+  const sdcDiff: SdcDiffResult | null = useMemo(() => {
+    if (!baselineState) return null;
+    return diffSdcStates(baselineState, state);
+  }, [baselineState, state]);
+
+  // Deep links search params sync (A6.4) + B1.8 pull from MMMC
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const qTab = params.get("tab");
+    const qVendor = params.get("vendor");
+    const qTool = params.get("tool");
+    const fromMmmc = params.get("from_mmmc") === "true";
+    const fromHub = params.get("from_hub") === "true";
+    const qMode = params.get("mode");
+
+    if (qTab && ["clocks", "cdc", "io", "exceptions", "schematic", "budget", "link"].includes(qTab)) {
+      setActiveTab(qTab as any);
+    }
+    if (qVendor && ["synopsys", "cadence", "xilinx", "quartus"].includes(qVendor)) {
+      setVendor(qVendor as any);
+    }
+    if (qTool && ["generic", "primetime", "genus", "innovus", "tempus", "vivado", "quartus"].includes(qTool)) {
+      setTool(qTool as any);
+    }
+
+    setMmmcModes(loadMmmcModeSnapshot());
+
+    if (fromHub) {
+      const transfer = loadHubTransfer();
+      if (transfer?.text) {
+        try {
+          const parsed = normalizeSdcState(parseSdcText(transfer.text));
+          setState(parsed);
+          if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
+          setToast(`Loaded from Report Hub: ${transfer.filename || "sdc"}`);
+          window.setTimeout(() => setToast(""), 2500);
+        } catch {
+          /* ignore */
+        }
+        clearHubTransfer();
+        const url = new URL(window.location.href);
+        url.searchParams.delete("from_hub");
+        window.history.replaceState(null, "", url.toString());
+      }
+    }
+
+    if (fromMmmc || loadSdcPull()) {
+      const pull = loadSdcPull();
+      if (pull && (pull.sdcText || pull.sdcStateJson)) {
+        const { state: pulled, modeName } = applySdcPullToStudio(pull);
+        setState(pulled);
+        setLinkedModeLabel(modeName || qMode || pull.modeName);
+        if (pulled.primaryClocks[0]) setSelectedClkId(pulled.primaryClocks[0].id);
+        setToast(
+          `Loaded MMMC mode "${modeName}" into SDC Studio (${allClockNames(pulled).length} clocks)`
+        );
+        window.setTimeout(() => setToast(""), 2800);
+        clearSdcPull();
+        const url = new URL(window.location.href);
+        url.searchParams.delete("from_mmmc");
+        window.history.replaceState(null, "", url.toString());
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    let changed = false;
+
+    if (activeTab && url.searchParams.get("tab") !== activeTab) {
+      url.searchParams.set("tab", activeTab);
+      changed = true;
+    }
+    if (vendor && url.searchParams.get("vendor") !== vendor) {
+      url.searchParams.set("vendor", vendor);
+      changed = true;
+    }
+    if (tool && url.searchParams.get("tool") !== tool) {
+      url.searchParams.set("tool", tool);
+      changed = true;
+    }
+
+    if (changed) {
+      window.history.replaceState(null, "", url.toString());
+    }
+  }, [activeTab, vendor, tool]);
 
   const flash = (msg: string) => {
     setToast(msg);
     window.setTimeout(() => setToast(""), 2200);
   };
 
+  // Persist SDC for Timing Studio / ECO pack cross-session glue
+  useEffect(() => {
+    try {
+      saveLastSdcStateJson(JSON.stringify(normalizeSdcState(state)));
+    } catch {
+      /* ignore */
+    }
+  }, [state]);
+
   const generatedCode = useMemo(() => {
     return generateSdcCode(state, vendor);
   }, [state, vendor]);
 
+  const sdcClockMeta = useMemo(() => summarizeFromSdcState(state), [state]);
+
+  const openAttachDialog = () => {
+    setMmmcModes(loadMmmcModeSnapshot());
+    const defaultName = linkedModeLabel || "func";
+    setAttachModeName(defaultName);
+    setAttachFileName(
+      defaultName.endsWith(".sdc")
+        ? defaultName
+        : `constraints_${defaultName}.sdc`
+    );
+    setAttachAction("auto");
+    setAttachTargetModeId("");
+    setAttachOpen(true);
+  };
+
+  const confirmAttachToMmmc = () => {
+    const pack = buildSdcProjectPack({
+      state,
+      sdcText: generatedCode,
+      name: attachModeName.trim() || "func",
+      fileName: attachFileName.trim() || "constraints_func.sdc",
+      vendor,
+      source: "sdc-studio",
+    });
+    upsertSdcProject(pack);
+    const transfer = buildTransferFromPack(
+      pack,
+      attachAction,
+      attachAction === "bind" ? attachTargetModeId || undefined : undefined
+    );
+    saveSdcTransfer(transfer);
+    setAttachOpen(false);
+    flash(
+      `Pushing SDC pack "${pack.name}" (${pack.clockCount} clocks) → MMMC…`
+    );
+    window.location.href = `/vlsi/mmmc-studio?tab=configure&import_sdc=true`;
+  };
+
   const lintMessages = useMemo(() => {
-    return lintSdcState(state);
-  }, [state]);
+    return lintSdcState(state, tool, vendor);
+  }, [state, tool, vendor]);
+
+  const budgets = useMemo(() => computeAllBudgets(state), [state]);
+  const clockTree = useMemo(() => buildClockTreeSchematic(state), [state]);
+
+  const pathSuggestions = useMemo(() => {
+    const parsed = parseTimingPathSnippet(pathSnippet);
+    if (!parsed) return [] as SdcSuggestion[];
+    return suggestionsFromTimingPath(parsed, state);
+  }, [pathSnippet, state]);
+
+  const cdcSummary = useMemo(() => summarizeCdc(state), [state]);
+  const cdcMap = useMemo(() => buildCdcDomainMap(state), [state]);
+  const cdcFixes = useMemo(() => cdcFixSuggestions(state), [state]);
+  const sdcGraphStats = useMemo(() => getSdcGraphStats(state), [state]);
+  const cdcPathFixes = useMemo(() => {
+    const parsed = parseTimingPathSnippet(cdcPathSnippet);
+    if (!parsed) return [];
+    return suggestionsFromCdcPath(parsed, state);
+  }, [cdcPathSnippet, state]);
 
   const errorCount = lintMessages.filter((m) => m.severity === "error").length;
   const warningCount = lintMessages.filter((m) => m.severity === "warning").length;
@@ -83,10 +302,16 @@ export default function InteractiveSdcStudioPage() {
     );
   }, [state.primaryClocks, selectedClkId]);
 
+  const clkWave = useMemo(
+    () => buildClockWaveformModel(state, selectedClk.name),
+    [state, selectedClk]
+  );
+
   const loadPreset = (presetState: SdcStudioState, name: string) => {
-    setState(structuredClone(presetState));
-    if (presetState.primaryClocks[0]) {
-      setSelectedClkId(presetState.primaryClocks[0].id);
+    const next = normalizeSdcState(structuredClone(presetState));
+    setState(next);
+    if (next.primaryClocks[0]) {
+      setSelectedClkId(next.primaryClocks[0].id);
     }
     flash(`Loaded preset: ${name}`);
   };
@@ -98,7 +323,7 @@ export default function InteractiveSdcStudioPage() {
     reader.onload = (evt) => {
       const text = String(evt.target?.result || "");
       try {
-        const parsed = parseSdcText(text);
+        const parsed = normalizeSdcState(parseSdcText(text));
         setState(parsed);
         if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
         flash(`Imported SDC constraints from ${file.name}`);
@@ -266,47 +491,28 @@ export default function InteractiveSdcStudioPage() {
     ];
   }, [state.primaryClocks, state.generatedClocks]);
 
-  const getClockRelation = (clkA: string, clkB: string) => {
-    if (clkA === clkB) return "sync";
-    const found = state.clockGroups.find(
-      (cg) =>
-        (cg.group1Clocks.includes(clkA) && cg.group2Clocks.includes(clkB)) ||
-        (cg.group1Clocks.includes(clkB) && cg.group2Clocks.includes(clkA))
-    );
-    return found ? found.relationType : "sync";
+  const getClockRelation = (clkA: string, clkB: string): CdcRelation => {
+    return getCdcRelation(state, clkA, clkB);
   };
 
   const toggleClockRelation = (clkA: string, clkB: string) => {
     if (clkA === clkB) return;
     const current = getClockRelation(clkA, clkB);
-    const nextType: 'sync' | 'asynchronous' | 'logically_exclusive' | 'physically_exclusive' =
-      current === 'sync'
-        ? 'asynchronous'
-        : current === 'asynchronous'
-        ? 'logically_exclusive'
-        : current === 'logically_exclusive'
-        ? 'physically_exclusive'
-        : 'sync';
+    const nextType: CdcRelation =
+      current === "sync"
+        ? "asynchronous"
+        : current === "asynchronous"
+        ? "logically_exclusive"
+        : current === "logically_exclusive"
+        ? "physically_exclusive"
+        : "sync";
 
-    setState((prev) => {
-      const cleaned = prev.clockGroups.filter(
-        (cg) =>
-          !(
-            (cg.group1Clocks.includes(clkA) && cg.group2Clocks.includes(clkB)) ||
-            (cg.group1Clocks.includes(clkB) && cg.group2Clocks.includes(clkA))
-          )
-      );
-      if (nextType === 'sync') {
-        return { ...prev, clockGroups: cleaned };
-      }
-      const newGroup: ClockGroupRelation = {
-        id: `cg_${clkA}_${clkB}_${Date.now().toString().slice(-4)}`,
-        group1Clocks: [clkA],
-        group2Clocks: [clkB],
-        relationType: nextType,
-      };
-      return { ...prev, clockGroups: [...cleaned, newGroup] };
-    });
+    setState((prev) => applyCdcRelation(prev, clkA, clkB, nextType));
+    flash(
+      nextType === "sync"
+        ? `${clkA} ↔ ${clkB}: SYNC (timed)`
+        : `${clkA} ↔ ${clkB}: ${nextType}`
+    );
   };
 
   // I/O Handlers
@@ -425,11 +631,11 @@ export default function InteractiveSdcStudioPage() {
                 ASIC SDC STUDIO
               </span>
               <span className="neu-badge text-[9px] font-black text-emerald-600">
-                LIVE WAVEFORMS & SLIDERS
+                SDC ENGINE v2
               </span>
             </div>
             <h1 className="text-xl font-black text-slate-800 tracking-tight">
-              Interactive SDC Waveform & Constraint Studio
+              SDC Studio — Budget · Schematic · Timing Link
             </h1>
           </div>
         </div>
@@ -445,13 +651,13 @@ export default function InteractiveSdcStudioPage() {
                 if (p) loadPreset(p.state, p.name);
               }}
               defaultValue=""
-              className="bg-transparent outline-none cursor-pointer text-slate-800 font-bold"
+              className="bg-white text-slate-900 outline-none cursor-pointer font-bold rounded px-1 border border-slate-300"
             >
-              <option value="" disabled>
+              <option value="" disabled className="bg-white text-slate-900">
                 Load Chip Preset…
               </option>
               {SDC_PRESETS.map((p) => (
-                <option key={p.name} value={p.name}>
+                <option key={p.name} value={p.name} className="bg-white text-slate-900">
                   {p.name}
                 </option>
               ))}
@@ -485,8 +691,36 @@ export default function InteractiveSdcStudioPage() {
                 vendor === "xilinx" ? "neu-btn-active text-emerald-600 font-black" : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              Xilinx XDC
+              Xilinx
             </button>
+            <button
+              type="button"
+              onClick={() => setVendor("quartus")}
+              className={`px-3 py-1.5 rounded-lg transition ${
+                vendor === "quartus" ? "neu-btn-active text-orange-600 font-black" : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              Quartus
+            </button>
+          </div>
+
+          {/* Tool target for lint */}
+          <div className="neu-inset px-2 py-1.5 flex items-center gap-1.5 text-[10px] font-bold text-slate-700">
+            <Cpu className="h-3.5 w-3.5 text-purple-500" />
+            <select
+              value={tool}
+              onChange={(e) => setTool(e.target.value as SdcToolTarget)}
+              className="bg-white text-slate-900 outline-none cursor-pointer font-black uppercase rounded px-1 border border-slate-300"
+              title="Tool-aware lint target"
+            >
+              <option value="generic" className="bg-white text-slate-900">Generic</option>
+              <option value="primetime" className="bg-white text-slate-900">PrimeTime</option>
+              <option value="genus" className="bg-white text-slate-900">Genus</option>
+              <option value="innovus" className="bg-white text-slate-900">Innovus</option>
+              <option value="tempus" className="bg-white text-slate-900">Tempus</option>
+              <option value="vivado" className="bg-white text-slate-900">Vivado</option>
+              <option value="quartus" className="bg-white text-slate-900">Quartus</option>
+            </select>
           </div>
 
           {/* Action Buttons */}
@@ -497,6 +731,26 @@ export default function InteractiveSdcStudioPage() {
             className="hidden"
             onChange={handleFileUpload}
           />
+          <input
+            ref={diffFileInputRef}
+            type="file"
+            accept=".sdc,.xdc,.tcl,.txt"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = (evt) => {
+                const text = evt.target?.result as string;
+                if (text) {
+                  const parsed = parseSdcText(text);
+                  setBaselineState(parsed);
+                  flash(`Loaded Baseline SDC: ${file.name} for Diff comparison`);
+                }
+              };
+              reader.readAsText(file);
+            }}
+          />
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -506,6 +760,61 @@ export default function InteractiveSdcStudioPage() {
             <Upload className="h-4 w-4 text-slate-600" />
             <span>Import</span>
           </button>
+          <button
+            type="button"
+            onClick={openAttachDialog}
+            className="neu-btn px-3 py-2 text-xs font-black flex items-center gap-1.5 bg-indigo-50 text-indigo-900 border-indigo-600 hover:bg-indigo-100"
+            title="Attach this SDC constraint set to MMMC Constraint Mode"
+          >
+            <Layers className="h-4 w-4 text-indigo-700" />
+            <span>Attach to MMMC</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const raw = loadLastSdcStateJson();
+              if (!raw) {
+                flash("No saved SDC in this browser yet — edit clocks first");
+                return;
+              }
+              try {
+                const parsed = normalizeSdcState(JSON.parse(raw));
+                setState(parsed);
+                if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
+                flash("Restored last SDC from this browser");
+              } catch {
+                flash("Could not restore saved SDC");
+              }
+            }}
+            className="neu-btn px-3 py-2 text-[10px] font-bold"
+            title="Restore SDC last edited in this browser (shared with Timing export context)"
+          >
+            Restore last
+          </button>
+
+          <button
+            type="button"
+            onClick={() => diffFileInputRef.current?.click()}
+            className={`neu-btn px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 ${
+              baselineState ? "neu-btn-active text-sky-600 font-black shadow-inner" : ""
+            }`}
+            title="Upload Baseline SDC to highlight constraint differences"
+          >
+            <GitBranch className="h-4 w-4 text-sky-600" />
+            <span>{baselineState ? "Diff Active" : "Diff Import"}</span>
+          </button>
+          {baselineState && (
+            <button
+              type="button"
+              onClick={() => {
+                setBaselineState(null);
+                flash("Cleared Baseline SDC");
+              }}
+              className="text-[10px] font-black text-rose-600 hover:underline px-1"
+            >
+              Clear
+            </button>
+          )}
 
           <button
             type="button"
@@ -527,6 +836,192 @@ export default function InteractiveSdcStudioPage() {
         </div>
       </header>
 
+      {/* SDC DIFF BANNER */}
+      {sdcDiff && (
+        <div className="neu-panel-sm p-3 bg-sky-50 border-l-4 border-l-sky-600 flex flex-wrap items-center justify-between gap-3 text-xs shrink-0">
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4 text-sky-600 shrink-0" />
+            <div>
+              <p className="font-black text-slate-800">
+                SDC Constraint Diff Active against Baseline
+              </p>
+              <p className="text-[10px] font-bold text-slate-500">
+                {sdcDiff.stats.added} Added · {sdcDiff.stats.removed} Removed · {sdcDiff.stats.modified} Modified constraints
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] font-bold overflow-x-auto">
+            {sdcDiff.clocks.map((c) => (
+              <span
+                key={c.name}
+                className={`px-2 py-0.5 rounded border font-mono whitespace-nowrap ${
+                  c.status === "added"
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-300 font-black"
+                    : c.status === "removed"
+                    ? "bg-rose-100 text-rose-800 border-rose-300 font-black"
+                    : c.status === "modified"
+                    ? "bg-amber-100 text-amber-800 border-amber-300 font-black"
+                    : "bg-slate-100 text-slate-600 border-slate-300"
+                }`}
+              >
+                {c.name}: {c.status} {c.periodDeltaNs ? `(Δ ${c.periodDeltaNs > 0 ? "+" : ""}${c.periodDeltaNs.toFixed(2)} ns)` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* B1.8 MMMC link status */}
+      <div className="neu-panel p-2 flex flex-wrap items-center gap-2 shrink-0 bg-indigo-50/70 border-2 border-indigo-200">
+        <Layers className="h-3.5 w-3.5 text-indigo-700" />
+        <span className="text-[10px] font-black uppercase text-indigo-900">
+          MMMC link
+        </span>
+        <span className="text-[10px] font-bold text-slate-700">
+          {sdcClockMeta.clockCount} clocks in studio
+          {linkedModeLabel ? ` · editing mode "${linkedModeLabel}"` : ""}
+        </span>
+        {mmmcModes?.modes?.length ? (
+          <span className="text-[10px] font-bold text-slate-600">
+            · MMMC has {mmmcModes.modes.length} mode(s)
+            {mmmcModes.modes.some((m) => m.hasSdcText)
+              ? ` (${mmmcModes.modes.filter((m) => m.hasSdcText).length} with SDC)`
+              : ""}
+          </span>
+        ) : (
+          <span className="text-[10px] font-bold text-slate-500">
+            · Open MMMC Studio once to sync mode list
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={openAttachDialog}
+          className="neu-btn px-2 py-1 text-[10px] font-black bg-indigo-600 text-white ml-auto"
+        >
+          Attach → MMMC
+        </button>
+        <Link
+          href="/vlsi/mmmc-studio?tab=configure"
+          className="neu-btn px-2 py-1 text-[10px] font-black bg-white text-indigo-900"
+        >
+          Open MMMC
+        </Link>
+      </div>
+
+      {/* B1.8 Attach dialog */}
+      {attachOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="neu-panel bg-white max-w-lg w-full p-5 space-y-4 border-4 border-black shadow-[8px_8px_0_#000]">
+            <h3 className="text-sm font-black uppercase text-slate-900 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-indigo-600" />
+              Attach SDC → MMMC constraint mode
+            </h3>
+            <p className="text-[11px] font-bold text-slate-600">
+              Creates a named SDC project pack and binds it to an MMMC{" "}
+              <code className="bg-slate-100 px-1 rounded">create_constraint_mode</code>.
+              Clocks: <b>{sdcClockMeta.clockCount}</b>
+              {sdcClockMeta.clockNames.length
+                ? ` (${sdcClockMeta.clockNames.slice(0, 6).join(", ")}${
+                    sdcClockMeta.clockNames.length > 6 ? "…" : ""
+                  })`
+                : ""}
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-600 block mb-0.5">
+                  Mode name
+                </label>
+                <input
+                  className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5"
+                  value={attachModeName}
+                  onChange={(e) => {
+                    setAttachModeName(e.target.value);
+                    if (!attachFileName || attachFileName.startsWith("constraints_")) {
+                      setAttachFileName(
+                        `constraints_${(e.target.value || "func").replace(/[^\w\-]+/g, "_")}.sdc`
+                      );
+                    }
+                  }}
+                  placeholder="func"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-600 block mb-0.5">
+                  SDC filename (-sdc_files)
+                </label>
+                <input
+                  className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5"
+                  value={attachFileName}
+                  onChange={(e) => setAttachFileName(e.target.value)}
+                  placeholder="constraints_func.sdc"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-600 block mb-0.5">
+                  Bind action
+                </label>
+                <select
+                  className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5"
+                  value={attachAction}
+                  onChange={(e) =>
+                    setAttachAction(e.target.value as "auto" | "create" | "bind")
+                  }
+                >
+                  <option value="auto">
+                    Auto (0 modes→create, 1 mode→bind, else match name / create)
+                  </option>
+                  <option value="create">Always create new mode</option>
+                  <option value="bind">Bind to existing MMMC mode</option>
+                </select>
+              </div>
+              {attachAction === "bind" && (
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-600 block mb-0.5">
+                    Target MMMC mode
+                  </label>
+                  <select
+                    className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5"
+                    value={attachTargetModeId}
+                    onChange={(e) => setAttachTargetModeId(e.target.value)}
+                  >
+                    <option value="">— select —</option>
+                    {(mmmcModes?.modes || []).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                        {m.hasSdcText ? " (has SDC)" : ""}
+                        {m.clockCount ? ` · ${m.clockCount} clk` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {!mmmcModes?.modes?.length && (
+                    <p className="text-[9px] font-bold text-amber-700 mt-1">
+                      No MMMC modes snapshot yet. Use Auto, or open MMMC once first.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setAttachOpen(false)}
+                className="neu-btn px-3 py-1.5 text-xs font-black bg-white text-slate-900"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmAttachToMmmc}
+                disabled={attachAction === "bind" && !attachTargetModeId}
+                className="neu-btn px-3 py-1.5 text-xs font-black bg-indigo-600 text-white disabled:opacity-40"
+              >
+                Push to MMMC
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MAIN WORKBENCH GRID */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 overflow-hidden">
         {/* LEFT WORKSTATION PANEL: SLIDERS & WAVEFORMS (Col 7) */}
@@ -543,7 +1038,7 @@ export default function InteractiveSdcStudioPage() {
               }`}
             >
               <Clock className="h-4 w-4" />
-              <span>1. Clocks & Waveform</span>
+              <span>Clocks</span>
               <span className="neu-badge text-[10px] text-slate-600">
                 {state.primaryClocks.length}
               </span>
@@ -559,7 +1054,7 @@ export default function InteractiveSdcStudioPage() {
               }`}
             >
               <Eye className="h-4 w-4" />
-              <span>2. I/O Eye Diagram</span>
+              <span>I/O Eye</span>
               <span className="neu-badge text-[10px] text-slate-600">
                 {state.ioConstraints.length}
               </span>
@@ -575,7 +1070,7 @@ export default function InteractiveSdcStudioPage() {
               }`}
             >
               <Zap className="h-4 w-4" />
-              <span>3. MCP Edge Shift</span>
+              <span>MCP</span>
               <span className="neu-badge text-[10px] text-slate-600">
                 {state.multicycles.length}
               </span>
@@ -584,17 +1079,55 @@ export default function InteractiveSdcStudioPage() {
             <button
               type="button"
               onClick={() => setActiveTab("cdc")}
-              className={`flex-1 py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition ${
+              className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition whitespace-nowrap ${
                 activeTab === "cdc"
                   ? "neu-btn-active text-purple-600 font-black shadow-inner"
                   : "text-slate-500 hover:text-slate-800"
               }`}
             >
-              <Grid className="h-4 w-4" />
-              <span>4. CDC Matrix</span>
-              <span className="neu-badge text-[10px] text-slate-600">
-                {state.clockGroups.length}
-              </span>
+              <Network className="h-4 w-4" />
+              <span>CDC / Domains</span>
+              {cdcSummary.missingCuts > 0 && (
+                <span className="neu-badge text-[9px] text-rose-600 bg-rose-100 border-rose-300">
+                  {cdcSummary.missingCuts}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("schematic")}
+              className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition whitespace-nowrap ${
+                activeTab === "schematic"
+                  ? "neu-btn-active text-indigo-600 font-black shadow-inner"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <GitBranch className="h-4 w-4" />
+              <span>Tree</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("budget")}
+              className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition whitespace-nowrap ${
+                activeTab === "budget"
+                  ? "neu-btn-active text-rose-600 font-black shadow-inner"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Calculator className="h-4 w-4" />
+              <span>Budget</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("link")}
+              className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition whitespace-nowrap ${
+                activeTab === "link"
+                  ? "neu-btn-active text-cyan-600 font-black shadow-inner"
+                  : "text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              <Link2 className="h-4 w-4" />
+              <span>STA Link</span>
             </button>
           </div>
 
@@ -910,21 +1443,57 @@ export default function InteractiveSdcStudioPage() {
                     Interactive Real-Time Timing Sliders
                   </h4>
 
+                  <p className="text-[9px] font-bold text-slate-500">
+                    Free numeric entry (any positive period / uncertainty). Sliders are coarse helpers only.
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Clock Period Slider */}
+                    {/* Clock Period — free ns + MHz */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Clock Period (T_clk)</span>
-                        <span className="text-sky-600 font-mono font-black">
-                          {selectedClk.periodNs.toFixed(2)} ns ({freqMhz} MHz)
+                        <span className="text-slate-800">Clock Period (T_clk)</span>
+                        <span className="text-sky-700 font-mono font-black">
+                          {selectedClk.periodNs.toFixed(3)} ns · {freqMhz} MHz
                         </span>
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <label className="text-[9px] font-black text-slate-600 w-10">ns</label>
+                        <input
+                          type="number"
+                          min={0.001}
+                          step={0.001}
+                          value={selectedClk.periodNs}
+                          onChange={(e) => {
+                            const val = Math.max(0.001, parseFloat(e.target.value) || 0.001);
+                            updatePrimaryClock(selectedClk.id, {
+                              periodNs: val,
+                              waveformFalling: Math.min(val, val * dutyRatio || val / 2),
+                            });
+                          }}
+                          className="flex-1 bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1 outline-none"
+                        />
+                        <label className="text-[9px] font-black text-slate-600 w-10">MHz</label>
+                        <input
+                          type="number"
+                          min={0.001}
+                          step={0.1}
+                          value={parseFloat(freqMhz) || 0}
+                          onChange={(e) => {
+                            const mhz = Math.max(0.001, parseFloat(e.target.value) || 0.001);
+                            const val = 1000 / mhz;
+                            updatePrimaryClock(selectedClk.id, {
+                              periodNs: val,
+                              waveformFalling: val * dutyRatio,
+                            });
+                          }}
+                          className="flex-1 bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1 outline-none"
+                        />
                       </div>
                       <input
                         type="range"
-                        min="1.0"
-                        max="50.0"
+                        min="0.2"
+                        max="200"
                         step="0.1"
-                        value={selectedClk.periodNs}
+                        value={Math.min(200, Math.max(0.2, selectedClk.periodNs))}
                         onChange={(e) => {
                           const val = parseFloat(e.target.value) || 1.0;
                           updatePrimaryClock(selectedClk.id, {
@@ -933,15 +1502,16 @@ export default function InteractiveSdcStudioPage() {
                           });
                         }}
                         className="neu-slider"
+                        title="Coarse 0.2–200 ns (~5 GHz–5 MHz)"
                       />
                     </div>
 
-                    {/* Duty Cycle Slider */}
+                    {/* Duty Cycle */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Duty Cycle</span>
-                        <span className="text-sky-600 font-mono font-black">
-                          {(dutyRatio * 100).toFixed(0)}% (Fall: {selectedClk.waveformFalling.toFixed(2)}ns)
+                        <span className="text-slate-800">Duty Cycle</span>
+                        <span className="text-sky-700 font-mono font-black">
+                          {(dutyRatio * 100).toFixed(0)}% (Fall: {selectedClk.waveformFalling.toFixed(3)}ns)
                         </span>
                       </div>
                       <input
@@ -960,66 +1530,95 @@ export default function InteractiveSdcStudioPage() {
                       />
                     </div>
 
-                    {/* Setup Uncertainty Slider */}
+                    {/* Setup Uncertainty — free */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Setup Uncertainty (T_unc_su)</span>
-                        <span className="text-amber-600 font-mono font-black">
-                          {selectedClk.uncertaintySetup.toFixed(2)} ns
-                        </span>
+                        <span className="text-slate-800">Setup Uncertainty (T_unc_su)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.001}
+                          value={selectedClk.uncertaintySetup}
+                          onChange={(e) =>
+                            updatePrimaryClock(selectedClk.id, {
+                              uncertaintySetup: Math.max(0, parseFloat(e.target.value) || 0),
+                            })
+                          }
+                          className="w-24 bg-white text-amber-800 font-mono text-xs font-black border-2 border-black rounded px-2 py-0.5 outline-none text-right"
+                        />
                       </div>
                       <input
                         type="range"
-                        min="0.00"
-                        max="2.00"
+                        min="0"
+                        max="5"
                         step="0.01"
-                        value={selectedClk.uncertaintySetup}
+                        value={Math.min(5, selectedClk.uncertaintySetup)}
                         onChange={(e) =>
                           updatePrimaryClock(selectedClk.id, {
                             uncertaintySetup: parseFloat(e.target.value) || 0,
                           })
                         }
                         className="neu-slider"
+                        title="Coarse 0–5 ns (type higher in box)"
                       />
                     </div>
 
-                    {/* Hold Uncertainty Slider */}
+                    {/* Hold Uncertainty — free */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Hold Uncertainty (T_unc_hd)</span>
-                        <span className="text-amber-600 font-mono font-black">
-                          {selectedClk.uncertaintyHold.toFixed(2)} ns
-                        </span>
+                        <span className="text-slate-800">Hold Uncertainty (T_unc_hd)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.001}
+                          value={selectedClk.uncertaintyHold}
+                          onChange={(e) =>
+                            updatePrimaryClock(selectedClk.id, {
+                              uncertaintyHold: Math.max(0, parseFloat(e.target.value) || 0),
+                            })
+                          }
+                          className="w-24 bg-white text-amber-800 font-mono text-xs font-black border-2 border-black rounded px-2 py-0.5 outline-none text-right"
+                        />
                       </div>
                       <input
                         type="range"
-                        min="0.00"
-                        max="1.00"
+                        min="0"
+                        max="2"
                         step="0.01"
-                        value={selectedClk.uncertaintyHold}
+                        value={Math.min(2, selectedClk.uncertaintyHold)}
                         onChange={(e) =>
                           updatePrimaryClock(selectedClk.id, {
                             uncertaintyHold: parseFloat(e.target.value) || 0,
                           })
                         }
                         className="neu-slider"
+                        title="Coarse 0–2 ns (type higher in box)"
                       />
                     </div>
 
-                    {/* Source Latency Slider */}
+                    {/* Source Latency — free */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Source Latency (`-source`)</span>
-                        <span className="text-purple-600 font-mono font-black">
-                          {selectedClk.latencySource.toFixed(2)} ns
-                        </span>
+                        <span className="text-slate-800">Source Latency (`-source`)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.001}
+                          value={selectedClk.latencySource}
+                          onChange={(e) =>
+                            updatePrimaryClock(selectedClk.id, {
+                              latencySource: Math.max(0, parseFloat(e.target.value) || 0),
+                            })
+                          }
+                          className="w-24 bg-white text-purple-800 font-mono text-xs font-black border-2 border-black rounded px-2 py-0.5 outline-none text-right"
+                        />
                       </div>
                       <input
                         type="range"
-                        min="0.00"
-                        max="5.00"
+                        min="0"
+                        max="10"
                         step="0.05"
-                        value={selectedClk.latencySource}
+                        value={Math.min(10, selectedClk.latencySource)}
                         onChange={(e) =>
                           updatePrimaryClock(selectedClk.id, {
                             latencySource: parseFloat(e.target.value) || 0,
@@ -1029,20 +1628,29 @@ export default function InteractiveSdcStudioPage() {
                       />
                     </div>
 
-                    {/* Network Latency Slider */}
+                    {/* Network Latency — free */}
                     <div className="neu-inset p-3 space-y-2">
                       <div className="flex justify-between items-center text-xs font-bold">
-                        <span className="text-slate-700">Network Latency</span>
-                        <span className="text-purple-600 font-mono font-black">
-                          {selectedClk.latencyNetwork.toFixed(2)} ns
-                        </span>
+                        <span className="text-slate-800">Network Latency</span>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.001}
+                          value={selectedClk.latencyNetwork}
+                          onChange={(e) =>
+                            updatePrimaryClock(selectedClk.id, {
+                              latencyNetwork: Math.max(0, parseFloat(e.target.value) || 0),
+                            })
+                          }
+                          className="w-24 bg-white text-purple-800 font-mono text-xs font-black border-2 border-black rounded px-2 py-0.5 outline-none text-right"
+                        />
                       </div>
                       <input
                         type="range"
-                        min="0.00"
-                        max="5.00"
+                        min="0"
+                        max="10"
                         step="0.05"
-                        value={selectedClk.latencyNetwork}
+                        value={Math.min(10, selectedClk.latencyNetwork)}
                         onChange={(e) =>
                           updatePrimaryClock(selectedClk.id, {
                             latencyNetwork: parseFloat(e.target.value) || 0,
@@ -1051,6 +1659,76 @@ export default function InteractiveSdcStudioPage() {
                         className="neu-slider"
                       />
                     </div>
+                  </div>
+
+                  {/* Design rules (global) */}
+                  <div className="neu-inset p-3 grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Max transition (ns)</p>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={state.designRules?.maxTransitionNs ?? 0}
+                        onChange={(e) =>
+                          setState((prev) =>
+                            normalizeSdcState({
+                              ...prev,
+                              designRules: {
+                                ...normalizeSdcState(prev).designRules,
+                                maxTransitionNs: Math.max(0, parseFloat(e.target.value) || 0),
+                              },
+                            })
+                          )
+                        }
+                        className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Max capacitance (pF)</p>
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={state.designRules?.maxCapacitancePf ?? 0}
+                        onChange={(e) =>
+                          setState((prev) =>
+                            normalizeSdcState({
+                              ...prev,
+                              designRules: {
+                                ...normalizeSdcState(prev).designRules,
+                                maxCapacitancePf: Math.max(0, parseFloat(e.target.value) || 0),
+                              },
+                            })
+                          )
+                        }
+                        className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-600 uppercase mb-1">Max fanout</p>
+                      <input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={state.designRules?.maxFanout ?? 0}
+                        onChange={(e) =>
+                          setState((prev) =>
+                            normalizeSdcState({
+                              ...prev,
+                              designRules: {
+                                ...normalizeSdcState(prev).designRules,
+                                maxFanout: Math.max(0, parseInt(e.target.value, 10) || 0),
+                              },
+                            })
+                          )
+                        }
+                        className="w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1"
+                      />
+                    </div>
+                    <p className="md:col-span-3 text-[9px] font-bold text-slate-500">
+                      0 = not written to SDC. Emits set_max_transition / capacitance / fanout on [current_design].
+                    </p>
                   </div>
                 </div>
 
@@ -1791,72 +2469,729 @@ export default function InteractiveSdcStudioPage() {
               </div>
             )}
 
-            {/* ------------------ TAB 4: CDC MATRIX ------------------ */}
+            {/* ------------------ TAB: CDC / DOMAINS (merged CDC studio) ------------------ */}
             {activeTab === "cdc" && (
-              <div className="space-y-5">
-                <div>
-                  <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
-                    <span>CDC Matrix Grid</span>
-                  </h3>
-                  <p className="text-[11px] text-slate-500">
-                    Configure domain interactions by toggling matrix cells.
-                  </p>
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-purple-600" />
+                      CDC / Domains Workspace
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-bold mt-0.5">
+                      Clock-domain policy inside SDC — matrix, domain map, lint, and STA path cuts.
+                      Emits <code className="text-[10px] bg-slate-100 px-1 rounded">set_clock_groups</code>.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {(
+                      [
+                        ["Domains", cdcSummary.domainCount, "text-indigo-700"],
+                        ["Async cuts", cdcSummary.asyncCuts, "text-rose-600"],
+                        ["Exclusive", cdcSummary.exclusiveCuts, "text-amber-600"],
+                        ["Missing", cdcSummary.missingCuts, "text-rose-700"],
+                      ] as const
+                    ).map(([label, val, color]) => (
+                      <div key={label} className="neu-inset px-2 py-1.5 min-w-[64px]">
+                        <p className="text-[8px] font-black uppercase text-slate-400">{label}</p>
+                        <p className={`text-sm font-black ${color}`}>{val}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="neu-panel-sm p-4 overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr>
-                        <th className="p-2 text-left text-slate-500 font-black uppercase text-[10px]">
-                          Clocks
-                        </th>
-                        {allClocksList.map((clk) => (
-                          <th key={clk} className="p-2 text-center text-sky-600 font-black text-[11px]">
-                            {clk}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {allClocksList.map((clkA) => (
-                        <tr key={clkA} className="border-t border-slate-300/40">
-                          <td className="p-2.5 font-black text-sky-600 text-xs">
-                            {clkA}
-                          </td>
-                          {allClocksList.map((clkB) => {
-                            const rel = getClockRelation(clkA, clkB);
-                            const isSelf = clkA === clkB;
-                            return (
-                              <td key={clkB} className="p-1 text-center">
-                                {isSelf ? (
-                                  <span className="text-slate-400 text-[10px] select-none">—</span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleClockRelation(clkA, clkB)}
-                                    className={`neu-btn px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wider w-full ${
-                                      rel === "sync"
-                                        ? "text-slate-500"
-                                        : rel === "asynchronous"
-                                        ? "neu-btn-active text-rose-600 font-black"
-                                        : rel === "logically_exclusive"
-                                        ? "neu-btn-active text-amber-600 font-black"
-                                        : "neu-btn-active text-purple-600 font-black"
-                                    }`}
-                                  >
-                                    {rel === "sync" ? "SYNC" : rel === "asynchronous" ? "ASYNC" : rel === "logically_exclusive" ? "LOG_EXCL" : "PHYS_EXCL"}
-                                  </button>
-                                )}
+                {/* Sub-panels */}
+                <div className="neu-inset p-1 flex flex-wrap gap-1 text-[10px] font-black">
+                  {(
+                    [
+                      ["matrix", "Matrix"],
+                      ["map", "Domain map"],
+                      ["fixes", "Quick fixes"],
+                      ["link", "Path → cut"],
+                    ] as const
+                  ).map(([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setCdcPanel(id)}
+                      className={`flex-1 min-w-[70px] py-2 px-2 rounded-lg transition ${
+                        cdcPanel === id
+                          ? "neu-btn-active text-purple-700"
+                          : "text-slate-500 hover:text-slate-800"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Domain chips */}
+                <div className="flex flex-wrap gap-2">
+                  {cdcSummary.domains.map((d) => {
+                    const c = CDC_DOMAIN_COLORS[d.colorIndex % CDC_DOMAIN_COLORS.length];
+                    return (
+                      <div
+                        key={d.id}
+                        className="px-2 py-1 rounded-lg border-2 text-[9px] font-bold"
+                        style={{
+                          background: c.fill,
+                          borderColor: c.stroke,
+                          color: c.text,
+                        }}
+                      >
+                        <span className="font-black uppercase">
+                          {d.isVirtual ? "VCLK " : "DOM "}
+                          {d.rootName}
+                        </span>
+                        <span className="opacity-80">
+                          {" "}
+                          · {d.clocks.join(", ")} · {d.periodNs.toFixed(2)}ns
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* MATRIX */}
+                {cdcPanel === "matrix" && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-slate-500">
+                      Click a cell to cycle SYNC → ASYNC → LOG_EXCL → PHYS_EXCL → SYNC.
+                      Applying ASYNC expands both domains (includes generated clocks).
+                    </p>
+                    <div className="neu-panel-sm p-3 overflow-x-auto bg-white">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr>
+                            <th className="p-2 text-left text-slate-500 font-black uppercase text-[10px]">
+                              Launch \ Capture
+                            </th>
+                            {allClocksList.map((clk) => (
+                              <th
+                                key={clk}
+                                className="p-2 text-center text-sky-600 font-black text-[10px] max-w-[72px] truncate"
+                                title={clk}
+                              >
+                                {clk}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {allClocksList.map((clkA) => (
+                            <tr key={clkA} className="border-t border-slate-200">
+                              <td className="p-2 font-black text-sky-700 text-[11px] truncate max-w-[100px]" title={clkA}>
+                                {clkA}
                               </td>
-                            );
-                          })}
-                        </tr>
+                              {allClocksList.map((clkB) => {
+                                const rel = getClockRelation(clkA, clkB);
+                                const isSelf = clkA === clkB;
+                                const pair = cdcSummary.pairs.find(
+                                  (p) =>
+                                    (p.clkA === clkA && p.clkB === clkB) ||
+                                    (p.clkA === clkB && p.clkB === clkA)
+                                );
+                                const missing = pair?.missingCut;
+                                return (
+                                  <td key={clkB} className="p-0.5 text-center">
+                                    {isSelf ? (
+                                      <span className="text-slate-300 text-[10px]">—</span>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleClockRelation(clkA, clkB)}
+                                        title={pair?.note || rel}
+                                        className={`neu-btn px-1.5 py-1.5 text-[9px] font-black uppercase tracking-wide w-full ${
+                                          missing
+                                            ? "bg-rose-50 text-rose-700 border-rose-300"
+                                            : rel === "sync"
+                                            ? "text-slate-500"
+                                            : rel === "asynchronous"
+                                            ? "neu-btn-active text-rose-600"
+                                            : rel === "logically_exclusive"
+                                            ? "neu-btn-active text-amber-600"
+                                            : "neu-btn-active text-purple-600"
+                                        }`}
+                                      >
+                                        {rel === "sync"
+                                          ? missing
+                                            ? "SYNC!"
+                                            : "SYNC"
+                                          : rel === "asynchronous"
+                                          ? "ASYNC"
+                                          : rel === "logically_exclusive"
+                                          ? "L_EX"
+                                          : "P_EX"}
+                                      </button>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="flex flex-wrap gap-3 text-[9px] font-bold text-slate-600">
+                      <span>SYNC = timed</span>
+                      <span className="text-rose-600">SYNC! = missing domain cut</span>
+                      <span className="text-rose-600">ASYNC</span>
+                      <span className="text-amber-600">L_EX = logically exclusive</span>
+                      <span className="text-purple-600">P_EX = physically exclusive</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* DOMAIN MAP */}
+                {cdcPanel === "map" && (
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-800 bg-white border-2 border-black rounded-lg px-3 py-2">
+                      <span className="font-black uppercase text-indigo-700">Graph engine</span>
+                      <span>
+                        Nodes <b>{sdcGraphStats.nodeCount}</b>
+                      </span>
+                      <span>
+                        Edges <b>{sdcGraphStats.edgeCount}</b>
+                      </span>
+                      <span>
+                        Domains <b>{sdcGraphStats.domainCount}</b>
+                      </span>
+                      <span>
+                        Cuts <b>{sdcGraphStats.cutEdges}</b>
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-500">
+                      Solid edges = generated-clock lineage. Dashed red/amber = clock-group cuts.
+                      Map is driven by the shared design graph.
+                    </p>
+                    <div className="neu-inset p-4 bg-white overflow-x-auto">
+                      {(() => {
+                        const nodes = cdcMap.nodes;
+                        if (!nodes.length) {
+                          return (
+                            <p className="text-xs font-bold text-slate-400 text-center py-8">
+                              Add clocks to build the domain map.
+                            </p>
+                          );
+                        }
+                        const W = Math.max(560, nodes.length * 100 + 80);
+                        const H = 200;
+                        const positions = new Map<string, { x: number; y: number }>();
+                        const prim = nodes.filter((n) => n.kind === "primary" || n.kind === "virtual");
+                        const gen = nodes.filter((n) => n.kind === "generated");
+                        const place = (row: typeof nodes, y: number) => {
+                          row.forEach((n, i) => {
+                            const x =
+                              row.length <= 1
+                                ? W / 2
+                                : 50 + (i * (W - 100)) / (row.length - 1);
+                            positions.set(n.id, { x, y });
+                          });
+                        };
+                        place(prim, 50);
+                        place(gen, 140);
+                        nodes.forEach((n, i) => {
+                          if (!positions.has(n.id)) positions.set(n.id, { x: 60 + i * 80, y: 100 });
+                        });
+
+                        return (
+                          <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[480px] h-auto">
+                            <defs>
+                              <marker
+                                id="cdcArrow"
+                                viewBox="0 0 10 10"
+                                refX="8"
+                                refY="5"
+                                markerWidth="5"
+                                markerHeight="5"
+                                orient="auto-start-reverse"
+                              >
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a" />
+                              </marker>
+                            </defs>
+                            {cdcMap.treeEdges.map((e, i) => {
+                              const a = positions.get(e.from);
+                              const b = positions.get(e.to);
+                              if (!a || !b) return null;
+                              return (
+                                <g key={`t${i}`}>
+                                  <line
+                                    x1={a.x}
+                                    y1={a.y + 14}
+                                    x2={b.x}
+                                    y2={b.y - 14}
+                                    stroke="#0f172a"
+                                    strokeWidth="1.5"
+                                    markerEnd="url(#cdcArrow)"
+                                  />
+                                  {e.label && (
+                                    <text
+                                      x={(a.x + b.x) / 2 + 8}
+                                      y={(a.y + b.y) / 2}
+                                      fontSize="8"
+                                      fill="#64748b"
+                                      fontWeight="700"
+                                    >
+                                      {e.label}
+                                    </text>
+                                  )}
+                                </g>
+                              );
+                            })}
+                            {cdcMap.cutEdges.map((e, i) => {
+                              const a = positions.get(e.from);
+                              const b = positions.get(e.to);
+                              if (!a || !b) return null;
+                              const col =
+                                e.relation === "asynchronous" ? "#e11d48" : "#d97706";
+                              return (
+                                <g key={`c${i}`}>
+                                  <line
+                                    x1={a.x}
+                                    y1={a.y}
+                                    x2={b.x}
+                                    y2={b.y}
+                                    stroke={col}
+                                    strokeWidth="2"
+                                    strokeDasharray="6,4"
+                                    opacity="0.85"
+                                  />
+                                  <text
+                                    x={(a.x + b.x) / 2}
+                                    y={(a.y + b.y) / 2 - 6}
+                                    fontSize="8"
+                                    fill={col}
+                                    fontWeight="900"
+                                    textAnchor="middle"
+                                  >
+                                    {e.relation === "asynchronous"
+                                      ? "ASYNC"
+                                      : e.relation === "logically_exclusive"
+                                      ? "L_EX"
+                                      : "P_EX"}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                            {nodes.map((n) => {
+                              const p = positions.get(n.id)!;
+                              const c =
+                                CDC_DOMAIN_COLORS[n.colorIndex % CDC_DOMAIN_COLORS.length];
+                              return (
+                                <g key={n.id} transform={`translate(${p.x},${p.y})`}>
+                                  <rect
+                                    x={-40}
+                                    y={-14}
+                                    width={80}
+                                    height={28}
+                                    rx={6}
+                                    fill={c.fill}
+                                    stroke={c.stroke}
+                                    strokeWidth="2"
+                                  />
+                                  <text
+                                    y={4}
+                                    textAnchor="middle"
+                                    fontSize="8"
+                                    fontWeight="900"
+                                    fill={c.text}
+                                  >
+                                    {n.name.length > 11 ? n.name.slice(0, 10) + "…" : n.name}
+                                  </text>
+                                </g>
+                              );
+                            })}
+                          </svg>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick fixes only — lint text lives in right-side Constraint Lint */}
+                {cdcPanel === "fixes" && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-slate-500">
+                      Actionable CDC repairs. Warnings/errors stay in the right-hand{" "}
+                      <b>Constraint Lint</b> panel.
+                    </p>
+                    <div className="space-y-2 max-h-[360px] overflow-y-auto">
+                      {cdcFixes.map((f) => (
+                        <div
+                          key={f.id}
+                          className="neu-panel-sm p-3 flex items-start justify-between gap-3"
+                        >
+                          <div>
+                            <p className="text-xs font-black text-slate-800">{f.title}</p>
+                            <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                              {f.detail}
+                            </p>
+                          </div>
+                          {f.apply && (
+                            <button
+                              type="button"
+                              className="neu-btn neu-btn-primary px-2.5 py-1.5 text-[10px] font-black shrink-0"
+                              onClick={() => {
+                                setState((prev) => f.apply!(prev));
+                                flash(`Applied: ${f.title}`);
+                              }}
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Path → CDC cut */}
+                {cdcPanel === "link" && (
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-bold text-slate-500">
+                      Paste a cross-clock STA path (Timing Studio / Innovus / PT). Suggest async
+                      clock_groups or false_path.
+                    </p>
+                    <textarea
+                      className="w-full h-32 p-3 border-2 border-black rounded-lg font-mono text-[10px] focus:outline-none shadow-[3px_3px_0_#000] bg-white"
+                      placeholder={`Path 1: VIOLATED (...)
+Startpoint: ...
+Clock: (R) clk_a
+Endpoint: ...
+Clock: (R) clk_b
+Slack:= -0.12`}
+                      value={cdcPathSnippet}
+                      onChange={(e) => setCdcPathSnippet(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        className="neu-btn px-3 py-1.5 text-[10px] font-black"
+                        onClick={() => setCdcPathSnippet("")}
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        className="neu-btn px-3 py-1.5 text-[10px] font-black text-cyan-700"
+                        onClick={() => {
+                          setActiveTab("link");
+                          setPathSnippet(cdcPathSnippet);
+                        }}
+                      >
+                        Open full STA Link
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {cdcPathSnippet && cdcPathFixes.length === 0 && (
+                        <p className="text-xs font-bold text-slate-400">
+                          Could not parse clocks from snippet.
+                        </p>
+                      )}
+                      {cdcPathFixes.map((f) => (
+                        <div
+                          key={f.id}
+                          className="neu-panel-sm p-3 flex items-start justify-between gap-3"
+                        >
+                          <div>
+                            <p className="text-xs font-black text-slate-800">{f.title}</p>
+                            <p className="text-[10px] font-bold text-slate-500 mt-0.5">
+                              {f.detail}
+                            </p>
+                          </div>
+                          {f.apply && (
+                            <button
+                              type="button"
+                              className="neu-btn neu-btn-primary px-2.5 py-1.5 text-[10px] font-black shrink-0"
+                              onClick={() => {
+                                setState((prev) => f.apply!(prev));
+                                flash(`Applied: ${f.title}`);
+                              }}
+                            >
+                              Apply
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ------------------ TAB: CLOCK TREE SCHEMATIC ------------------ */}
+            {activeTab === "schematic" && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-indigo-500" />
+                    Clock Tree Schematic
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    Primary / virtual → generated clocks → I/O domains from live constraints.
+                  </p>
+                </div>
+                <div className="neu-inset p-4 bg-white overflow-x-auto">
+                  {(() => {
+                    const nodes = clockTree.nodes;
+                    if (!nodes.length) {
+                      return (
+                        <p className="text-xs font-bold text-slate-400 text-center py-8">
+                          Add clocks to visualize the tree.
+                        </p>
+                      );
+                    }
+                    const W = Math.max(640, nodes.length * 100 + 80);
+                    const H = 220;
+                    const cols = Math.min(nodes.length, 6);
+                    const positions = new Map<string, { x: number; y: number }>();
+                    const primary = nodes.filter((n) => n.kind === "primary" || n.kind === "virtual");
+                    const generated = nodes.filter((n) => n.kind === "generated");
+                    const ios = nodes.filter((n) => n.kind === "io");
+                    const placeRow = (row: typeof nodes, y: number) => {
+                      row.forEach((n, i) => {
+                        const x = 60 + (i * (W - 120)) / Math.max(1, row.length - 1 || 1);
+                        positions.set(n.id, { x: row.length === 1 ? W / 2 : x, y });
+                      });
+                    };
+                    placeRow(primary, 40);
+                    placeRow(generated, 110);
+                    placeRow(ios, 180);
+                    // place orphans
+                    nodes.forEach((n, i) => {
+                      if (!positions.has(n.id)) {
+                        positions.set(n.id, { x: 60 + i * 90, y: 110 });
+                      }
+                    });
+                    const color = (k: string) => {
+                      if (k === "primary") return { f: "#dbeafe", s: "#2563eb" };
+                      if (k === "virtual") return { f: "#f3e8ff", s: "#7c3aed" };
+                      if (k === "generated") return { f: "#fef3c7", s: "#d97706" };
+                      return { f: "#d1fae5", s: "#059669" };
+                    };
+                    return (
+                      <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[520px] h-auto">
+                        {clockTree.edges.map((e, i) => {
+                          const a = positions.get(e.from);
+                          const b = positions.get(e.to);
+                          if (!a || !b) return null;
+                          return (
+                            <g key={i}>
+                              <line
+                                x1={a.x}
+                                y1={a.y + 16}
+                                x2={b.x}
+                                y2={b.y - 16}
+                                stroke="#0f172a"
+                                strokeWidth="1.5"
+                                markerEnd="url(#ctArrow)"
+                              />
+                              {e.label && (
+                                <text
+                                  x={(a.x + b.x) / 2}
+                                  y={(a.y + b.y) / 2}
+                                  fontSize="8"
+                                  fill="#64748b"
+                                  textAnchor="middle"
+                                  fontWeight="700"
+                                >
+                                  {e.label}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                        <defs>
+                          <marker id="ctArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#0f172a" />
+                          </marker>
+                        </defs>
+                        {nodes.map((n) => {
+                          const p = positions.get(n.id)!;
+                          const c = color(n.kind);
+                          return (
+                            <g key={n.id} transform={`translate(${p.x},${p.y})`}>
+                              <rect x={-42} y={-16} width={84} height={32} rx={6} fill={c.f} stroke={c.s} strokeWidth="2" />
+                              <text y={-2} textAnchor="middle" fontSize="8" fontWeight="900" fill="#0f172a">
+                                {n.name.length > 12 ? n.name.slice(0, 11) + "…" : n.name}
+                              </text>
+                              <text y={10} textAnchor="middle" fontSize="7" fontWeight="700" fill="#64748b">
+                                {n.detail || `${n.periodNs.toFixed(2)}ns`}
+                              </text>
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    );
+                  })()}
+                </div>
+                <div className="flex flex-wrap gap-3 text-[9px] font-bold text-slate-600">
+                  <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-sky-200 border border-sky-600" /> Primary</span>
+                  <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-purple-200 border border-purple-600" /> Virtual</span>
+                  <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-200 border border-amber-600" /> Generated</span>
+                  <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-200 border border-emerald-600" /> I/O domain</span>
+                </div>
+
+                {/* Accurate multi-period clock using engine model */}
+                <div className="neu-panel-sm p-4 space-y-2">
+                  <h4 className="text-xs font-black uppercase text-slate-600">
+                    Accurate Waveform · {clkWave.name} (latency-shifted)
+                  </h4>
+                  <div className="neu-inset p-3 bg-white overflow-x-auto">
+                    {(() => {
+                      const period = clkWave.periodNs || 1;
+                      const tMin = -0.1;
+                      const tMax = period * 2.2;
+                      const padL = 50;
+                      const svgW = 560;
+                      const xOf = (t: number) => padL + ((t - tMin) / (tMax - tMin)) * (svgW - padL - 20);
+                      const ideal = clockSvgPath(period, clkWave.rise, clkWave.fall, tMin, tMax, xOf, 28, 48);
+                      const atPin = clockSvgPath(
+                        period,
+                        clkWave.effectiveRise,
+                        clkWave.effectiveFall,
+                        tMin,
+                        tMax,
+                        xOf,
+                        78,
+                        98
+                      );
+                      return (
+                        <svg viewBox="0 0 560 130" className="w-full min-w-[480px]">
+                          <text x="8" y="40" fontSize="9" fontWeight="800" fill="#475569">Ideal</text>
+                          <path d={ideal} fill="none" stroke="#0f172a" strokeWidth="2.5" />
+                          <text x="8" y="90" fontSize="9" fontWeight="800" fill="#2563eb">@ FF (+lat {clkWave.latencyTotal.toFixed(2)})</text>
+                          <path d={atPin} fill="none" stroke="#2563eb" strokeWidth="2.5" />
+                          <text x={xOf(period)} y="120" fontSize="8" fill="#94a3b8" textAnchor="middle">T={period.toFixed(2)}</text>
+                          <line x1={xOf(period)} y1={10} x2={xOf(period)} y2={110} stroke="#cbd5e1" strokeDasharray="3,2" />
+                        </svg>
+                      );
+                    })()}
+                  </div>
+                  <p className="text-[10px] font-mono text-slate-500">
+                    duty {(clkWave.duty * 100).toFixed(0)}% · rise {clkWave.rise.toFixed(3)} · fall {clkWave.fall.toFixed(3)} ·
+                    unc setup {clkWave.uncertaintySetup.toFixed(3)} / hold {clkWave.uncertaintyHold.toFixed(3)}
+                  </p>
                 </div>
               </div>
             )}
+
+            {/* ------------------ TAB: TIMING BUDGET SOLVER ------------------ */}
+            {activeTab === "budget" && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                    <Calculator className="h-4 w-4 text-rose-500" />
+                    Timing Budget Solver
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    STA-aligned setup/hold budgets for reg2reg and I/O (period, uncertainty, latency, external delays).
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {budgets.length === 0 && (
+                    <p className="text-xs font-bold text-slate-400">Define clocks to compute budgets.</p>
+                  )}
+                  {budgets.map((b: TimingBudget) => (
+                    <div
+                      key={b.id}
+                      className={`neu-panel-sm p-3 border-l-4 ${
+                        b.setupSlack < 0 ? "border-l-rose-500 bg-rose-50/40" : "border-l-emerald-500 bg-emerald-50/30"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-slate-400">{b.kind}</p>
+                          <p className="text-xs font-black text-slate-800">{b.label}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-black ${b.setupSlack < 0 ? "text-rose-600" : "text-emerald-600"}`}>
+                            setup {b.setupSlack >= 0 ? "+" : ""}{b.setupSlack.toFixed(3)} ns
+                          </p>
+                          <p className={`text-[10px] font-bold ${b.holdSlack < 0 ? "text-rose-600" : "text-slate-500"}`}>
+                            hold {b.holdSlack >= 0 ? "+" : ""}{b.holdSlack.toFixed(3)} ns
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2 text-[9px] font-mono text-slate-600 space-y-0.5">
+                        <p>data_max / required: <b>{b.requiredSetup.toFixed(3)}</b> · path est: <b>{b.pathBudget.toFixed(3)}</b> · T={b.periodNs.toFixed(3)} ×{b.setupCycles}</p>
+                        <p className="text-slate-500">{b.equationSetup}</p>
+                        <p className="text-slate-500">{b.equationHold}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ------------------ TAB: TIMING STUDIO LINK ------------------ */}
+            {activeTab === "link" && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                    <Link2 className="h-4 w-4 text-cyan-600" />
+                    Timing Studio → SDC Link
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-bold">
+                    Paste a path block from Timing Studio / Innovus / PrimeTime. Get apply-able SDC suggestions (clocks, I/O, MCP, async cuts).
+                  </p>
+                </div>
+                <textarea
+                  className="w-full h-40 p-3 border-2 border-black rounded-lg font-mono text-[10px] focus:outline-none shadow-[3px_3px_0_#000] bg-white"
+                  placeholder={`Paste path report snippet, e.g.:
+
+Path 1: VIOLATED (-0.085 ns) Late Output Delay Assertion
+Startpoint: (R) u_core/reg_a/CP
+Clock: (R) func_clk
+Endpoint: (R) m00_axi_araddr[30]
+...
+Output Delay:- 0.300
+Slack:= -0.085`}
+                  value={pathSnippet}
+                  onChange={(e) => setPathSnippet(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="neu-btn px-3 py-1.5 text-[10px] font-black"
+                    onClick={() => setPathSnippet("")}
+                  >
+                    Clear
+                  </button>
+                  <a
+                    href="/vlsi/timing-studio"
+                    className="neu-btn px-3 py-1.5 text-[10px] font-black text-amber-700"
+                  >
+                    Open Timing Studio
+                  </a>
+                </div>
+                <div className="space-y-2">
+                  {pathSnippet && pathSuggestions.length === 0 && (
+                    <p className="text-xs font-bold text-slate-400">Could not parse path snippet.</p>
+                  )}
+                  {pathSuggestions.map((s) => (
+                    <div key={s.id} className="neu-panel-sm p-3 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-black uppercase text-cyan-600">{s.kind}</p>
+                        <p className="text-xs font-black text-slate-800">{s.title}</p>
+                        <p className="text-[10px] font-bold text-slate-500 mt-0.5">{s.detail}</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="neu-btn neu-btn-primary px-3 py-1.5 text-[10px] font-black shrink-0"
+                        onClick={() => {
+                          setState((prev) => s.apply(prev));
+                          flash(`Applied: ${s.title}`);
+                        }}
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
 
@@ -1867,7 +3202,7 @@ export default function InteractiveSdcStudioPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-sky-600 animate-pulse" />
-                <span className="text-xs font-black text-slate-800">AST Constraint Diagnostics</span>
+                <span className="text-xs font-black text-slate-800">Constraint Lint · {tool}</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] font-black">
                 <span className={`neu-badge ${errorCount > 0 ? "text-rose-600" : "text-emerald-600"}`}>
@@ -1880,7 +3215,7 @@ export default function InteractiveSdcStudioPage() {
             </div>
 
             {lintMessages.length > 0 && (
-              <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                 {lintMessages.map((m) => (
                   <div
                     key={m.id}
@@ -1900,7 +3235,10 @@ export default function InteractiveSdcStudioPage() {
                       <Info className="h-4 w-4 shrink-0 mt-0.5" />
                     )}
                     <div>
-                      <p className="font-black text-[11px]">{m.title}</p>
+                      <p className="font-black text-[11px] flex items-center gap-1.5">
+                        {m.title}
+                        <span className="text-[8px] uppercase opacity-70">{m.category}</span>
+                      </p>
                       <p className="text-[10px] leading-relaxed font-mono">{m.message}</p>
                     </div>
                   </div>

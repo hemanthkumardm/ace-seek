@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verify": "npx tsx scripts/verify-engines.mts"
   },
   "dependencies": {
     "diff": "^9.0.0",

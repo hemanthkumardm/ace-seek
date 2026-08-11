@@ -33,17 +33,17 @@ const JOB_ROOT =
   path.join(os.homedir(), ".cache", "aic-web-jobs");
 
 function ensureJobRoot() {
-  if (!existsSync(JOB_ROOT)) mkdirSync(JOB_ROOT, { recursive: true });
+  if (!existsSync(/*turbopackIgnore: true*/ JOB_ROOT)) mkdirSync(JOB_ROOT, { recursive: true });
 }
 
 export function projectRoot(): string {
-  if (process.env.AIC_ROOT && existsSync(path.join(process.env.AIC_ROOT, "bin/aic"))) {
+  if (process.env.AIC_ROOT && existsSync(/*turbopackIgnore: true*/ path.join(process.env.AIC_ROOT, "bin/aic"))) {
     return process.env.AIC_ROOT;
   }
   let dir = process.cwd();
   for (let i = 0; i < 6; i++) {
-    if (existsSync(path.join(dir, "bin/aic"))) return dir;
-    if (existsSync(path.join(dir, "..", "bin/aic"))) {
+    if (existsSync(/*turbopackIgnore: true*/ path.join(dir, "bin/aic"))) return dir;
+    if (existsSync(/*turbopackIgnore: true*/ path.join(dir, "..", "bin/aic"))) {
       return path.resolve(dir, "..");
     }
     const parent = path.dirname(dir);
@@ -68,7 +68,7 @@ export function enrichedPath(): string {
   const cur = process.env.PATH || "/usr/bin:/bin";
   const parts = cur.split(path.delimiter).filter(Boolean);
   for (const e of extras) {
-    if (existsSync(e) && !parts.includes(e)) parts.unshift(e);
+    if (existsSync(/*turbopackIgnore: true*/ e) && !parts.includes(e)) parts.unshift(e);
   }
   return parts.join(path.delimiter);
 }

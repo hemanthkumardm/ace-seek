@@ -17,9 +17,9 @@ const HOST_APP_ROOT: Record<string, string> = {
   sanitizer: "/tools/ai-sanitizer",
   tex: "/tools/tex-formatter",
   table: "/tools/table-builder",
-  timing: "/tools/sdc-calculator",
   scripts: "/tools/script-helper",
   tools: "/tools",
+  vlsi: "/vlsi",
 };
 
 function hostSlug(host: string): string | null {

@@ -45,7 +45,7 @@ const JOB_ROOT =
   process.env.AIC_JOB_ROOT || path.join(os.homedir(), ".cache", "aic-web-jobs");
 
 function ensureJobRoot() {
-  if (!existsSync(JOB_ROOT)) mkdirSync(JOB_ROOT, { recursive: true });
+  if (!existsSync(/*turbopackIgnore: true*/ JOB_ROOT)) mkdirSync(JOB_ROOT, { recursive: true });
 }
 
 function jobDir(id: string) {

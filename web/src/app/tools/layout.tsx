@@ -57,13 +57,7 @@ export default async function ToolsLayout({ children }: { children: React.ReactN
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Converter</span>
             </a>
-            <a
-              href="/tools/sdc-calculator"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-purple-400 text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:brightness-105 transition-all font-black"
-            >
-              <Cpu className="w-3.5 h-3.5" />
-              <span>SDC Studio</span>
-            </a>
+
           </nav>
 
           {/* Account Actions */}
