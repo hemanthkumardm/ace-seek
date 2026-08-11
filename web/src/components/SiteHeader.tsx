@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { UserButton, useAuth } from "@clerk/nextjs";
 import {
   Cpu,
   CreditCard,
@@ -14,45 +15,108 @@ import {
   Shield,
   Activity,
   Boxes,
-  LogOut,
-  User,
 } from "lucide-react";
 
 type Props = {
   /** Highlight active nav key */
-  active?: "home" | "products" | "pricing" | "offers" | "advertise" | "blog" | "docs" | "dashboard";
+  active?:
+    | "home"
+    | "products"
+    | "pricing"
+    | "offers"
+    | "advertise"
+    | "blog"
+    | "docs"
+    | "dashboard";
 };
 
-type AuthUser = {
-  id: string;
-  email: string;
-  name: string;
-  plan: string;
-} | null;
+/** Client-safe auth chrome (useAuth; avoid server-only Show in client trees). */
+function ClerkHeaderAuth() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <span className="text-[10px] font-mono text-[var(--muted)] px-2">…</span>
+    );
+  }
+
+  if (isSignedIn) {
+    return (
+      <>
+        <a
+          href="/dashboard"
+          className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-3.5"
+        >
+          <LayoutDashboard className="w-3.5 h-3.5" />
+          <span>Dashboard</span>
+        </a>
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-8 h-8 border-2 border-black",
+            },
+          }}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <a
+        href="/login"
+        className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+      >
+        <LogIn className="w-3.5 h-3.5" />
+        <span>Log in</span>
+      </a>
+      <a
+        href="/signup"
+        className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-3.5"
+      >
+        <UserPlus className="w-3.5 h-3.5" />
+        <span>Sign up</span>
+      </a>
+    </>
+  );
+}
 
 export function SiteHeader({ active }: Props) {
-  const [authUser, setAuthUser] = useState<AuthUser>(null);
-  const [loading, setLoading] = useState(true);
+  const [hostname, setHostname] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && data.authenticated && data.user) {
-          setAuthUser(data.user);
-        } else {
-          setAuthUser(null);
-        }
-      })
-      .catch(() => setAuthUser(null))
-      .finally(() => setLoading(false));
+    if (typeof window !== "undefined") {
+      setHostname(window.location.hostname);
+    }
   }, []);
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setAuthUser(null);
-    window.location.href = "/login";
-  };
+  const isVlsi = hostname.startsWith("vlsi");
+  const isTools =
+    hostname.startsWith("tools") ||
+    hostname.startsWith("doc") ||
+    hostname.startsWith("diff") ||
+    hostname.startsWith("convert") ||
+    hostname.startsWith("sanitizer") ||
+    hostname.startsWith("tex") ||
+    hostname.startsWith("table");
+
+  const brandTitle = isVlsi
+    ? "VLSI.ACE-SEEK.COM"
+    : isTools
+    ? "TOOLS.ACE-SEEK.COM"
+    : "Ace-Seek";
+
+  const brandSub = isVlsi
+    ? "VLSI Integration Suite"
+    : isTools
+    ? "Utility Tools Suite"
+    : "SaaS Portal";
+
+  const brandHref = isVlsi
+    ? "/"
+    : isTools
+    ? "/"
+    : "/";
 
   const link = (
     key: Props["active"],
@@ -78,14 +142,12 @@ export function SiteHeader({ active }: Props) {
 
   return (
     <header className="sticky top-0 z-40 bg-[var(--surface-panel)]/95 backdrop-blur-md border-b border-[var(--bevel-shadow)] shadow-md">
-      {/* Top Metallic Bevel Highlight */}
       <div className="h-[1px] bg-gradient-to-r from-transparent via-[var(--bevel-highlight)] to-transparent w-full opacity-60" />
 
       <div className="m-shell flex h-16 items-center justify-between gap-4">
-        {/* Brand & Main SaaS Nav */}
         <div className="flex items-center gap-6 min-w-0">
           <a
-            href="/"
+            href={brandHref}
             className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-gradient-to-b from-[var(--surface-raised)] to-[var(--surface-recessed)] border border-[var(--bevel-highlight)] shadow-sm hover:brightness-110 transition-all shrink-0"
           >
             <div className="sk-icon-well w-6 h-6 rounded">
@@ -93,63 +155,36 @@ export function SiteHeader({ active }: Props) {
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold tracking-tight text-[var(--foreground)]">
-                  Ace-Seek
+                <span className="text-sm font-bold tracking-tight text-[var(--foreground)] uppercase font-mono">
+                  {brandTitle}
                 </span>
                 <span className="sk-led sk-led-green" title="System Online" />
               </div>
               <span className="text-[9px] font-mono text-[var(--muted)] -mt-0.5 tracking-wide uppercase">
-                SaaS Portal
+                {brandSub}
               </span>
             </div>
           </a>
 
           <nav className="hidden lg:flex items-center gap-1 p-1 rounded-lg bg-[var(--surface-recessed)] border border-[var(--bevel-shadow)]">
-            {link("pricing", "/pricing", "Pricing", CreditCard)}
-            {link("offers", "/offers", "Offers", Tag)}
-            {link("advertise", "/advertise", "Advertise", Megaphone)}
-            {link("docs", "/docs", "Docs", FileText)}
+            {(isVlsi || isTools) && (
+              <a
+                href="https://ace-seek.com/"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--accent-cyan)] hover:bg-[rgba(255,255,255,0.05)] transition-all"
+              >
+                <Terminal className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+                <span>Main Portal</span>
+              </a>
+            )}
+            {link("pricing", "https://ace-seek.com/pricing", "Pricing", CreditCard)}
+            {link("offers", "https://ace-seek.com/offers", "Offers", Tag)}
+            {link("advertise", "https://ace-seek.com/advertise", "Advertise", Megaphone)}
+            {link("docs", "https://ace-seek.com/docs", "Docs", FileText)}
           </nav>
         </div>
 
-        {/* User Account Controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {!loading && authUser ? (
-            <>
-              <a
-                href="/dashboard"
-                className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-3.5"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                <span>Dashboard</span>
-              </a>
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="sk-btn sk-btn-ghost !text-xs !py-1.5 !px-2.5"
-                title="Log out"
-              >
-                <LogOut className="w-3.5 h-3.5 text-red-400" />
-              </button>
-            </>
-          ) : (
-            <>
-              <a
-                href="/login"
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-2 text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Log in</span>
-              </a>
-              <a
-                href="/signup"
-                className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-3.5"
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>Sign up</span>
-              </a>
-            </>
-          )}
+          <ClerkHeaderAuth />
         </div>
       </div>
     </header>
@@ -179,28 +214,16 @@ export function SiteFooter() {
             <CreditCard className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>SaaS Core</span>
           </p>
-          <a
-            href="/pricing"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Pricing & Plans
           </a>
-          <a
-            href="/dashboard"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             User Dashboard & API Keys
           </a>
-          <a
-            href="/offers"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Promotions & Offers
           </a>
-          <a
-            href="/advertise"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/advertise" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Advertise & Sponsorship
           </a>
         </div>
@@ -211,8 +234,8 @@ export function SiteFooter() {
             <span>Subdomain Specs</span>
           </p>
           <span className="block text-xs text-[var(--muted)]">doc.ace-seek.com (PDF · TeX · DOCX)</span>
-          <span className="block text-xs text-[var(--muted)]">timing.ace-seek.com (SDC Math)</span>
-          <span className="block text-xs text-[var(--muted)]">scripts.ace-seek.com (Glue Scripts)</span>
+          <span className="block text-xs text-[var(--muted)]">vlsi.ace-seek.com (SDC · Timing · MMMC)</span>
+          <span className="block text-xs text-[var(--muted)]">tools.ace-seek.com (Utilities)</span>
         </div>
 
         <div className="space-y-2.5">
@@ -220,22 +243,13 @@ export function SiteFooter() {
             <Shield className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>Identity & Support</span>
           </p>
-          <a
-            href="/login"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/login" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             User Login
           </a>
-          <a
-            href="/signup"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/signup" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Create Identity
           </a>
-          <a
-            href="/docs"
-            className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
+          <a href="/docs" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Documentation
           </a>
         </div>
@@ -250,7 +264,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-4 font-mono text-[11px]">
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-[var(--led-green)]" />
-              <span>v2.6.0-AUTH-PROTECTED</span>
+              <span>v2.7.0-CLERK-AUTH</span>
             </span>
             <span className="text-[var(--accent-cyan)]">ace-seek.com</span>
           </div>

@@ -258,7 +258,7 @@ export function extractTags(
   const tags = new Set<ReportHubTag>();
 
   if (target === "sdc") tags.add("sdc");
-  if (target === "upf" || target === "power") tags.add("upf");
+  if (target === "power") tags.add("upf");
   if (target === "mmmc") tags.add("mmmc");
 
   if (ingest.kind === "timing_path") tags.add("timing_path");

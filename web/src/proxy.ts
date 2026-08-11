@@ -1,14 +1,12 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Host-based routing, Protected Dashboard Route & Auth Cookie validation:
- *
- *   ace-seek.com/dashboard -> Protected Route (Redirects unauthenticated users to /login)
- *   doc.ace-seek.com/*     -> /tools/doc-compiler
- *   timing.ace-seek.com/*  -> /tools/sdc-calculator
- *   scripts.ace-seek.com/* -> /tools/script-helper
- *   tools.ace-seek.com/*   -> /tools/*
+ * Next.js 16 uses proxy.ts (not middleware.ts) for Clerk.
+ * @see https://clerk.com/docs/nextjs/getting-started/quickstart
  */
+
+const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
 const HOST_APP_ROOT: Record<string, string> = {
   doc: "/tools/doc-compiler",
@@ -31,39 +29,33 @@ function hostSlug(host: string): string | null {
   return slug;
 }
 
-export function middleware(req: NextRequest) {
+function applyHostRouting(
+  req: NextRequest,
+  authenticated: boolean
+): NextResponse {
   const host = req.headers.get("host") || "";
   const { pathname } = req.nextUrl;
 
+  // Never rewrite Clerk internal / API / static paths
   if (
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
+    pathname.startsWith("/favicon") ||
+    pathname.startsWith("/__clerk")
   ) {
     return NextResponse.next();
   }
 
-  const sessionCookie = req.cookies.get("ace_seek_session")?.value;
-
-  // ROUTE PROTECTION: /dashboard requires logged-in session
-  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) {
-    if (!sessionCookie) {
-      const loginUrl = req.nextUrl.clone();
-      loginUrl.pathname = "/login";
-      loginUrl.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-  }
-
   const requestHeaders = new Headers(req.headers);
-  requestHeaders.set("x-ace-user-tier", sessionCookie ? "authenticated" : "guest");
+  requestHeaders.set(
+    "x-ace-user-tier",
+    authenticated ? "authenticated" : "guest"
+  );
 
   const slug = hostSlug(host);
   if (!slug || !(slug in HOST_APP_ROOT)) {
     return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
+      request: { headers: requestHeaders },
     });
   }
 
@@ -72,26 +64,20 @@ export function middleware(req: NextRequest) {
 
   if (pathname === appRoot || pathname.startsWith(`${appRoot}/`)) {
     return NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
+      request: { headers: requestHeaders },
     });
   }
 
   if (slug === "tools") {
     if (pathname === "/tools" || pathname.startsWith("/tools/")) {
       return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
+        request: { headers: requestHeaders },
       });
     }
     const url = req.nextUrl.clone();
     url.pathname = pathname === "/" ? "/tools" : `/tools${pathname}`;
     return NextResponse.rewrite(url, {
-      request: {
-        headers: requestHeaders,
-      },
+      request: { headers: requestHeaders },
     });
   }
 
@@ -102,12 +88,29 @@ export function middleware(req: NextRequest) {
     url.pathname = `${appRoot}${pathname}`;
   }
   return NextResponse.rewrite(url, {
-    request: {
-      headers: requestHeaders,
-    },
+    request: { headers: requestHeaders },
   });
 }
 
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect();
+  }
+  const session = await auth();
+  return applyHostRouting(
+    req as unknown as NextRequest,
+    Boolean(session.userId)
+  );
+});
+
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  matcher: [
+    // Skip Next.js internals and static files
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for Clerk's auto-proxy path (required)
+    "/__clerk/:path*",
+    "/__clerk/(.*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };

@@ -3,7 +3,7 @@
  * Pure zero-dependency client-side ZIP archive generator and export bundler.
  */
 
-import { SdcStudioState, generateSdcCode } from "./sdc-engine";
+import { SdcStudioState, generateSdcCode, normalizeSdcState } from "./sdc-engine";
 import { TimingStudioState, EcoAction } from "./timing-engine";
 import {
   EcoVendor,
@@ -11,6 +11,7 @@ import {
   exportGenusSynthFlow,
 } from "./eco-scripts/index";
 import { computePredictedMetrics } from "./eco-session-model";
+import { loadLastSdcStateJson } from "./studio-shared";
 
 export interface ExportPackFile {
   filename: string;
@@ -147,13 +148,25 @@ export function buildZipArchive(files: ExportPackFile[]): Uint8Array {
 /**
  * Generate complete SDC & ECO Export Pack (constraints.sdc + eco.tcl + README.txt).
  */
+function resolveSdcForPack(sdcState: SdcStudioState): SdcStudioState {
+  // Prefer last edited SDC from browser when caller still passes DEFAULT
+  try {
+    const raw = loadLastSdcStateJson();
+    if (raw) return normalizeSdcState(JSON.parse(raw));
+  } catch {
+    /* use argument */
+  }
+  return sdcState;
+}
+
 export function generateExportPack(
   sdcState: SdcStudioState,
   timingState: TimingStudioState,
   selectedActions: EcoAction[],
   vendor: EcoVendor = "innovus"
 ): ExportPackResult {
-  const sdcContent = generateSdcCode(sdcState);
+  const resolved = resolveSdcForPack(sdcState);
+  const sdcContent = generateSdcCode(resolved);
   const validStage =
     timingState.flowStage === "pnr" || timingState.flowStage === "signoff"
       ? timingState.flowStage

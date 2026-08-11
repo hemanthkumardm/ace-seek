@@ -65,7 +65,7 @@ import {
   type SdcDiffResult,
 } from "@/lib/diff-engine-vlsi";
 import { saveLastSdcStateJson, loadLastSdcStateJson } from "@/lib/studio-shared";
-import { GitBranch, Link2, Calculator, Network, Shield } from "lucide-react";
+import { GitBranch, Link2, Calculator, Network, Shield, Cloud, CloudOff } from "lucide-react";
 import {
   applySdcPullToStudio,
   buildSdcProjectPack,
@@ -82,6 +82,10 @@ import {
   clearHubTransfer,
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
+import {
+  fetchActiveSdcProject,
+  saveSdcProject,
+} from "@/lib/cloud-projects";
 
 export default function InteractiveSdcStudioPage() {
   const [state, setState] = useState<SdcStudioState>(() =>
@@ -108,17 +112,26 @@ export default function InteractiveSdcStudioPage() {
   const [attachTargetModeId, setAttachTargetModeId] = useState("");
   const [mmmcModes, setMmmcModes] = useState<MmmcModeSnapshot | null>(null);
   const [linkedModeLabel, setLinkedModeLabel] = useState("");
+  /** Cloud project id (Supabase) when signed in + configured */
+  const [cloudProjectId, setCloudProjectId] = useState<string | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<
+    "off" | "local" | "syncing" | "synced" | "error"
+  >("local");
+  const [hydrated, setHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const diffFileInputRef = useRef<HTMLInputElement>(null);
+  const cloudSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextCloudSave = useRef(false);
 
   const sdcDiff: SdcDiffResult | null = useMemo(() => {
     if (!baselineState) return null;
     return diffSdcStates(baselineState, state);
   }, [baselineState, state]);
 
-  // Deep links search params sync (A6.4) + B1.8 pull from MMMC
+  // Deep links + hydrate: transfer > localStorage > default, then cloud if signed in
   React.useEffect(() => {
     if (typeof window === "undefined") return;
+    let cancelled = false;
     const params = new URLSearchParams(window.location.search);
     const qTab = params.get("tab");
     const qVendor = params.get("vendor");
@@ -139,15 +152,19 @@ export default function InteractiveSdcStudioPage() {
 
     setMmmcModes(loadMmmcModeSnapshot());
 
+    let loadedFromTransfer = false;
+
     if (fromHub) {
       const transfer = loadHubTransfer();
       if (transfer?.text) {
         try {
           const parsed = normalizeSdcState(parseSdcText(transfer.text));
+          skipNextCloudSave.current = true;
           setState(parsed);
           if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
           setToast(`Loaded from Report Hub: ${transfer.filename || "sdc"}`);
           window.setTimeout(() => setToast(""), 2500);
+          loadedFromTransfer = true;
         } catch {
           /* ignore */
         }
@@ -158,10 +175,11 @@ export default function InteractiveSdcStudioPage() {
       }
     }
 
-    if (fromMmmc || loadSdcPull()) {
+    if (!loadedFromTransfer && (fromMmmc || loadSdcPull())) {
       const pull = loadSdcPull();
       if (pull && (pull.sdcText || pull.sdcStateJson)) {
         const { state: pulled, modeName } = applySdcPullToStudio(pull);
+        skipNextCloudSave.current = true;
         setState(pulled);
         setLinkedModeLabel(modeName || qMode || pull.modeName);
         if (pulled.primaryClocks[0]) setSelectedClkId(pulled.primaryClocks[0].id);
@@ -173,8 +191,53 @@ export default function InteractiveSdcStudioPage() {
         const url = new URL(window.location.href);
         url.searchParams.delete("from_mmmc");
         window.history.replaceState(null, "", url.toString());
+        loadedFromTransfer = true;
       }
     }
+
+    // Auto-restore last browser session (fixes SDC → Timing → SDC revert)
+    if (!loadedFromTransfer) {
+      const raw = loadLastSdcStateJson();
+      if (raw) {
+        try {
+          const parsed = normalizeSdcState(JSON.parse(raw));
+          skipNextCloudSave.current = true;
+          setState(parsed);
+          if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
+          setCloudStatus("local");
+          setToast("Restored SDC from this browser");
+          window.setTimeout(() => setToast(""), 1800);
+        } catch {
+          /* keep default */
+        }
+      }
+    }
+
+    setHydrated(true);
+
+    // Multi-device: cloud active project wins when newer / available
+    (async () => {
+      const cloud = await fetchActiveSdcProject();
+      if (cancelled || !cloud?.state_json) return;
+      try {
+        const parsed = normalizeSdcState(cloud.state_json);
+        skipNextCloudSave.current = true;
+        setState(parsed);
+        if (cloud.vendor) setVendor(cloud.vendor as VendorFormat);
+        if (cloud.tool) setTool(cloud.tool as SdcToolTarget);
+        if (parsed.primaryClocks[0]) setSelectedClkId(parsed.primaryClocks[0].id);
+        setCloudProjectId(cloud.id);
+        setCloudStatus("synced");
+        setToast(`Cloud SDC loaded · ${cloud.name || "project"}`);
+        window.setTimeout(() => setToast(""), 2200);
+      } catch {
+        /* keep local */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   React.useEffect(() => {
@@ -205,14 +268,49 @@ export default function InteractiveSdcStudioPage() {
     window.setTimeout(() => setToast(""), 2200);
   };
 
-  // Persist SDC for Timing Studio / ECO pack cross-session glue
+  // Persist SDC locally (always) + debounced cloud save (Clerk + Supabase)
   useEffect(() => {
+    if (!hydrated) return;
     try {
       saveLastSdcStateJson(JSON.stringify(normalizeSdcState(state)));
     } catch {
       /* ignore */
     }
-  }, [state]);
+
+    if (skipNextCloudSave.current) {
+      skipNextCloudSave.current = false;
+      return;
+    }
+
+    if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+    cloudSaveTimer.current = setTimeout(async () => {
+      setCloudStatus((s) => (s === "off" ? s : "syncing"));
+      const result = await saveSdcProject({
+        id: cloudProjectId || undefined,
+        name: "Working SDC",
+        vendor,
+        tool,
+        state: normalizeSdcState(state),
+        setActive: true,
+      });
+      if (result.ok) {
+        setCloudProjectId(result.project.id);
+        setCloudStatus("synced");
+      } else if (
+        result.error.includes("Sign in") ||
+        result.error.includes("Clerk") ||
+        result.error.includes("Supabase")
+      ) {
+        setCloudStatus("local");
+      } else {
+        setCloudStatus("error");
+      }
+    }, 1600);
+
+    return () => {
+      if (cloudSaveTimer.current) clearTimeout(cloudSaveTimer.current);
+    };
+  }, [state, vendor, tool, hydrated, cloudProjectId]);
 
   const generatedCode = useMemo(() => {
     return generateSdcCode(state, vendor);
@@ -632,6 +730,39 @@ export default function InteractiveSdcStudioPage() {
               </span>
               <span className="neu-badge text-[9px] font-black text-emerald-600">
                 SDC ENGINE v2
+              </span>
+              <span
+                className={`neu-badge text-[9px] font-black inline-flex items-center gap-1 ${
+                  cloudStatus === "synced"
+                    ? "text-sky-700"
+                    : cloudStatus === "syncing"
+                      ? "text-amber-700"
+                      : cloudStatus === "error"
+                        ? "text-red-600"
+                        : "text-slate-600"
+                }`}
+                title={
+                  cloudStatus === "synced"
+                    ? "Saved to Supabase (multi-device)"
+                    : cloudStatus === "syncing"
+                      ? "Saving to cloud…"
+                      : cloudStatus === "error"
+                        ? "Cloud save failed"
+                        : "Browser localStorage (auto-restores on return)"
+                }
+              >
+                {cloudStatus === "synced" || cloudStatus === "syncing" ? (
+                  <Cloud className="w-3 h-3" />
+                ) : (
+                  <CloudOff className="w-3 h-3" />
+                )}
+                {cloudStatus === "synced"
+                  ? "CLOUD"
+                  : cloudStatus === "syncing"
+                    ? "SYNC…"
+                    : cloudStatus === "error"
+                      ? "CLOUD ERR"
+                      : "LOCAL"}
               </span>
             </div>
             <h1 className="text-xl font-black text-slate-800 tracking-tight">

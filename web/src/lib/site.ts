@@ -1,19 +1,31 @@
 /**
  * Ace-Seek site model
  *
- *   ace-seek.com          → command center (marketing, auth, billing, dashboard, SEO)
- *   doc.ace-seek.com      → Doc Compiler (MD → PDF / TeX / DOCX)
- *   timing.ace-seek.com   → SDC / timing utilities
- *   (future micro-SaaS on their own subdomains)
+ *   www.ace-seek.com / ace-seek.com  → command center (pricing, signup, dashboard, SEO)
+ *   vlsi.ace-seek.com                → VLSI platform intro + API-key login + studios
+ *   tools.ace-seek.com               → Tools platform intro + API-key login + workstations
  *
  * Local (no DNS):
- *   /                     → command center
- *   /tools/doc-compiler   → doc product
- *   /tools/sdc-calculator → timing product
+ *   /           → main
+ *   /vlsi       → VLSI intro
+ *   /tools      → Tools intro
  */
 
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://ace-seek.com";
+
+/** Absolute platform origins (production). Path-based fallbacks for local. */
+export const VLSI_URL =
+  process.env.NEXT_PUBLIC_VLSI_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "production"
+    ? "https://vlsi.ace-seek.com"
+    : "/vlsi");
+
+export const TOOLS_URL =
+  process.env.NEXT_PUBLIC_TOOLS_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "production"
+    ? "https://tools.ace-seek.com"
+    : "/tools");
 
 export const BRAND = {
   name: "Ace-Seek",
@@ -21,6 +33,51 @@ export const BRAND = {
   description:
     "A specialized suite of micro-tools for VLSI, STA, and technical documentation — one identity, many focused utilities.",
 };
+
+/**
+ * Home of the current product shell.
+ * On subdomain host (vlsi.ace-seek.com) → "/".
+ * On main site path mode → "/vlsi" or "/tools".
+ */
+export function platformHomeHref(
+  platform: "vlsi" | "tools",
+  host?: string | null
+): string {
+  const slug = productHostSlug(host);
+  if (slug === platform) return "/";
+  if (platform === "vlsi") {
+    return typeof VLSI_URL === "string" && VLSI_URL.startsWith("http")
+      ? VLSI_URL
+      : "/vlsi";
+  }
+  return typeof TOOLS_URL === "string" && TOOLS_URL.startsWith("http")
+    ? TOOLS_URL
+    : "/tools";
+}
+
+/** Login page for platform (API key only). */
+export function platformLoginHref(
+  platform: "vlsi" | "tools",
+  host?: string | null
+): string {
+  const home = platformHomeHref(platform, host);
+  if (home === "/") return "/login";
+  if (home.startsWith("http")) return `${home}/login`;
+  return `${home}/login`;
+}
+
+/** Main site signup / pricing (never on subdomains). */
+export function mainSignupHref(): string {
+  return `${SITE_URL}/signup`;
+}
+
+export function mainDashboardHref(): string {
+  return `${SITE_URL}/dashboard`;
+}
+
+export function mainPricingHref(): string {
+  return `${SITE_URL}/pricing`;
+}
 
 /** True for product hosts like doc.ace-seek.com or doc.localhost */
 export function productHostSlug(host: string | null | undefined): string | null {

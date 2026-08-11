@@ -181,7 +181,7 @@ export default function PowerStudioPage() {
   ) => {
     setUpf((prev) => ({
       ...prev,
-      [key]: ((prev[key] as T[]) || []).map((item) =>
+      [key]: ((prev[key] as unknown as T[]) || []).map((item) =>
         item.id === id ? { ...item, ...patch } : item
       ),
     }));

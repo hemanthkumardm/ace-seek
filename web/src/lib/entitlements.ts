@@ -4,6 +4,7 @@
  */
 import type { UserPlan } from "@/lib/user-store";
 import { findUserByApiKey } from "@/lib/user-store";
+import { verifyIssuedApiKey } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
 
@@ -70,18 +71,29 @@ export function entitlementsForPlan(plan: PlanTier): Entitlements {
 
 /**
  * Resolve entitlements from an API key (ace_pro_usr_… / ace_team_usr_… / ace_free_usr_…).
+ * Supports: legacy in-memory users + Clerk-issued deterministic HMAC keys.
  * Invalid key → guest (not free), so UI can prompt sign-in.
  */
 export function entitlementsFromApiKey(apiKey: string | null | undefined): Entitlements {
   if (!apiKey || !apiKey.trim()) return entitlementsForPlan("guest");
-  const user = findUserByApiKey(apiKey.trim());
-  if (!user) return entitlementsForPlan("guest");
-  const base = entitlementsForPlan(user.plan);
-  return {
-    ...base,
-    email: user.email,
-    name: user.name,
-  };
+  const key = apiKey.trim();
+
+  const user = findUserByApiKey(key);
+  if (user) {
+    const base = entitlementsForPlan(user.plan);
+    return {
+      ...base,
+      email: user.email,
+      name: user.name,
+    };
+  }
+
+  const issued = verifyIssuedApiKey(key);
+  if (issued.ok) {
+    return entitlementsForPlan(issued.plan);
+  }
+
+  return entitlementsForPlan("guest");
 }
 
 /** Whether this key is a paid premium plan */

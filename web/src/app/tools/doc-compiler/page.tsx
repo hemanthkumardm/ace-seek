@@ -171,6 +171,7 @@ export default function DocCompilerPage() {
       setApiKey(trimmed);
       setTier(t);
       setTierEmail(data.email || "");
+      localStorage.setItem("ace_seek_api_key", trimmed);
       localStorage.setItem("ace_api_key", trimmed);
       setErrorMsg("");
       setStatusMsg(
@@ -199,7 +200,7 @@ export default function DocCompilerPage() {
   useEffect(() => {
     setMounted(true);
     refreshHealth();
-    const saved = localStorage.getItem("ace_api_key");
+    const saved = localStorage.getItem("ace_seek_api_key") || localStorage.getItem("ace_api_key");
     if (saved) {
       setApiKeyInput(saved);
       void activateApiKey(saved);

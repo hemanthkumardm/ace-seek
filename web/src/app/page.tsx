@@ -1,6 +1,13 @@
 import React from "react";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
-import { BRAND, CONTENT_HUB, PRICING, PRODUCTS } from "@/lib/site";
+import {
+  BRAND,
+  CONTENT_HUB,
+  PRICING,
+  PRODUCTS,
+  TOOLS_URL,
+  VLSI_URL,
+} from "@/lib/site";
 import {
   Cpu,
   Zap,
@@ -98,21 +105,21 @@ export default function CommandCenterHome() {
           </div>
         </section>
 
-        {/* SUBDOMAIN INFORMATION & SPECS (Information Only) */}
+        {/* SUBDOMAIN ECOSYSTEM LAUNCHERS */}
         <section id="products" className="m-shell space-y-8 py-4">
           <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--bevel-shadow)] pb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Boxes className="w-4 h-4 text-[var(--accent-cyan)]" />
                 <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-                  Subdomain Specifications
+                  Subdomain Ecosystem Hub
                 </span>
               </div>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Micro-Tool Subdomain Ecosystem
+                Standalone Hardware & Utility Subdomains
               </h2>
               <p className="mt-2 text-xs md:text-sm text-[var(--muted)] max-w-xl leading-relaxed">
-                Each subdomain is an independent host website. Subscribe on ace-seek.com and paste your API key on the subdomain website to authorize Pro mode.
+                Launch directly into our specialized subdomains. Create your account here on ace-seek.com to authorize all workstations.
               </p>
             </div>
 
@@ -122,57 +129,67 @@ export default function CommandCenterHome() {
             </a>
           </div>
 
-          <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {PRODUCTS.map((p) => {
-              const live = p.status === "live";
-
-              return (
-                <li key={p.id}>
-                  <div
-                    className={`sk-panel p-6 flex flex-col justify-between h-full space-y-5 ${
-                      !live ? "opacity-75" : ""
-                    }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="sk-icon-well">
-                            <Cpu className="w-4 h-4 text-[var(--accent-cyan)]" />
-                          </div>
-                          <div>
-                            <h3 className="text-base font-bold text-[var(--foreground)]">
-                              {p.name}
-                            </h3>
-                            <p className="font-mono text-[11px] text-[var(--accent-cyan)]">
-                              {p.host}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className="sk-badge">
-                          <span
-                            className={`sk-led ${
-                              live ? "sk-led-green" : "sk-led-amber"
-                            }`}
-                          />
-                          <span>{live ? "Standalone Host" : "Soon"}</span>
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-[var(--muted)] leading-relaxed">
-                        {p.overview}
-                      </p>
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Launch Card 1: VLSI Automation Suite */}
+            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-[var(--accent-cyan)]/50 hover:border-[var(--accent-cyan)] transition-all">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg">
+                      <Cpu className="w-5 h-5 text-[var(--accent-cyan)]" />
                     </div>
-
-                    <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between text-xs text-[var(--muted)] font-mono">
-                      <span>Target Subdomain:</span>
-                      <span className="text-[var(--accent-cyan)] font-bold">{p.host}</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">VLSI Automation Suite</h3>
+                      <span className="font-mono text-xs text-[var(--accent-cyan)]">vlsi.ace-seek.com</span>
                     </div>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                  <span className="sk-badge sk-badge-live">5 Workstations</span>
+                </div>
+                <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  Advanced physical design & signoff web apps: SDC constraint studio, PrimeTime/Tempus timing analyzer, multi-corner MMMC view generator, and IEEE 1801 UPF power intent studio.
+                </p>
+              </div>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
+                <span className="text-xs font-mono text-slate-400">Direct Domain Link:</span>
+                <a
+                  href={VLSI_URL}
+                  className="sk-btn sk-btn-primary !text-xs !py-2 !px-4 font-bold"
+                >
+                  <span>Launch vlsi.ace-seek.com →</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Launch Card 2: Developer & Utility Suite */}
+            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-emerald-500/50 hover:border-emerald-500 transition-all">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg">
+                      <Boxes className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-white">Developer & Utility Suite</h3>
+                      <span className="font-mono text-xs text-emerald-400">tools.ace-seek.com</span>
+                    </div>
+                  </div>
+                  <span className="sk-badge sk-badge-live">6 Workstations</span>
+                </div>
+                <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  High-speed publication & utility tools: Markdown/PDF/DOCX compiler, visual diff comparator, format converters (JSON/YAML/TOML/CSV), AI output preprocessor, and LaTeX math builders.
+                </p>
+              </div>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
+                <span className="text-xs font-mono text-slate-400">Direct Domain Link:</span>
+                <a
+                  href={TOOLS_URL}
+                  className="sk-btn sk-btn-ghost !text-xs !py-2 !px-4 font-bold text-emerald-400 border-emerald-500/40 hover:bg-emerald-950/30"
+                >
+                  <span>Launch tools.ace-seek.com →</span>
+                </a>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* PRICING & OFFERS BANNER */}
