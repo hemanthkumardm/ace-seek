@@ -111,9 +111,10 @@ export async function sendLicenseDeliveryEmail(payload: LicenseKeyEmailPayload):
 
     if (apiKey) {
       const resend = new Resend(apiKey);
+      const fromEmail = process.env.RESEND_FROM_EMAIL || "Ace-Seek Licensing <licensing@ace-seek.com>";
 
       const response = await resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+        from: fromEmail,
         to: [payload.toEmail],
         subject: `Your Ace-Seek ${payload.planName} License Key & Payment Receipt`,
         html: generateLicenseEmailHTML(payload),
