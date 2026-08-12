@@ -64,8 +64,8 @@ export default function ShippingPolicyPage() {
             </p>
             <div className="sk-recessed p-4 font-mono text-xs space-y-1 text-slate-300">
               <p>• <strong>Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>
-              <p>• <strong>Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a></p>
-              <p>• <strong>Registered Office:</strong> #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038</p>
+              <p>• <strong>Support Phone:</strong> <a href="tel:+918431670673" className="text-[var(--accent-cyan)] underline">+91 84316 70673</a></p>
+              <p>• <strong>Registered Office:</strong> #21, 11th main road, 4th G cross, Kamakshipalya, Bangalore - 560079</p>
             </div>
           </section>
         </div>

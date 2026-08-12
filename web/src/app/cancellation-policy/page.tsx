@@ -50,7 +50,7 @@ export default function CancellationPolicyPage() {
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
               <li><strong>User Dashboard:</strong> Log in at <code>www.ace-seek.com/dashboard</code> and manage active plan status.</li>
-              <li><strong>Email Support:</strong> Send a request to <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a> or call <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a> with your account email and Razorpay Payment ID.</li>
+              <li><strong>Email Support:</strong> Send a request to <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a> or call <a href="tel:+91 84316 70673" className="text-[var(--accent-cyan)] underline">+91 84316 70673</a> with your account email and Razorpay Payment ID.</li>
             </ul>
           </section>
 
@@ -69,9 +69,9 @@ export default function CancellationPolicyPage() {
             </h2>
             <div className="sk-recessed p-4 space-y-2 text-slate-300 text-xs font-mono">
               <p><strong className="text-white">Legal Entity Name:</strong> Ace-Seek Technologies (Ace-Seek Inc.)</p>
-              <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Registered Address:</strong> #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038</p>
+              <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Registered Address:</strong> #21, 11th main road, 4th G cross, kamakshipalya, Bangalore - 560079</p>
               <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>
-              <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a></p>
+              <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 84316 70673</a></p>
             </div>
           </section>
         </div>

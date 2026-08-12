@@ -84,8 +84,8 @@ export default function ContactUsPage() {
             <div className="sk-recessed p-4 space-y-2">
               <Phone className="w-5 h-5 text-[var(--accent-cyan)]" />
               <span className="font-bold text-white text-xs block">Phone Support</span>
-              <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline text-[11px] block">
-                +91 98765 43210
+              <a href="tel:+918431670673" className="text-[var(--accent-cyan)] underline text-[11px] block">
+                +91 84316 70673
               </a>
             </div>
 
@@ -93,7 +93,7 @@ export default function ContactUsPage() {
               <MapPin className="w-5 h-5 text-[var(--accent-cyan)]" />
               <span className="font-bold text-white text-xs block">Registered Address</span>
               <p className="text-slate-400 text-[11px]">
-                #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038
+                #21, 11th main road, 4th G cross, Kamakshipalya, Bangalore - 560079
               </p>
             </div>
           </div>
