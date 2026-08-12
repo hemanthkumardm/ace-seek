@@ -7,6 +7,7 @@ import { CheckoutModal } from "@/components/CheckoutModal";
 
 export function PricingClient() {
   const [selectedPlan, setSelectedPlan] = useState<{
+    id: string;
     name: string;
     price: string;
   } | null>(null);
@@ -74,11 +75,20 @@ export function PricingClient() {
                   <span>{tier.cta}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </a>
+              ) : tier.id === "team" ? (
+                <a
+                  href={tier.ctaHref}
+                  className="sk-btn text-xs w-full justify-center sk-btn-ghost"
+                >
+                  <span>{tier.cta}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </a>
               ) : (
                 <button
                   type="button"
                   onClick={() =>
                     setSelectedPlan({
+                      id: tier.id,
                       name: tier.name,
                       price: `${tier.price}${tier.period || ""}`,
                     })
@@ -87,7 +97,7 @@ export function PricingClient() {
                     tier.highlighted ? "sk-btn-primary" : "sk-btn-ghost"
                   }`}
                 >
-                  <span>{tier.cta} (Razorpay)</span>
+                  <span>{tier.cta}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -98,6 +108,7 @@ export function PricingClient() {
 
       {selectedPlan && (
         <CheckoutModal
+          planId={selectedPlan.id}
           planName={selectedPlan.name}
           price={selectedPlan.price}
           isOpen={Boolean(selectedPlan)}

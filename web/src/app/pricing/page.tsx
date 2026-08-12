@@ -42,7 +42,7 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Pricing Cards Grid (Razorpay Standard Web Checkout Enabled) */}
+        {/* Pricing cards — paid plans use secure checkout */}
         <PricingClient />
 
         <section className="space-y-4">

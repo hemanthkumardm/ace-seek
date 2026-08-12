@@ -68,12 +68,13 @@ export async function POST(req: NextRequest) {
       currency: order.currency,
       key_id: keyId,
       plan,
+      user_id: body.userId || null,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("Razorpay order creation error:", msg);
+    console.error("Order creation error:", msg);
     return NextResponse.json(
-      { error: `Razorpay Order Creation Failed: ${msg}` },
+      { error: `Order creation failed: ${msg}` },
       { status: 500 }
     );
   }

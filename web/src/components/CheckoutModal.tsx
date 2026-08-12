@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
 } from "lucide-react";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { SITE_URL } from "@/lib/site";
 
 declare global {
@@ -24,20 +25,29 @@ declare global {
 }
 
 type Props = {
+  /** Stable plan id: pro | max | team */
+  planId: string;
   planName: string;
   price: string;
   isOpen: boolean;
   onClose: () => void;
 };
 
-export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
+export function CheckoutModal({
+  planId,
+  planName,
+  price,
+  isOpen,
+  onClose,
+}: Props) {
+  const { isSignedIn, userId } = useAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [purchasedKey, setPurchasedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    // Load Razorpay Standard Checkout Script dynamically
     if (typeof window === "undefined") return;
     if (document.getElementById("razorpay-checkout-script")) return;
 
@@ -50,16 +60,25 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
 
   if (!isOpen) return null;
 
-  const handleRazorpayCheckout = async () => {
+  const handleCheckout = async () => {
     setLoading(true);
     setErrorMessage("");
 
     try {
-      // 1. Create order on backend
+      const plan = planId.toLowerCase();
+      if (plan !== "pro" && plan !== "max" && plan !== "team") {
+        throw new Error("Invalid plan for checkout.");
+      }
+
+      // Prefer signed-in Clerk user for unique keys; fallback is server-generated
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planName.toLowerCase() }),
+        body: JSON.stringify({
+          plan,
+          userId: userId || undefined,
+          email: user?.primaryEmailAddress?.emailAddress,
+        }),
       });
 
       const orderData = await res.json();
@@ -68,24 +87,24 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
       }
 
       const keyId =
-        orderData.key_id ||
-        process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
-        "rzp_test_TOnIrR5FKF2D5n";
+        orderData.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+
+      if (!keyId) {
+        throw new Error("Payment gateway is not configured.");
+      }
 
       if (typeof window.Razorpay === "undefined") {
         throw new Error(
-          "Razorpay SDK is loading. Please try clicking pay again in a moment."
+          "Checkout is still loading. Please try again in a moment."
         );
       }
 
-      // 2. Configure & open Razorpay Standard Checkout Modal
       const options = {
         key: keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "Ace-Seek Platform",
-        description: `${planName} Plan License Subscription`,
-        image: "https://www.ace-seek.com/icon.svg",
+        name: "Ace-Seek",
+        description: `${planName} plan license`,
         order_id: orderData.order_id,
         handler: async function (response: {
           razorpay_payment_id: string;
@@ -94,7 +113,6 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
         }) {
           setLoading(true);
           try {
-            // 3. Verify payment signature on backend
             const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -102,17 +120,16 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                plan: planName.toLowerCase(),
+                plan,
+                userId: userId || orderData.user_id || undefined,
+                email: user?.primaryEmailAddress?.emailAddress,
               }),
             });
 
             const verifyData = await verifyRes.json();
             if (verifyData.success && verifyData.apiKey) {
-              // Store new key in localStorage & notify application
               localStorage.setItem("ace_seek_api_key", verifyData.apiKey);
-              if (typeof window !== "undefined") {
-                window.dispatchEvent(new Event("ace_key_updated"));
-              }
+              window.dispatchEvent(new Event("ace_key_updated"));
               setPurchasedKey(verifyData.apiKey);
             } else {
               setErrorMessage(
@@ -131,8 +148,10 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
           },
         },
         prefill: {
-          name: "Engineering Team",
-          email: "team@ace-seek.com",
+          name:
+            [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+            "Ace-Seek User",
+          email: user?.primaryEmailAddress?.emailAddress || "",
         },
         theme: {
           color: "#06b6d4",
@@ -140,12 +159,15 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", function (resp: { error?: { description?: string } }) {
-        setErrorMessage(
-          resp.error?.description || "Payment failed or was declined."
-        );
-        setLoading(false);
-      });
+      rzp.on(
+        "payment.failed",
+        function (resp: { error?: { description?: string } }) {
+          setErrorMessage(
+            resp.error?.description || "Payment failed or was declined."
+          );
+          setLoading(false);
+        }
+      );
       rzp.open();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -173,7 +195,6 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
           <X className="h-4 w-4" />
         </button>
 
-        {/* Success Screen after Razorpay Payment Verification */}
         {purchasedKey ? (
           <div className="space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
@@ -185,13 +206,15 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
                   <Sparkles className="h-3 w-3" /> Payment Verified
                 </span>
                 <h3 className="text-base font-black text-white uppercase tracking-tight">
-                  {planName} Plan Activated!
+                  {planName} Plan Activated
                 </h3>
               </div>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Your Razorpay transaction was verified successfully. Your <strong className="text-cyan-400">{planName}</strong> plan API license key is active:
+              Payment verified. Your{" "}
+              <strong className="text-cyan-400">{planName}</strong> API license
+              key is ready. Paste it on vlsi / tools to unlock your plan.
             </p>
 
             <div className="rounded-xl border border-emerald-500/30 bg-black/80 p-4 space-y-2">
@@ -204,7 +227,11 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
                   onClick={handleCopyKey}
                   className="text-cyan-400 hover:underline flex items-center gap-1 text-[10px] font-mono"
                 >
-                  {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                  {copied ? (
+                    <Check className="h-3 w-3 text-emerald-400" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                   {copied ? "COPIED" : "COPY KEY"}
                 </button>
               </div>
@@ -213,19 +240,16 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
               </p>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
-              >
-                <span>Access Workstations Now</span>
-                <ArrowRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
+            >
+              <span>Done</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
         ) : (
-          /* Razorpay Checkout Prompt */
           <div className="space-y-5">
             <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
@@ -233,7 +257,7 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" /> Razorpay Standard Checkout
+                  <Sparkles className="h-3 w-3" /> Secure Checkout
                 </span>
                 <h3 className="text-base font-black text-white uppercase tracking-tight">
                   {planName} Plan — {price}
@@ -243,28 +267,31 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
 
             <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
               <p>
-                Upgrade to the <strong className="text-cyan-400">{planName}</strong> plan using Razorpay secure checkout (Credit/Debit Card, UPI, NetBanking, Wallets).
+                Upgrade to{" "}
+                <strong className="text-cyan-400">{planName}</strong> with secure
+                checkout (UPI, cards, net banking, wallets).
               </p>
+
+              {!isSignedIn && (
+                <div className="rounded-lg bg-amber-950/40 border border-amber-500/30 p-3 text-[11px] text-amber-200">
+                  Tip:{" "}
+                  <a href={`${SITE_URL}/login`} className="underline font-bold">
+                    Sign in first
+                  </a>{" "}
+                  so your paid key is bound to your account. You can still pay as
+                  guest — we will issue a one-time license key.
+                </div>
+              )}
 
               <div className="rounded-lg bg-slate-900/80 border border-slate-800 p-3 text-[11px] text-slate-300 space-y-1">
                 <span className="font-bold flex items-center gap-1 text-cyan-400">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Instant License Entitlement
+                  <ShieldCheck className="h-3.5 w-3.5" /> Instant license
                 </span>
                 <p className="text-slate-400">
-                  Upon payment verification, your workspace unlocks instantly across all product subdomains (<span className="text-cyan-300 font-mono">www, vlsi, tools</span>).
+                  After payment, your plan unlocks on www, vlsi, and tools via the
+                  API key shown next.
                 </p>
               </div>
-
-              <ul className="space-y-2 pt-1 text-[11px] text-slate-300">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                  <span>HMAC cryptographic signature verification</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
-                  <span>Supports UPI, Cards, NetBanking, and Wallets</span>
-                </li>
-              </ul>
             </div>
 
             {errorMessage && (
@@ -274,26 +301,24 @@ export function CheckoutModal({ planName, price, isOpen, onClose }: Props) {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={handleRazorpayCheckout}
-                disabled={loading}
-                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md disabled:opacity-50"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Processing Order…</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Pay with Razorpay ({price})</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </>
-                )}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleCheckout}
+              disabled={loading}
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Processing…</span>
+                </>
+              ) : (
+                <>
+                  <span>Pay {price}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>

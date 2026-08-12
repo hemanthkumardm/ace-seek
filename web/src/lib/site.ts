@@ -262,7 +262,7 @@ export const PRICING: PricingTier[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$16",
+    price: "₹1,299",
     period: "/ month",
     blurb: "Daily driver for STA notes, constraints, and utility workstations.",
     cta: "Start Pro",
@@ -281,7 +281,7 @@ export const PRICING: PricingTier[] = [
   {
     id: "max",
     name: "Max",
-    price: "$29",
+    price: "₹2,499",
     period: "/ month",
     blurb: "Unlock everything for one power user — no soft limits.",
     cta: "Go Max",
@@ -298,7 +298,7 @@ export const PRICING: PricingTier[] = [
   {
     id: "team",
     name: "Team",
-    price: "$49",
+    price: "₹3,999",
     period: "/ seat / mo",
     blurb: "Max features for the whole org — seats, shared workspaces, admin controls.",
     cta: "Contact sales",
