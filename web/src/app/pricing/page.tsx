@@ -111,9 +111,6 @@ export default function PricingPage() {
 
         <section className="space-y-4">
           <h2 className="text-lg font-bold tracking-tight">What each plan unlocks</h2>
-          <p className="text-xs text-[var(--muted)] max-w-2xl">
-            Subdomain tools automatically read your workspace API key to unlock features server-side.
-          </p>
           <PlanFeatureTable />
         </section>
 
