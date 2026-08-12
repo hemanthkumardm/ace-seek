@@ -85,10 +85,12 @@ export function WorkstationAuthGuard({ children }: Props) {
         localStorage.setItem("ace_seek_api_key", apiKeyInput.trim());
         setHasValidApiKey(true);
         setKeyStatus("valid");
+        window.dispatchEvent(new Event("ace_key_updated"));
       } else if (apiKeyInput.trim().startsWith("ace_")) {
         localStorage.setItem("ace_seek_api_key", apiKeyInput.trim());
         setHasValidApiKey(true);
         setKeyStatus("valid");
+        window.dispatchEvent(new Event("ace_key_updated"));
       } else {
         setKeyStatus("invalid");
       }
@@ -97,6 +99,7 @@ export function WorkstationAuthGuard({ children }: Props) {
         localStorage.setItem("ace_seek_api_key", apiKeyInput.trim());
         setHasValidApiKey(true);
         setKeyStatus("valid");
+        window.dispatchEvent(new Event("ace_key_updated"));
       } else {
         setKeyStatus("invalid");
       }

@@ -87,9 +87,11 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Cryptographic HMAC issued key verification
+    // IMPORTANT: build entitlements from issued.plan — do not re-parse key with
+    // entitlementsFromApiKey after lower-casing (breaks HMAC → false Guest).
     const issued = verifyIssuedApiKey(apiKey);
     if (issued.ok) {
-      const ent = entitlementsFromApiKey(apiKey);
+      const ent = entitlementsForPlan(issued.plan);
       return NextResponse.json({
         valid: true,
         plan: issued.plan,

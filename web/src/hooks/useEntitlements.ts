@@ -54,12 +54,18 @@ export function useEntitlements() {
       }
       setApiKey(trimmed);
       localStorage.setItem(KEY_STORAGE, trimmed);
-      localStorage.setItem(PLAN_STORAGE, data.plan || data.tier || "free");
-      // Prefer server entitlements payload if present
-      if (data.entitlements) {
+      const plan = (data.plan || data.tier || "free") as Entitlements["tier"];
+      localStorage.setItem(PLAN_STORAGE, plan);
+      // Prefer plan field for matrix (avoids Guest matrix if server payload is stale).
+      // Merge server entitlements only when tier matches plan.
+      if (
+        data.entitlements &&
+        data.entitlements.tier &&
+        data.entitlements.tier !== "guest" &&
+        data.entitlements.tier === plan
+      ) {
         setEnt(data.entitlements as PublicEnt);
       } else {
-        const plan = (data.plan || data.tier || "free") as Entitlements["tier"];
         const base = publicEntitlements(entitlementsForPlan(plan));
         setEnt({
           ...base,

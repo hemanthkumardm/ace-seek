@@ -7,7 +7,7 @@
  * Team  → everything Max has + seats, shared vault, admin, priority support
  */
 import type { UserPlan } from "@/lib/user-store";
-import { findUserByApiKey } from "@/lib/user-store";
+import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
 import { verifyIssuedApiKey } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
@@ -330,20 +330,39 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
     }
     return entitlementsForPlan("guest");
   }
-  const key = apiKey.trim().toLowerCase();
+  // Keep original case for HMAC verification (Clerk user ids are case-sensitive).
+  const raw = apiKey.trim();
+  const shortcut = raw.toLowerCase();
 
-  // Developer bypass keys
-  if (key === "dev" || key === "dev_key" || key === "admin" || key === "team" || key === "local") {
+  // Developer bypass keys / plan shortcuts
+  if (
+    shortcut === "dev" ||
+    shortcut === "dev_key" ||
+    shortcut === "admin" ||
+    shortcut === "team" ||
+    shortcut === "local"
+  ) {
     return {
       ...entitlementsForPlan("team"),
       name: "Local Developer",
       email: "dev@localhost",
     };
   }
-  if (key === "max") return entitlementsForPlan("max");
-  if (key === "pro") return entitlementsForPlan("pro");
+  if (shortcut === "max") return entitlementsForPlan("max");
+  if (shortcut === "pro") return entitlementsForPlan("pro");
+  if (shortcut === "free") return entitlementsForPlan("free");
 
-  const user = findUserByApiKey(key);
+  // Demo / seeded users by email or key
+  const byEmail = findUserByEmail(shortcut);
+  if (byEmail) {
+    return {
+      ...entitlementsForPlan(byEmail.plan),
+      email: byEmail.email,
+      name: byEmail.name,
+    };
+  }
+
+  const user = findUserByApiKey(raw);
   if (user) {
     return {
       ...entitlementsForPlan(user.plan),
@@ -352,7 +371,8 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
     };
   }
 
-  const issued = verifyIssuedApiKey(key);
+  // Issued dashboard keys — original casing required for HMAC (do not lower-case user id)
+  const issued = verifyIssuedApiKey(raw);
   if (issued.ok) {
     return entitlementsForPlan(issued.plan);
   }

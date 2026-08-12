@@ -40,10 +40,17 @@ export function VlsiHeaderNav({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const key = localStorage.getItem("ace_seek_api_key");
-    if (key && key.trim().length > 0) {
-      setIsAuthorized(true);
-    }
+    const sync = () => {
+      const key = localStorage.getItem("ace_seek_api_key");
+      setIsAuthorized(Boolean(key && key.trim().length > 0));
+    };
+    sync();
+    window.addEventListener("ace_key_updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("ace_key_updated", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   const handleOpenStudio = () => {
@@ -52,6 +59,11 @@ export function VlsiHeaderNav({
     } else {
       setShowAuthModal(true);
     }
+  };
+
+  /** API Key Active: open key manager only — never force-navigate studios */
+  const handleApiKeyButton = () => {
+    setShowAuthModal(true);
   };
 
   return (
@@ -93,7 +105,7 @@ export function VlsiHeaderNav({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowAuthModal(true)}
+                  onClick={handleApiKeyButton}
                   className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
                 >
                   <Key className="w-3.5 h-3.5" />
