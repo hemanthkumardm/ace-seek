@@ -28,6 +28,10 @@ export const metadata: Metadata = {
     "Command center for Ace-Seek: automation and productivity tools for VLSI and engineering teams. One account, focused product subdomains.",
 };
 
+const CLERK_PUB_KEY =
+  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  "pk_test_c3VwZXItY2F0dGxlLTc5LmNsZXJrLmFjY291bnRzLmRldiQ";
+
 export default function RootLayout({
   children,
 }: {
@@ -40,6 +44,7 @@ export default function RootLayout({
     >
       <body className="h-full min-h-0 flex flex-col bg-[var(--bg-main)] text-[var(--foreground)]">
         <ClerkProvider
+          publishableKey={CLERK_PUB_KEY}
           signInUrl="/login"
           signUpUrl="/signup"
           signInFallbackRedirectUrl="/dashboard"
