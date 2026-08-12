@@ -4,6 +4,7 @@ import React from "react";
 import { Crown, Lock, Sparkles } from "lucide-react";
 import type { PlanTier } from "@/lib/entitlements";
 import { planLabel } from "@/lib/entitlements";
+import { mainPricingHref } from "@/lib/site";
 
 type Props = {
   /** Feature is locked for current plan */

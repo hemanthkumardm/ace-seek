@@ -6,6 +6,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 import type { PlanTier } from "@/lib/entitlements";
 import { planLabel } from "@/lib/entitlements";
+import { mainPricingHref } from "@/lib/site";
 
 export type VlsiStudioId = "sdc" | "timing" | "mmmc" | "power" | "reports";
 
