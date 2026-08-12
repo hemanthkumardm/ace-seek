@@ -53,15 +53,16 @@ export function VlsiHeaderNav({
     };
   }, []);
 
+  /** Studios open only with validated API key — not Clerk session alone */
   const handleOpenStudio = () => {
-    if (isSignedIn || isAuthorized) {
+    if (isAuthorized) {
       router.push("/vlsi/reports");
     } else {
       setShowAuthModal(true);
     }
   };
 
-  /** API Key Active: open key manager only — never force-navigate studios */
+  /** API Key Active / Login: open key manager only */
   const handleApiKeyButton = () => {
     setShowAuthModal(true);
   };
@@ -109,7 +110,7 @@ export function VlsiHeaderNav({
                   className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
                 >
                   <Key className="w-3.5 h-3.5" />
-                  <span>{isSignedIn || isAuthorized ? "API Key Active" : "API Login"}</span>
+                  <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
                 </button>
                 <a
                   href={signupHref}

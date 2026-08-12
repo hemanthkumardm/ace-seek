@@ -39,14 +39,22 @@ export function ToolsHeaderNav({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const key = localStorage.getItem("ace_seek_api_key");
-    if (key && key.trim().length > 0) {
-      setIsAuthorized(true);
-    }
+    const sync = () => {
+      const key = localStorage.getItem("ace_seek_api_key");
+      setIsAuthorized(Boolean(key && key.trim().length > 0));
+    };
+    sync();
+    window.addEventListener("ace_key_updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("ace_key_updated", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
+  /** Open tools only with validated API key — not session alone */
   const handleOpenStudio = () => {
-    if (isSignedIn || isAuthorized) {
+    if (isAuthorized) {
       router.push("/tools/doc-compiler");
     } else {
       setShowAuthModal(true);
