@@ -399,11 +399,6 @@ export default function DocCompilerPage() {
                   )}
                 </span>
               )}
-              {mounted && health?.tip && (
-                <span className="hidden max-w-xs truncate text-[11px] text-slate-400 md:inline" title={health.tip}>
-                  {health.tip}
-                </span>
-              )}
             </div>
           </div>
         </header>
@@ -609,18 +604,30 @@ export default function DocCompilerPage() {
                     type="checkbox"
                     className="rounded border-slate-300 text-sky-600"
                     checked={isWide}
-                    onChange={(e) => setIsWide(e.target.checked)}
+                    onChange={(e) => {
+                      if (!isPremium) {
+                        setErrorMsg("Wide / landscape preset requires Pro+");
+                        return;
+                      }
+                      setIsWide(e.target.checked);
+                    }}
                   />
-                  Wide
+                  Wide{!isPremium ? " (Pro+)" : ""}
                 </label>
                 <label className="mb-1 flex cursor-pointer items-center gap-1.5 text-[11px] text-slate-600 select-none">
                   <input
                     type="checkbox"
                     className="rounded border-slate-300 text-sky-600"
                     checked={toc}
-                    onChange={(e) => setToc(e.target.checked)}
+                    onChange={(e) => {
+                      if (!isPremium) {
+                        setErrorMsg("Table of Contents (TOC) requires Pro+");
+                        return;
+                      }
+                      setToc(e.target.checked);
+                    }}
                   />
-                  TOC
+                  TOC{!isPremium ? " (Pro+)" : ""}
                 </label>
               </>
             )}

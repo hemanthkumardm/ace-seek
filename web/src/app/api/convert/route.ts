@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next";
 import { execFileSync } from "child_process";
 import {
   startConvertJob,
@@ -24,6 +24,27 @@ export const maxDuration = 300;
 const ENGINES = new Set(["auto", "tectonic", "xelatex", "lualatex", "pdflatex"]);
 const PAPERS = new Set(["a4", "a3", "a2", "letter", "legal", "tabloid"]);
 const BACKENDS = new Set(["auto", "local", "docker"]);
+
+// Daily convert usage rate limiter
+const DAILY_USAGE = new Map<string, { date: string; count: number }>();
+
+function checkAndIncrementUsage(
+  key: string,
+  limit: number
+): { allowed: boolean; count: number } {
+  if (!Number.isFinite(limit)) return { allowed: true, count: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = DAILY_USAGE.get(key);
+  if (!entry || entry.date !== today) {
+    DAILY_USAGE.set(key, { date: today, count: 1 });
+    return { allowed: true, count: 1 };
+  }
+  if (entry.count >= limit) {
+    return { allowed: false, count: entry.count };
+  }
+  entry.count += 1;
+  return { allowed: true, count: entry.count };
+}
 
 /**
  * POST — start conversion (text and/or file)
@@ -148,6 +169,25 @@ export async function POST(req: NextRequest) {
     );
     const apiKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
     const entitlements = entitlementsFromApiKey(apiKey || null);
+
+    // --- Daily limit rate check (5 docs/day for Free, 3 for Guest) ---
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon";
+    const limitKey = apiKey || clientIp;
+    const usage = checkAndIncrementUsage(limitKey, entitlements.maxConvertsPerDay);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error: `Daily limit reached (${entitlements.maxConvertsPerDay} docs/day for ${entitlements.label} plan)`,
+          details: `You have reached your daily limit of ${entitlements.maxConvertsPerDay} documents. Upgrade to Pro for 500 docs/day!`,
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "daily_converts",
+          tier: entitlements.tier,
+        },
+        { status: 402 }
+      );
+    }
+
     // Pro engine defaults ON for premium unless client explicitly sends false
     const proFlag = formData.get("useProEngine");
     const wantProEngine =
@@ -204,6 +244,17 @@ export async function POST(req: NextRequest) {
         { status: 402 }
       );
     }
+    if (toc && !entitlements.canToc) {
+      return NextResponse.json(
+        {
+          error: "Table of Contents (TOC) requires Pro+",
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "toc",
+        },
+        { status: 402 }
+      );
+    }
 
     // --- Premium gates for PDF → DOCX ---
     if (parsed.from === "pdf" && parsed.to === "docx") {
@@ -213,8 +264,7 @@ export async function POST(req: NextRequest) {
             error: "Exact look requires Pro+",
             details:
               "Exact look embeds each PDF page as a full-page image.\n\n" +
-              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).\n\n" +
-              "Demo: pro@ace-seek.com / password123  ·  max@ace-seek.com / password123",
+              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).",
             code: "PLAN_LIMIT",
             upgradeUrl: "/pricing",
             feature: "exact",

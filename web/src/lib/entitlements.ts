@@ -1,7 +1,7 @@
 /**
  * Plan entitlements — Free / Pro / Max / Team
  *
- * Free  → try basic tools, hard locks on advanced features, daily caps
+ * Free  → try basic tools, hard locks on advanced features, daily caps (5 docs/day)
  * Pro   → most tools unlocked, soft limits (DPI, size, exports)
  * Max   → everything unlocked for an individual (no soft limits)
  * Team  → everything Max has + seats, shared vault, admin, priority support
@@ -52,6 +52,7 @@ export type Entitlements = {
   defaultExactDpi: number;
   canDockerBackend: boolean;
   canWidePdf: boolean;
+  canToc: boolean;
 
   // --- diff ---
   canAccessDiff: boolean;
@@ -120,6 +121,7 @@ const GUEST: Entitlements = {
   defaultExactDpi: 72,
   canDockerBackend: false,
   canWidePdf: false,
+  canToc: false,
 
   canAccessDiff: true,
   canDiffUnified: false,
@@ -162,20 +164,21 @@ const FREE: Entitlements = {
   ...GUEST,
   tier: "free",
   label: "Free",
-  maxConvertsPerDay: 25,
+  maxConvertsPerDay: 5,
   maxInputBytes: 200_000,
   hasApiAccess: true,
 
   canAccessDocCompiler: true,
   docAllowedInputFormats: ["md", "tex", "plain", "html"],
   docAllowedOutputFormats: ["pdf", "md", "tex", "html", "plain"],
-  canEditablePdfDocx: true, // basic only
+  canEditablePdfDocx: true,
   canExactPdfDocx: false,
   canProEngine: false,
   maxExactDpi: 100,
   defaultExactDpi: 100,
   canDockerBackend: false,
   canWidePdf: false,
+  canToc: false,
 
   canAccessDiff: true,
   canDiffUnified: true,
@@ -205,7 +208,7 @@ const FREE: Entitlements = {
   canTableLandscapeExport: false,
 
   canAccessVlsi: true,
-  canVlsiSdc: true, // limited studio
+  canVlsiSdc: true,
   canVlsiTiming: false,
   canVlsiMmmc: false,
   canVlsiPower: false,
@@ -232,6 +235,7 @@ const PRO: Entitlements = {
   defaultExactDpi: 200,
   canDockerBackend: true,
   canWidePdf: true,
+  canToc: true,
 
   canDiffCharHighlight: true,
   canDiffPatchExport: true,
@@ -273,6 +277,8 @@ const MAX: Entitlements = {
   defaultExactDpi: 300,
   canProEngine: true,
   canExactPdfDocx: true,
+  canWidePdf: true,
+  canToc: true,
 
   maxDiffChars: INF,
 
@@ -364,6 +370,7 @@ export const FEATURE_MIN_PLAN: Record<string, PlanTier> = {
   pro_engine: "pro",
   docker_backend: "pro",
   wide_pdf: "pro",
+  toc: "pro",
   diff_patch_export: "pro",
   diff_char_highlight: "pro",
   format_toml_csv: "pro",
@@ -416,6 +423,7 @@ export function publicEntitlements(e: Entitlements) {
       defaultExactDpi: e.defaultExactDpi,
       dockerBackend: e.canDockerBackend,
       widePdf: e.canWidePdf,
+      canToc: e.canToc,
     },
     diff: {
       access: e.canAccessDiff,
