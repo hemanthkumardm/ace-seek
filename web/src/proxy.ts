@@ -8,6 +8,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
+const isPublicMarketingRoute = createRouteMatcher([
+  "/",
+  "/login(.*)",
+  "/signup(.*)",
+  "/pricing(.*)",
+  "/offers(.*)",
+  "/advertise(.*)",
+  "/blog(.*)",
+  "/docs(.*)",
+  "/vlsi/login(.*)",
+  "/tools/login(.*)",
+  "/icon.svg",
+]);
+
 const HOST_APP_ROOT: Record<string, string> = {
   doc: "/tools/doc-compiler",
   diff: "/tools/diff-comparator",
@@ -93,9 +107,19 @@ function applyHostRouting(
 }
 
 export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
+  const host = req.headers.get("host") || "";
+  const slug = hostSlug(host);
+  const { pathname } = req.nextUrl;
+
+  const isSubdomain = Boolean(slug && slug in HOST_APP_ROOT);
+  const isDashboard = pathname.startsWith("/dashboard");
+  const isPublicPage = isPublicMarketingRoute(req);
+
+  // Require login for /dashboard OR any product subdomain (vlsi, tools, doc, diff, etc.) that is not an explicit public route
+  if ((isDashboard || (isSubdomain && !isPublicPage)) && !pathname.startsWith("/api")) {
     await auth.protect();
   }
+
   const session = await auth();
   return applyHostRouting(
     req as unknown as NextRequest,
