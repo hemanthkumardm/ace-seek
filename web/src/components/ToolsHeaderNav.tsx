@@ -104,7 +104,7 @@ export function ToolsHeaderNav({
                   className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
                 >
                   <Key className="w-3.5 h-3.5" />
-                  <span>{isSignedIn || isAuthorized ? "API Key Active" : "API Login"}</span>
+                  <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
                 </button>
                 <a
                   href={signupHref}

@@ -185,7 +185,7 @@ export default function VlsiHome() {
               className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs font-black"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              <span>{isSignedIn || isAuthorized ? "API Key Active" : "API Key Login"}</span>
+              <span>{isAuthorized ? "API Key Active" : "API Key Login"}</span>
             </button>
             <a
               href="https://www.ace-seek.com/pricing"
