@@ -247,16 +247,19 @@ export function SiteFooter() {
         <div className="space-y-2.5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-            <span>Identity & Support</span>
+            <span>Legal & Compliance</span>
           </p>
-          <a href="/login" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            User Login
+          <a href="/terms-and-conditions" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Terms & Conditions
           </a>
-          <a href="/signup" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            Create Identity
+          <a href="/privacy-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Privacy Policy
           </a>
-          <a href="/docs" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            Documentation
+          <a href="/refund-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Refund & Return Policy
+          </a>
+          <a href="/cancellation-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Cancellation Policy
           </a>
         </div>
       </div>
