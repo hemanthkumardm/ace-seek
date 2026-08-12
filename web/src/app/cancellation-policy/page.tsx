@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
-import { ShieldCheck, XCircle } from "lucide-react";
+import { ShieldCheck, XCircle, Building, MapPin, Mail, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Cancellation Policy | Ace-Seek",
@@ -19,7 +19,7 @@ export default function CancellationPolicyPage() {
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Legal Compliance
+                <ShieldCheck className="w-3.5 h-3.5" /> Razorpay Compliance Verified
               </span>
               <h1 className="text-2xl font-black tracking-tight uppercase">
                 Cancellation Policy
@@ -34,42 +34,45 @@ export default function CancellationPolicyPage() {
         <div className="sk-panel p-8 space-y-6 text-xs leading-relaxed text-slate-300">
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              1. Subscription Cancellation
+              1. Subscription Cancellation Rights
             </h2>
             <p>
-              Users can cancel or downgrade their active subscription plan at any time. You are never locked into long-term contracts, and there are no cancellation fees.
+              Ace-Seek Technologies (&quot;Ace-Seek&quot;) allows customers to cancel subscription plans at any time. There are no lock-in contracts or cancellation penalties.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              2. How to Cancel
+              2. How to Request Cancellation
             </h2>
             <p>
-              You may cancel your plan through either of the following methods:
+              You can cancel your subscription plan through:
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong>Self-Service:</strong> Log into your User Dashboard at <code>www.ace-seek.com/dashboard</code> and manage your plan status under Account Control Deck.</li>
-              <li><strong>Support Request:</strong> Email <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a> with subject line &quot;Cancel Plan&quot; from your registered email.</li>
+              <li><strong>User Dashboard:</strong> Log in at <code>www.ace-seek.com/dashboard</code> and manage active plan status.</li>
+              <li><strong>Email Support:</strong> Send a request to <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a> or call <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a> with your account email and Razorpay Payment ID.</li>
             </ul>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              3. Effective Date of Cancellation
+              3. Cancellation Timeline & Access Retention
             </h2>
             <p>
-              When you submit a cancellation request, your paid tier capabilities (higher rate limits, cloud workstation sync) will remain active until the conclusion of your current billing period. Once the period ends, your account automatically reverts to the Free tier.
+              Cancellation requests processed before the end of your current billing cycle take effect at the conclusion of that period. Your paid tier features remain fully accessible until the current billing cycle expires.
             </p>
           </section>
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              4. Combining Cancellation with Refund
+          <section className="space-y-3 pt-4 border-t border-[var(--bevel-shadow)]">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-2">
+              <Building className="w-4 h-4" /> Cancellation Support Contact
             </h2>
-            <p>
-              If you cancel within 7 days of initial purchase and meet the criteria outlined in our <a href="/refund-policy" className="text-[var(--accent-cyan)] underline">Refund & Return Policy</a>, you may request a full refund simultaneously with your cancellation.
-            </p>
+            <div className="sk-recessed p-4 space-y-2 text-slate-300 text-xs font-mono">
+              <p><strong className="text-white">Legal Entity Name:</strong> Ace-Seek Technologies (Ace-Seek Inc.)</p>
+              <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Registered Address:</strong> #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038</p>
+              <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>
+              <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a></p>
+            </div>
           </section>
         </div>
       </main>

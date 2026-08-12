@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
-import { ShieldCheck, Lock } from "lucide-react";
+import { ShieldCheck, Lock, Building, MapPin, Mail, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | Ace-Seek",
@@ -19,7 +19,7 @@ export default function PrivacyPage() {
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Legal Compliance
+                <ShieldCheck className="w-3.5 h-3.5" /> Razorpay Compliance Verified
               </span>
               <h1 className="text-2xl font-black tracking-tight uppercase">
                 Privacy Policy
@@ -37,52 +37,52 @@ export default function PrivacyPage() {
               1. Information We Collect
             </h2>
             <p>
-              When you use Ace-Seek, we collect information necessary to deliver our services:
+              Ace-Seek Technologies (&quot;Ace-Seek&quot;, &quot;we&quot;, &quot;us&quot;) respects customer privacy. We collect customer information to provide SaaS services and process subscriptions:
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong>Account Credentials:</strong> Name, email address, and authentication provider metadata.</li>
-              <li><strong>Payment Information:</strong> Payment authorization status, order ID, and transaction ID processed via Razorpay. (We do NOT store credit card details or bank passwords).</li>
-              <li><strong>Usage Telemetry:</strong> API key requests, workstation diagnostic telemetry, and rate limit counters.</li>
+              <li><strong>Personal Identity Data:</strong> Name, email address, and phone number provided during registration or checkout.</li>
+              <li><strong>Payment Data:</strong> Payment status, order ID, and transaction ID. Payment card credentials, UPI passwords, and bank login details are collected securely by <strong>Razorpay Payment Gateway</strong> and are NEVER stored on Ace-Seek servers.</li>
+              <li><strong>Usage & Telemetry Data:</strong> IP address, device browser type, API key quota usage, and system performance logs.</li>
             </ul>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              2. How We Use Your Data
+              2. How We Use Information
             </h2>
             <p>
-              Your data is used strictly for issuing API license keys, enforcing plan rate limits, processing payments, and improving system performance. We do not sell or trade user data to third parties.
+              We use collected data to issue API license keys, authenticate users across subdomains (www, vlsi, tools), process payments via Razorpay, send service updates, and maintain platform security.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              3. Razorpay Payment Security
+              3. Data Security & Razorpay Compliance
             </h2>
             <p>
-              All online transactions are securely handled by <strong>Razorpay Payment Gateway</strong>, which adheres to PCI-DSS Level 1 security standards. Cryptographic HMAC signatures are verified on our servers to ensure transaction integrity.
+              We enforce SSL/TLS encryption (HTTPS) across all endpoints. Online transactions are executed via <strong>Razorpay Payment Gateway</strong>, adhering to PCI-DSS Level 1 compliance standards. Cryptographic HMAC signatures are verified to prevent payment tampering.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              4. Data Retention & Security
+              4. Data Disclosure & Third Parties
             </h2>
             <p>
-              We implement industry-standard encryption (HTTPS/TLS) and secure key storage. User project files processed in memory or synced across workstations are restricted to your account key.
+              We do not sell, rent, or trade customer data to third parties. Data is shared only with trusted infrastructure providers (e.g. Razorpay for billing, Clerk for authentication) as necessary to fulfill services.
             </p>
           </section>
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              5. Contact Us
+          <section className="space-y-3 pt-4 border-t border-[var(--bevel-shadow)]">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-2">
+              <Building className="w-4 h-4" /> Privacy Contact Information
             </h2>
-            <p>
-              If you have privacy concerns or wish to request data deletion, contact us at:{" "}
-              <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">
-                support@ace-seek.com
-              </a>
-            </p>
+            <div className="sk-recessed p-4 space-y-2 text-slate-300 text-xs font-mono">
+              <p><strong className="text-white">Legal Entity Name:</strong> Ace-Seek Technologies (Ace-Seek Inc.)</p>
+              <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Registered Address:</strong> #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038</p>
+              <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>
+              <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a></p>
+            </div>
           </section>
         </div>
       </main>

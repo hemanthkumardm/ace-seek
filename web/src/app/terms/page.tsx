@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
-import { ShieldCheck, FileText } from "lucide-react";
+import { ShieldCheck, FileText, Building, MapPin, Mail, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Terms and Conditions | Ace-Seek",
@@ -19,7 +19,7 @@ export default function TermsPage() {
             </div>
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Legal Compliance
+                <ShieldCheck className="w-3.5 h-3.5" /> Razorpay Compliance Verified
               </span>
               <h1 className="text-2xl font-black tracking-tight uppercase">
                 Terms and Conditions
@@ -34,10 +34,10 @@ export default function TermsPage() {
         <div className="sk-panel p-8 space-y-6 text-xs leading-relaxed text-slate-300">
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              1. Acceptance of Terms
+              1. Acceptance of Terms & Merchant Details
             </h2>
             <p>
-              By accessing or using the Ace-Seek platform (www.ace-seek.com, vlsi.ace-seek.com, tools.ace-seek.com), you agree to be bound by these Terms and Conditions. If you do not agree, please discontinue use immediately.
+              By accessing or using the website <strong>www.ace-seek.com</strong> and its subdomains (vlsi.ace-seek.com, tools.ace-seek.com), you agree to be bound by these Terms and Conditions. These terms constitute a legally binding agreement between you (the user) and <strong>Ace-Seek Technologies</strong> (&quot;Ace-Seek&quot;, &quot;we&quot;, &quot;us&quot;, &quot;our&quot;).
             </p>
           </section>
 
@@ -46,56 +46,47 @@ export default function TermsPage() {
               2. Services Offered
             </h2>
             <p>
-              Ace-Seek provides cloud-based Electronic Design Automation (EDA) helper utilities, VLSI timing & SDC analysis workstations, document compilation engines, and associated API services.
+              Ace-Seek operates an apex Software-as-a-Service (SaaS) ecosystem providing Electronic Design Automation (EDA) helper tools, SDC constraints analysis, timing closure workstations, document compilers, and API services.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              3. User Accounts & API Keys
+              3. Account Registration & API Keys
             </h2>
             <p>
-              Access to paid tiers (Pro, Max, Team) requires an active license API key issued upon payment verification. You are responsible for maintaining the confidentiality of your credentials and API key. Unauthorized distribution or commercial resale of API keys is strictly prohibited.
+              Access to paid subscription tiers (Pro, Max, Team) requires an active API license key issued automatically upon successful payment. Users are responsible for maintaining the security of their API key and account credentials. Commercial resale or unauthorized sharing of API keys is strictly prohibited.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              4. Payment Terms & Billing
+              4. Payment Terms & Billing Gateway
             </h2>
             <p>
-              All payments for paid subscription plans are processed securely via our payment gateway partner, <strong>Razorpay</strong>. Prices are listed in Indian Rupees (INR) and are inclusive of applicable taxes unless stated otherwise.
+              All online payments for subscription plans and API access are processed securely via our merchant payment gateway partner, <strong>Razorpay</strong>. Prices are quoted in Indian Rupees (INR). Payments are charged on a monthly or one-time plan basis as selected by the user during checkout.
             </p>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              5. Intellectual Property
+              5. Governing Law & Jurisdiction
             </h2>
             <p>
-              All content, software, logos, trademarks, and algorithms on Ace-Seek are the exclusive intellectual property of Ace-Seek Inc. User-uploaded files (SDC scripts, timing reports, TeX code) remain the property of the user.
+              These Terms and Conditions shall be governed by and construed in accordance with the laws of India. Any disputes arising out of or in connection with these terms shall be subject to the exclusive jurisdiction of the courts located in <strong>Bengaluru, Karnataka, India</strong>.
             </p>
           </section>
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              6. Limitation of Liability
+          <section className="space-y-3 pt-4 border-t border-[var(--bevel-shadow)]">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)] flex items-center gap-2">
+              <Building className="w-4 h-4" /> Merchant & Support Contact Details
             </h2>
-            <p>
-              Ace-Seek is provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis. Ace-Seek Inc. shall not be liable for any indirect, incidental, or consequential damages resulting from platform downtime or data processing errors.
-            </p>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              7. Contact & Support
-            </h2>
-            <p>
-              For legal or billing inquiries, please contact our support team at:{" "}
-              <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">
-                support@ace-seek.com
-              </a>
-            </p>
+            <div className="sk-recessed p-4 space-y-2 text-slate-300 text-xs font-mono">
+              <p><strong className="text-white">Legal Entity Name:</strong> Ace-Seek Technologies (Ace-Seek Inc.)</p>
+              <p className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Registered Address:</strong> #102, Tech Park, Indiranagar, Bengaluru, Karnataka, India - 560038</p>
+              <p className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>
+              <p className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-[var(--accent-cyan)]" /> <strong className="text-white">Support Phone:</strong> <a href="tel:+919876543210" className="text-[var(--accent-cyan)] underline">+91 98765 43210</a></p>
+            </div>
           </section>
         </div>
       </main>

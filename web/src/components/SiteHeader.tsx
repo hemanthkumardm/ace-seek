@@ -261,6 +261,12 @@ export function SiteFooter() {
           <a href="/cancellation-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Cancellation Policy
           </a>
+          <a href="/shipping-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Shipping & Delivery Policy
+          </a>
+          <a href="/contact-us" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Contact Us & Support
+          </a>
         </div>
       </div>
 
