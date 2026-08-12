@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByApiKey } from "@/lib/user-store";
+import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
 import { verifyIssuedApiKey } from "@/lib/api-keys";
 import {
   entitlementsFromApiKey,
@@ -23,21 +23,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dev test keys bypass
+    // 1. Dev test keys and plan shortcuts
     const lower = apiKey.toLowerCase();
-    if (lower === "dev" || lower === "dev_key" || lower === "admin" || lower === "team" || lower === "local" || lower === "max" || lower === "pro") {
-      const ent = entitlementsFromApiKey(apiKey);
+    if (
+      lower === "dev" ||
+      lower === "dev_key" ||
+      lower === "admin" ||
+      lower === "team" ||
+      lower === "local" ||
+      lower === "max" ||
+      lower === "pro" ||
+      lower === "free"
+    ) {
+      const targetPlan = lower === "free" ? "free" : lower === "pro" ? "pro" : lower === "max" ? "max" : "team";
+      const ent = entitlementsForPlan(targetPlan);
       return NextResponse.json({
         valid: true,
         plan: ent.tier,
         tier: ent.tier,
-        email: ent.email || "dev@localhost",
-        name: ent.name || "Local Developer",
+        email: ent.email || `${targetPlan}@ace-seek.com`,
+        name: ent.name || `${ent.label} Developer`,
         apiKey,
         entitlements: publicEntitlements(ent),
       });
     }
 
+    // 2. Email lookup (e.g. user enters free@ace-seek.com or pro@ace-seek.com)
+    const userByEmail = findUserByEmail(apiKey);
+    if (userByEmail) {
+      const ent = {
+        ...entitlementsForPlan(userByEmail.plan),
+        email: userByEmail.email,
+        name: userByEmail.name,
+      };
+      return NextResponse.json({
+        valid: true,
+        plan: userByEmail.plan,
+        tier: userByEmail.plan,
+        email: userByEmail.email,
+        name: userByEmail.name,
+        apiKey: userByEmail.apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 3. In-memory user store key lookup
     const legacy = findUserByApiKey(apiKey);
     if (legacy) {
       const ent = {
@@ -56,6 +86,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 4. Cryptographic HMAC issued key verification
     const issued = verifyIssuedApiKey(apiKey);
     if (issued.ok) {
       const ent = entitlementsFromApiKey(apiKey);

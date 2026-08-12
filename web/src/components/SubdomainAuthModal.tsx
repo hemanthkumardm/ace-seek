@@ -60,6 +60,9 @@ export function SubdomainAuthModal({
         setKeyInfo({ plan: data.plan || data.tier });
         setStoredKey(keyToTest);
         localStorage.setItem("ace_seek_api_key", keyToTest);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("ace_key_updated"));
+        }
         if (onAuthorize) onAuthorize(keyToTest);
       } else {
         setKeyStatus("invalid");
@@ -81,6 +84,9 @@ export function SubdomainAuthModal({
     setKeyStatus("idle");
     setKeyInfo(null);
     setApiKeyInput("");
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("ace_key_updated"));
+    }
   };
 
   return (

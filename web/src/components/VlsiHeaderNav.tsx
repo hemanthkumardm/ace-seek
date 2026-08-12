@@ -211,7 +211,9 @@ export function VlsiHeaderNav({
               onAuthorize={() => {
                 setIsAuthorized(true);
                 setShowAuthModal(false);
-                router.push("/vlsi/reports");
+                if (pathname === "/" || pathname === "/vlsi") {
+                  router.push("/vlsi/reports");
+                }
               }}
             />
           </div>

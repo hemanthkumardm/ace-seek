@@ -78,13 +78,22 @@ export function useEntitlements() {
   }, [applyDefaultPlan]);
 
   useEffect(() => {
-    const saved = localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
-    if (saved) {
-      void refreshFromKey(saved);
-    } else {
-      applyDefaultPlan();
-      setLoading(false);
-    }
+    const handleKeyChange = () => {
+      const saved = localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
+      if (saved) {
+        void refreshFromKey(saved);
+      } else {
+        applyDefaultPlan();
+        setLoading(false);
+      }
+    };
+    handleKeyChange();
+    window.addEventListener("storage", handleKeyChange);
+    window.addEventListener("ace_key_updated", handleKeyChange);
+    return () => {
+      window.removeEventListener("storage", handleKeyChange);
+      window.removeEventListener("ace_key_updated", handleKeyChange);
+    };
   }, [refreshFromKey, applyDefaultPlan]);
 
   const clearKey = useCallback(() => {
