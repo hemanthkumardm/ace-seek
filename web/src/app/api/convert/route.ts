@@ -28,12 +28,34 @@ const BACKENDS = new Set(["auto", "local", "docker"]);
 // Daily convert usage rate limiter
 const DAILY_USAGE = new Map<string, { date: string; count: number }>();
 
-function checkAndIncrementUsage(
+async function checkAndIncrementUsage(
   key: string,
   limit: number
-): { allowed: boolean; count: number } {
+): Promise<{ allowed: boolean; count: number }> {
   if (!Number.isFinite(limit)) return { allowed: true, count: 0 };
   const today = new Date().toISOString().slice(0, 10);
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (redisUrl && redisToken) {
+    try {
+      const redisKey = `ratelimit:convert:${key}:${today}`;
+      const res = await fetch(`${redisUrl}/incr/${redisKey}`, {
+        headers: { Authorization: `Bearer ${redisToken}` },
+      });
+      const data = await res.json();
+      const count = Number(data.result || 1);
+      if (count === 1) {
+        await fetch(`${redisUrl}/expire/${redisKey}/86400`, {
+          headers: { Authorization: `Bearer ${redisToken}` },
+        });
+      }
+      return { allowed: count <= limit, count };
+    } catch {
+      // Fallback to in-memory on error
+    }
+  }
+
   const entry = DAILY_USAGE.get(key);
   if (!entry || entry.date !== today) {
     DAILY_USAGE.set(key, { date: today, count: 1 });
@@ -173,7 +195,7 @@ export async function POST(req: NextRequest) {
     // --- Daily limit rate check (5 docs/day for Free, 3 for Guest) ---
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon";
     const limitKey = apiKey || clientIp;
-    const usage = checkAndIncrementUsage(limitKey, entitlements.maxConvertsPerDay);
+    const usage = await checkAndIncrementUsage(limitKey, entitlements.maxConvertsPerDay);
     if (!usage.allowed) {
       return NextResponse.json(
         {
