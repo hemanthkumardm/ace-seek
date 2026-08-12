@@ -71,7 +71,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <span className="text-[var(--muted)] font-mono">AUTH:</span>
               <span className="flex items-center gap-1.5 text-[#10b981] font-mono text-[11px] font-bold">
                 <span className="sk-led sk-led-green" />{" "}
-                {clerkPk?.trim() ? "CLERK" : "LOCAL"}
+                {clerkPk?.trim() ? "SECURE" : "SESSION"}
               </span>
             </div>
             <div className="flex gap-2 mt-1">
@@ -162,7 +162,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               {user.plan.toUpperCase()} capabilities.
             </p>
             <p className="pt-1 text-[var(--accent-cyan)]">
-              Multi-device: sign in with the same Clerk account — this key stays identical.
+              Multi-device: sign in with the same Ace-Seek account — this key stays identical.
             </p>
           </div>
         </div>
@@ -255,7 +255,7 @@ function ClerkDashboard() {
     return (
       <div className="min-h-full flex flex-col justify-center items-center py-32">
         <Loader2 className="w-6 h-6 text-[var(--accent-cyan)] animate-spin" />
-        <p className="font-mono text-xs mt-3">VERIFYING CLERK SESSION…</p>
+        <p className="font-mono text-xs mt-3">VERIFYING SESSION…</p>
       </div>
     );
   }

@@ -16,13 +16,13 @@ async function requireUserId(): Promise<
 > {
   if (!clerkOn()) {
     return NextResponse.json(
-      { error: "Clerk auth required for cloud projects." },
+      { error: "Sign in required to save cloud projects." },
       { status: 401 }
     );
   }
   if (!isSupabaseServerReady()) {
     return NextResponse.json(
-      { error: "Supabase not configured (set URL + SERVICE_ROLE_KEY)." },
+      { error: "Cloud project storage is temporarily unavailable." },
       { status: 503 }
     );
   }

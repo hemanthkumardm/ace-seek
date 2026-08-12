@@ -18,7 +18,7 @@ const ROWS: { feature: string; free: string | boolean; pro: string | boolean; ma
   { feature: "Timing + MMMC", free: false, pro: true, max: true, team: true },
   { feature: "Power Studio + ECO", free: false, pro: false, max: true, team: true },
   { feature: "Daily convert limit", free: "25", pro: "500", max: "Unlimited", team: "Unlimited" },
-  { feature: "Team seats / SSO / shared vault", free: false, pro: false, max: false, team: true },
+  { feature: "Team seats / shared vault / admin", free: false, pro: false, max: false, team: true },
 ];
 
 function Cell({ v }: { v: string | boolean }) {

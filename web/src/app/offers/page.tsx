@@ -109,7 +109,7 @@ export default function OffersPage() {
             </div>
           </div>
           <p className="text-xs text-[var(--muted)] leading-relaxed font-mono sk-recessed p-4">
-            • Promos applied on ace-seek.com automatically flow to doc.ace-seek.com and future subdomain utilities through single-sign-on (SSO) session tokens.
+            • Promos applied on www.ace-seek.com automatically apply across vlsi.ace-seek.com, tools.ace-seek.com, and other Ace-Seek product sites under the same account.
           </p>
         </div>
       </main>

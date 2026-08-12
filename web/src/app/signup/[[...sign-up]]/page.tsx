@@ -15,7 +15,7 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-black tracking-tight">Create account</h1>
           <p className="text-xs text-[var(--muted)]">
-            Free Hobby Clerk auth — works across devices.
+            Create your Ace-Seek account. Access works across devices and product sites.
           </p>
         </div>
         <div className="w-full max-w-md flex justify-center">

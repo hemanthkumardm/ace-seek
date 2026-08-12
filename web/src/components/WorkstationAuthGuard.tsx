@@ -108,7 +108,7 @@ export function WorkstationAuthGuard({ children }: Props) {
     return <>{children}</>;
   }
 
-  // If signed in via Clerk SSO or has valid API key, render workstation
+  // If signed in or has valid API key, render workstation
   if ((isLoaded && isSignedIn) || hasValidApiKey === true) {
     return <>{children}</>;
   }
@@ -153,12 +153,12 @@ export function WorkstationAuthGuard({ children }: Props) {
           Access to this studio workstation requires an active account session or a valid Dashboard API License Key.
         </p>
 
-        {/* Option 1: Clerk SSO Login */}
+        {/* Option 1: Ace-Seek account session */}
         <div className="bg-slate-900 border-3 border-black p-4 rounded space-y-3 shadow-[4px_4px_0_#000000]">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black text-white uppercase flex items-center gap-2">
               <UserCheck className="w-4 h-4 text-[var(--accent-cyan)]" />
-              Log in with Clerk Account
+              Log in with Ace-Seek Account
             </span>
             <a
               href="/login"

@@ -113,7 +113,7 @@ function InteractiveSdcStudioPage() {
   const [attachTargetModeId, setAttachTargetModeId] = useState("");
   const [mmmcModes, setMmmcModes] = useState<MmmcModeSnapshot | null>(null);
   const [linkedModeLabel, setLinkedModeLabel] = useState("");
-  /** Cloud project id (Supabase) when signed in + configured */
+  /** Cloud project id when account sync is available */
   const [cloudProjectId, setCloudProjectId] = useState<string | null>(null);
   const [cloudStatus, setCloudStatus] = useState<
     "off" | "local" | "syncing" | "synced" | "error"
@@ -269,7 +269,7 @@ function InteractiveSdcStudioPage() {
     window.setTimeout(() => setToast(""), 2200);
   };
 
-  // Persist SDC locally (always) + debounced cloud save (Clerk + Supabase)
+  // Persist SDC on this device (always) + debounced account cloud save when available
   useEffect(() => {
     if (!hydrated) return;
     try {
@@ -299,8 +299,9 @@ function InteractiveSdcStudioPage() {
         setCloudStatus("synced");
       } else if (
         result.error.includes("Sign in") ||
-        result.error.includes("Clerk") ||
-        result.error.includes("Supabase")
+        result.error.includes("Sign in") ||
+        result.error.includes("Cloud project") ||
+        result.error.includes("unavailable")
       ) {
         setCloudStatus("local");
       } else {
@@ -744,12 +745,12 @@ function InteractiveSdcStudioPage() {
                 }`}
                 title={
                   cloudStatus === "synced"
-                    ? "Saved to Supabase (multi-device)"
+                    ? "Synced to your Ace-Seek account (multi-device)"
                     : cloudStatus === "syncing"
-                      ? "Saving to cloud…"
+                      ? "Saving…"
                       : cloudStatus === "error"
-                        ? "Cloud save failed"
-                        : "Browser localStorage (auto-restores on return)"
+                        ? "Account sync failed"
+                        : "Saved on this device (restores when you return)"
                 }
               >
                 {cloudStatus === "synced" || cloudStatus === "syncing" ? (

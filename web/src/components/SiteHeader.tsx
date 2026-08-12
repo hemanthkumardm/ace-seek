@@ -270,9 +270,9 @@ export function SiteFooter() {
           <div className="flex items-center gap-4 font-mono text-[11px]">
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-[var(--led-green)]" />
-              <span>v2.7.0-CLERK-AUTH</span>
+              <span>v2.8.0</span>
             </span>
-            <span className="text-[var(--accent-cyan)]">ace-seek.com</span>
+            <span className="text-[var(--accent-cyan)]">www.ace-seek.com</span>
           </div>
         </div>
       </div>

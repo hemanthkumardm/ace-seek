@@ -4,7 +4,7 @@
  * Free  → try basic tools, hard locks on advanced features, daily caps
  * Pro   → most tools unlocked, soft limits (DPI, size, exports)
  * Max   → everything unlocked for an individual (no soft limits)
- * Team  → everything Max has + seats, shared vault, SSO, priority support
+ * Team  → everything Max has + seats, shared vault, admin, priority support
  */
 import type { UserPlan } from "@/lib/user-store";
 import { findUserByApiKey } from "@/lib/user-store";

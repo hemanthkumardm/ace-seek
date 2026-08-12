@@ -121,7 +121,7 @@ export default function PricingPage() {
               <ShieldCheck className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <div>
-              <h3 className="text-base font-bold">Stripe Enterprise Security & Invoicing</h3>
+              <h3 className="text-base font-bold">Billing Security & Invoicing</h3>
               <p className="text-xs text-[var(--muted)]">
                 Centralized billing management and seat delegation.
               </p>
@@ -130,10 +130,10 @@ export default function PricingPage() {
 
           <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed font-mono">
             <p>
-              • Stripe Customer Portal handles all credit cards, invoices, tax IDs, and subscription upgrades.
+              • Secure customer portal for cards, invoices, tax IDs, and subscription upgrades.
             </p>
             <p>
-              • Single-sign-on (SSO) session tokens inherit Pro entitlements across doc.ace-seek.com, timing.ace-seek.com, and lab utilities.
+              • One Ace-Seek account unlocks Pro entitlements across www, vlsi, and tools product sites.
             </p>
           </div>
         </div>

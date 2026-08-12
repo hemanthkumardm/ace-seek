@@ -2,7 +2,7 @@
  * Ace-Seek site model
  *
  *   www.ace-seek.com   → primary command center (pricing, signup, dashboard, SEO)
- *   main.ace-seek.com  → optional alias of main (if configured on Vercel)
+ *   main.ace-seek.com  → optional alias of main marketing host
  *   vlsi.ace-seek.com  → VLSI platform intro + API-key login + studios
  *   tools.ace-seek.com → Tools platform intro + API-key login + workstations
  *
@@ -300,14 +300,14 @@ export const PRICING: PricingTier[] = [
     name: "Team",
     price: "$49",
     period: "/ seat / mo",
-    blurb: "Max features for the whole org — seats, SSO, shared workspaces.",
+    blurb: "Max features for the whole org — seats, shared workspaces, admin controls.",
     cta: "Contact sales",
     ctaHref: "/signup?plan=team",
     features: [
       "Everything in Max",
       "Shared workspace & seats",
-      "Central billing (Stripe)",
-      "SSO roadmap",
+      "Central billing & invoicing",
+      "Enterprise identity options",
       "Invoice / PO support",
       "Team API keys & admin",
     ],
