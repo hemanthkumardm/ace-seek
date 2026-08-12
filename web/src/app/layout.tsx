@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   },
   description:
     "Command center for Ace-Seek: automation and productivity tools for VLSI and engineering teams. One account, focused product subdomains.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 const CLERK_PUB_KEY =
