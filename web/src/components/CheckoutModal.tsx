@@ -151,27 +151,8 @@ export function CheckoutModal({
           name:
             [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
             "Ace-Seek User",
-          email: user?.primaryEmailAddress?.emailAddress || "",
+          email: user?.primaryEmailAddress?.emailAddress || "user@ace-seek.com",
           contact: "9876543210",
-        },
-        config: {
-          display: {
-            blocks: {
-              methods: {
-                name: "Pay via UPI, Cards & NetBanking",
-                instruments: [
-                  { method: "upi" },
-                  { method: "card" },
-                  { method: "netbanking" },
-                  { method: "wallet" },
-                ],
-              },
-            },
-            sequence: ["block.methods"],
-            preferences: {
-              show_default_blocks: true,
-            },
-          },
         },
         theme: {
           color: "#06b6d4",
@@ -316,12 +297,12 @@ export function CheckoutModal({
               {/* Razorpay Test Mode Helper */}
               <div className="rounded-lg bg-cyan-950/40 border border-cyan-500/30 p-3 text-[11px] text-cyan-200 space-y-1.5 font-mono">
                 <span className="font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1 text-[10px]">
-                  <Sparkles className="h-3 w-3 text-cyan-400" /> Razorpay Test Credentials
+                  <Sparkles className="h-3 w-3 text-cyan-400" /> Razorpay Test Instructions
                 </span>
-                <p className="text-slate-300 text-[10px]">
-                  • <strong>UPI Test ID:</strong> <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">success@razorpay</code><br />
-                  • <strong>Test Card (Indian):</strong> <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">4000 0000 0000 0002</code> (Exp: 12/30, CVV: 123)<br />
-                  • <strong>NetBanking:</strong> Select any bank &rarr; Click Success
+                <p className="text-slate-300 text-[10px] leading-relaxed">
+                  • <strong>Netbanking (Instant Test):</strong> Select <em>Netbanking</em> &rarr; Pick <em>HDFC / ICICI</em> &rarr; Click <em>Success</em><br />
+                  • <strong>Indian Test Card:</strong> Use <code className="text-cyan-300 bg-black/60 px-1 py-0.5 rounded">4000 0000 0000 0002</code> (Exp: 12/30, CVV: 123)<br />
+                  • <strong>Enable UPI:</strong> Log into Razorpay Dashboard &rarr; <em>Account & Settings</em> &rarr; <em>Payment Methods</em> &rarr; Toggle <em>UPI</em> to Active
                 </p>
               </div>
             </div>
