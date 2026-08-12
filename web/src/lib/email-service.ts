@@ -1,8 +1,9 @@
 /**
  * Production Transactional Email Service for Ace-Seek.
- * Dispatches HTML payment receipts, active license key delivery emails, and system notifications.
+ * Dispatches HTML payment receipts, active license key delivery emails, and system notifications via Resend SDK.
  */
 
+import { Resend } from "resend";
 import { logger } from "./telemetry";
 
 export interface LicenseKeyEmailPayload {
@@ -96,12 +97,11 @@ export function generateLicenseEmailHTML(payload: LicenseKeyEmailPayload): strin
 }
 
 /**
- * Send license key email notification.
- * In production environments with RESEND_API_KEY or SMTP configured, uses HTTP REST API or logs structured delivery.
+ * Send license key email notification using Resend SDK.
  */
 export async function sendLicenseDeliveryEmail(payload: LicenseKeyEmailPayload): Promise<{ success: boolean; id?: string }> {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
+    const apiKey = process.env.RESEND_API_KEY;
 
     logger.info("email.dispatch_attempt", {
       to: payload.toEmail,
@@ -109,35 +109,30 @@ export async function sendLicenseDeliveryEmail(payload: LicenseKeyEmailPayload):
       paymentId: payload.paymentId,
     });
 
-    if (resendApiKey) {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${resendApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: "Ace-Seek Licensing <licensing@ace-seek.com>",
-          to: [payload.toEmail],
-          subject: `Your Ace-Seek ${payload.planName} License Key & Payment Receipt`,
-          html: generateLicenseEmailHTML(payload),
-        }),
+    if (apiKey) {
+      const resend = new Resend(apiKey);
+
+      const response = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+        to: [payload.toEmail],
+        subject: `Your Ace-Seek ${payload.planName} License Key & Payment Receipt`,
+        html: generateLicenseEmailHTML(payload),
       });
 
-      const resData = await response.json();
-      if (response.ok) {
-        logger.info("email.delivered", { id: resData.id, to: payload.toEmail });
-        return { success: true, id: resData.id };
-      } else {
-        logger.error("email.resend_error", { resData }, new Error("Resend API rejected email dispatch"));
+      if (response.error) {
+        logger.error("email.resend_error", { error: response.error }, new Error("Resend SDK error"));
+        return { success: false };
       }
+
+      logger.info("email.delivered", { id: response.data?.id, to: payload.toEmail });
+      return { success: true, id: response.data?.id };
     }
 
-    // Fallback: Structured delivery log for production audit trails
+    // Fallback audit logging if RESEND_API_KEY is not yet added in .env.local
     logger.info("email.mock_delivered", {
       to: payload.toEmail,
       keyPrefix: payload.apiKey.slice(0, 15),
-      notice: "Email logged to system audit queue. Set RESEND_API_KEY in .env to send live emails.",
+      notice: "Add RESEND_API_KEY=re_xxxxxxxxx to your .env.local to send live emails.",
     });
 
     return { success: true, id: `audit_log_${Date.now()}` };
