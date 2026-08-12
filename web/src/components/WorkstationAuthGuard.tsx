@@ -60,12 +60,7 @@ export function WorkstationAuthGuard({ children }: Props) {
         setHasValidApiKey(false);
       }
     } catch {
-      // Local fallback for offline/development keys
-      if (keyToTest.startsWith("ace_")) {
-        setHasValidApiKey(true);
-      } else {
-        setHasValidApiKey(false);
-      }
+      setHasValidApiKey(false);
     }
   };
 
@@ -86,23 +81,11 @@ export function WorkstationAuthGuard({ children }: Props) {
         setHasValidApiKey(true);
         setKeyStatus("valid");
         window.dispatchEvent(new Event("ace_key_updated"));
-      } else if (apiKeyInput.trim().startsWith("ace_")) {
-        localStorage.setItem("ace_seek_api_key", apiKeyInput.trim());
-        setHasValidApiKey(true);
-        setKeyStatus("valid");
-        window.dispatchEvent(new Event("ace_key_updated"));
       } else {
         setKeyStatus("invalid");
       }
     } catch {
-      if (apiKeyInput.trim().startsWith("ace_")) {
-        localStorage.setItem("ace_seek_api_key", apiKeyInput.trim());
-        setHasValidApiKey(true);
-        setKeyStatus("valid");
-        window.dispatchEvent(new Event("ace_key_updated"));
-      } else {
-        setKeyStatus("invalid");
-      }
+      setKeyStatus("invalid");
     }
   };
 
