@@ -31,6 +31,7 @@ const isPublicMarketingRoute = createRouteMatcher([
   "/cancellations(.*)",
   "/vlsi/login(.*)",
   "/tools/login(.*)",
+  "/api/webhooks/razorpay(.*)",
   "/icon.svg",
 ]);
 
