@@ -24,47 +24,47 @@ const ROWS: { feature: string; free: string | boolean; pro: string | boolean; ma
 function Cell({ v }: { v: string | boolean }) {
   if (v === true)
     return (
-      <span className="inline-flex justify-center text-emerald-600">
-        <Check className="h-4 w-4" />
+      <span className="inline-flex justify-center text-[#10b981]">
+        <Check className="h-4 w-4 stroke-[2.5]" />
       </span>
     );
   if (v === false)
     return (
-      <span className="inline-flex justify-center text-slate-300">
+      <span className="inline-flex justify-center text-slate-700">
         <Minus className="h-4 w-4" />
       </span>
     );
-  return <span className="text-[11px] font-medium text-slate-600">{v}</span>;
+  return <span className="text-[11px] font-mono font-medium text-cyan-300/80">{v}</span>;
 }
 
 /** Comparison matrix for pricing / docs */
 export function PlanFeatureTable() {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-x-auto rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] shadow-2xl relative overflow-hidden backdrop-blur-md">
       <table className="w-full min-w-[640px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <th className="px-4 py-3 font-semibold">Feature</th>
-            <th className="px-3 py-3 font-semibold text-center">Free</th>
-            <th className="px-3 py-3 font-semibold text-center">Pro</th>
-            <th className="px-3 py-3 font-semibold text-center">Max</th>
-            <th className="px-3 py-3 font-semibold text-center">Team</th>
+          <tr className="border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] text-xs uppercase tracking-wider font-mono">
+            <th className="px-5 py-4 font-bold text-slate-300">Feature</th>
+            <th className="px-4 py-4 font-bold text-center text-slate-400">Free</th>
+            <th className="px-4 py-4 font-bold text-center text-[var(--accent-cyan)]">Pro</th>
+            <th className="px-4 py-4 font-bold text-center text-purple-400">Max</th>
+            <th className="px-4 py-4 font-bold text-center text-emerald-400">Team</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-[var(--bevel-shadow)]">
           {ROWS.map((r) => (
-            <tr key={r.feature} className="border-b border-slate-100 last:border-0">
-              <td className="px-4 py-2.5 text-xs font-medium text-slate-800">{r.feature}</td>
-              <td className="px-3 py-2.5 text-center">
+            <tr key={r.feature} className="hover:bg-white/[0.02] transition-colors">
+              <td className="px-5 py-3 text-xs font-medium text-slate-200">{r.feature}</td>
+              <td className="px-4 py-3 text-center">
                 <Cell v={r.free} />
               </td>
-              <td className="px-3 py-2.5 text-center">
+              <td className="px-4 py-3 text-center bg-cyan-500/[0.02]">
                 <Cell v={r.pro} />
               </td>
-              <td className="px-3 py-2.5 text-center">
+              <td className="px-4 py-3 text-center bg-purple-500/[0.02]">
                 <Cell v={r.max} />
               </td>
-              <td className="px-3 py-2.5 text-center">
+              <td className="px-4 py-3 text-center bg-emerald-500/[0.02]">
                 <Cell v={r.team} />
               </td>
             </tr>
