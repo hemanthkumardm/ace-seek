@@ -152,7 +152,7 @@ export function CheckoutModal({
             [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
             "Ace-Seek User",
           email: user?.primaryEmailAddress?.emailAddress || "user@ace-seek.com",
-          contact: "9876543210",
+          contact: "8498045817",
         },
         theme: {
           color: "#06b6d4",
