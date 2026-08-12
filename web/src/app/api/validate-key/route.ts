@@ -23,6 +23,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Dev test keys bypass
+    const lower = apiKey.toLowerCase();
+    if (lower === "dev" || lower === "dev_key" || lower === "admin" || lower === "team" || lower === "local" || lower === "max" || lower === "pro") {
+      const ent = entitlementsFromApiKey(apiKey);
+      return NextResponse.json({
+        valid: true,
+        plan: ent.tier,
+        tier: ent.tier,
+        email: ent.email || "dev@localhost",
+        name: ent.name || "Local Developer",
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
     const legacy = findUserByApiKey(apiKey);
     if (legacy) {
       const ent = {

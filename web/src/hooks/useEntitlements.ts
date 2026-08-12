@@ -10,22 +10,28 @@ const PLAN_STORAGE = "ace_seek_plan";
 export type PublicEnt = ReturnType<typeof publicEntitlements>;
 
 export function useEntitlements() {
+  const isDev =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      process.env.NODE_ENV === "development");
+
   const [apiKey, setApiKey] = useState("");
   const [ent, setEnt] = useState<PublicEnt>(() =>
-    publicEntitlements(entitlementsForPlan("guest"))
+    publicEntitlements(entitlementsForPlan(isDev ? "team" : "guest"))
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const applyGuest = useCallback(() => {
-    setEnt(publicEntitlements(entitlementsForPlan("guest")));
+  const applyDefaultPlan = useCallback(() => {
+    setEnt(publicEntitlements(entitlementsForPlan(isDev ? "team" : "guest")));
     setApiKey("");
-  }, []);
+  }, [isDev]);
 
   const refreshFromKey = useCallback(async (key: string) => {
     const trimmed = key.trim();
     if (!trimmed) {
-      applyGuest();
+      applyDefaultPlan();
       setLoading(false);
       return false;
     }
@@ -40,7 +46,7 @@ export function useEntitlements() {
       const data = await res.json();
       if (!res.ok || !data.valid) {
         setError(data.error || "Invalid API key");
-        applyGuest();
+        applyDefaultPlan();
         localStorage.removeItem(KEY_STORAGE);
         localStorage.removeItem(PLAN_STORAGE);
         setLoading(false);
@@ -65,29 +71,29 @@ export function useEntitlements() {
       return true;
     } catch {
       setError("Could not validate API key");
-      applyGuest();
+      applyDefaultPlan();
       setLoading(false);
       return false;
     }
-  }, [applyGuest]);
+  }, [applyDefaultPlan]);
 
   useEffect(() => {
     const saved = localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
     if (saved) {
       void refreshFromKey(saved);
     } else {
-      applyGuest();
+      applyDefaultPlan();
       setLoading(false);
     }
-  }, [refreshFromKey, applyGuest]);
+  }, [refreshFromKey, applyDefaultPlan]);
 
   const clearKey = useCallback(() => {
     localStorage.removeItem(KEY_STORAGE);
     localStorage.removeItem("ace_api_key");
     localStorage.removeItem(PLAN_STORAGE);
-    applyGuest();
+    applyDefaultPlan();
     setError("");
-  }, [applyGuest]);
+  }, [applyDefaultPlan]);
 
   return {
     apiKey,
