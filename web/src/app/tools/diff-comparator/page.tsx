@@ -66,9 +66,9 @@ function InlineParts({
           key={i}
           className={
             p.type === "add"
-              ? "rounded bg-emerald-200/90 text-emerald-950 px-0.5"
+              ? "rounded bg-emerald-500/30 text-emerald-200 px-0.5"
               : p.type === "del"
-                ? "rounded bg-rose-200/90 text-rose-950 px-0.5 line-through decoration-rose-400/70"
+                ? "rounded bg-rose-500/30 text-rose-200 px-0.5 line-through decoration-rose-400"
                 : undefined
           }
         >
@@ -241,12 +241,12 @@ export default function DiffComparatorPage() {
   }, [drawerOpen]);
 
   const lineBg = (kind: string, hi: boolean) => {
-    const ring = hi ? " ring-2 ring-sky-400 ring-inset" : "";
-    if (kind === "equal") return `bg-white text-slate-700${ring}`;
-    if (kind === "del") return `bg-rose-50 text-rose-950${ring}`;
-    if (kind === "add") return `bg-emerald-50 text-emerald-950${ring}`;
-    if (kind === "modify") return `bg-amber-50 text-amber-950${ring}`;
-    return `bg-slate-50 text-slate-500${ring}`;
+    const ring = hi ? " ring-2 ring-[var(--accent-cyan)] ring-inset" : "";
+    if (kind === "equal") return `bg-transparent text-slate-300${ring}`;
+    if (kind === "del") return `bg-rose-950/40 text-rose-200${ring}`;
+    if (kind === "add") return `bg-emerald-950/40 text-emerald-200${ring}`;
+    if (kind === "modify") return `bg-amber-950/40 text-amber-200${ring}`;
+    return `bg-slate-900/40 text-slate-500${ring}`;
   };
 
   const renderSplit = (row: AlignedRow, idx: number, side: "left" | "right") => {
@@ -257,7 +257,7 @@ export default function DiffComparatorPage() {
       return (
         <div
           key={`${side}-s-${idx}`}
-          className="border-b border-slate-100 bg-slate-50 px-3 py-2 text-center text-xs text-slate-400"
+          className="border-b border-slate-800 bg-slate-950/60 px-3 py-2 text-center text-xs text-slate-500 font-mono"
         >
           {row.count} unchanged lines
         </div>
@@ -273,9 +273,9 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el && isLeft) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1fr] border-b border-slate-100 text-[12px] leading-5 ${lineBg("equal", hi)}`}
+          className={`grid grid-cols-[2.75rem_1fr] border-b border-slate-800/60 text-[12px] leading-5 ${lineBg("equal", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-slate-300">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-slate-600 font-mono">
             {ln}
           </span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
@@ -288,7 +288,7 @@ export default function DiffComparatorPage() {
     if (row.kind === "del") {
       if (!isLeft)
         return (
-          <div key={`${side}-${idx}`} className="min-h-[1.85rem] border-b border-slate-100 bg-slate-50/60" />
+          <div key={`${side}-${idx}`} className="min-h-[1.85rem] border-b border-slate-800/60 bg-slate-950/30" />
         );
       return (
         <div
@@ -296,9 +296,9 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1fr] border-b border-rose-100 text-[12px] leading-5 ${lineBg("del", hi)}`}
+          className={`grid grid-cols-[2.75rem_1fr] border-b border-rose-900/40 text-[12px] leading-5 ${lineBg("del", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-300">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-500 font-mono">
             {row.leftLine}
           </span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
@@ -311,7 +311,7 @@ export default function DiffComparatorPage() {
     if (row.kind === "add") {
       if (isLeft)
         return (
-          <div key={`${side}-${idx}`} className="min-h-[1.85rem] border-b border-slate-100 bg-slate-50/60" />
+          <div key={`${side}-${idx}`} className="min-h-[1.85rem] border-b border-slate-800/60 bg-slate-950/30" />
         );
       return (
         <div
@@ -319,9 +319,9 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1fr] border-b border-emerald-100 text-[12px] leading-5 ${lineBg("add", hi)}`}
+          className={`grid grid-cols-[2.75rem_1fr] border-b border-emerald-900/40 text-[12px] leading-5 ${lineBg("add", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-400">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-500 font-mono">
             {row.rightLine}
           </span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
@@ -337,9 +337,9 @@ export default function DiffComparatorPage() {
         ref={(el) => {
           if (el && isLeft) rowRefs.current.set(idx, el);
         }}
-        className={`grid grid-cols-[2.75rem_1fr] border-b border-amber-100 text-[12px] leading-5 ${lineBg("modify", hi)}`}
+        className={`grid grid-cols-[2.75rem_1fr] border-b border-amber-900/40 text-[12px] leading-5 ${lineBg("modify", hi)}`}
       >
-        <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-amber-400">
+        <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-amber-500 font-mono">
           {isLeft ? row.leftLine : row.rightLine}
         </span>
         <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
@@ -355,7 +355,7 @@ export default function DiffComparatorPage() {
       return (
         <div
           key={`u-s-${idx}`}
-          className="border-b border-slate-100 bg-slate-50 px-4 py-2 text-center text-xs text-slate-400"
+          className="border-b border-slate-800 bg-slate-950/60 px-4 py-2 text-center text-xs text-slate-500 font-mono"
         >
           {row.count} unchanged lines
         </div>
@@ -368,12 +368,12 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-slate-100 text-[12px] leading-5 ${lineBg("equal", hi)}`}
+          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-slate-800/60 text-[12px] leading-5 ${lineBg("equal", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-slate-300">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-slate-600 font-mono">
             {row.leftLine}
           </span>
-          <span className="select-none py-1.5 text-slate-300"> </span>
+          <span className="select-none py-1.5 text-slate-600 font-mono"> </span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
             {row.leftText || "\u00a0"}
           </span>
@@ -387,12 +387,12 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-rose-100 text-[12px] leading-5 ${lineBg("del", hi)}`}
+          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-rose-900/40 text-[12px] leading-5 ${lineBg("del", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-300">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-500 font-mono">
             {row.leftLine}
           </span>
-          <span className="select-none py-1.5 font-semibold text-rose-500">−</span>
+          <span className="select-none py-1.5 font-bold text-rose-400 font-mono">−</span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
             {row.leftText || "\u00a0"}
           </span>
@@ -406,12 +406,12 @@ export default function DiffComparatorPage() {
           ref={(el) => {
             if (el) rowRefs.current.set(idx, el);
           }}
-          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-emerald-100 text-[12px] leading-5 ${lineBg("add", hi)}`}
+          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-emerald-900/40 text-[12px] leading-5 ${lineBg("add", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-400">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-500 font-mono">
             {row.rightLine}
           </span>
-          <span className="select-none py-1.5 font-semibold text-emerald-600">+</span>
+          <span className="select-none py-1.5 font-bold text-emerald-400 font-mono">+</span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
             {row.rightText || "\u00a0"}
           </span>
@@ -426,23 +426,23 @@ export default function DiffComparatorPage() {
         }}
       >
         <div
-          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-rose-100 text-[12px] leading-5 ${lineBg("del", hi)}`}
+          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-rose-900/40 text-[12px] leading-5 ${lineBg("del", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-300">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-rose-500 font-mono">
             {row.leftLine}
           </span>
-          <span className="select-none py-1.5 font-semibold text-rose-500">−</span>
+          <span className="select-none py-1.5 font-bold text-rose-400 font-mono">−</span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
             <InlineParts parts={row.leftParts} />
           </span>
         </div>
         <div
-          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-emerald-100 text-[12px] leading-5 ${lineBg("add", hi)}`}
+          className={`grid grid-cols-[2.75rem_1.25rem_1fr] border-b border-emerald-900/40 text-[12px] leading-5 ${lineBg("add", hi)}`}
         >
-          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-400">
+          <span className="select-none py-1.5 pr-2 text-right text-[11px] tabular-nums text-emerald-500 font-mono">
             {row.rightLine}
           </span>
-          <span className="select-none py-1.5 font-semibold text-emerald-600">+</span>
+          <span className="select-none py-1.5 font-bold text-emerald-400 font-mono">+</span>
           <span className="whitespace-pre-wrap break-all py-1.5 pr-3 font-mono">
             <InlineParts parts={row.rightParts} />
           </span>
@@ -452,17 +452,17 @@ export default function DiffComparatorPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] w-full bg-slate-100 font-mono text-slate-900">
-      {/* Neo-Brutalist Light Header */}
-      <header className="shrink-0 border-b-3 border-black bg-white px-4 py-3 sm:px-6 shadow-[0_3px_0_#000000]">
+    <div className="flex-1 flex flex-col min-h-[calc(100vh-4rem)] w-full bg-[var(--background)] font-mono text-slate-200">
+      {/* Dark Modern Header */}
+      <header className="shrink-0 border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--brutal-cyan)] border-2 border-black text-black shrink-0 font-black">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30 shrink-0 font-bold">
               <GitCompare className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-sm font-black uppercase text-slate-900 tracking-tight">Visual Diff Comparator</h1>
-              <p className="text-[11px] font-bold text-slate-500">
+              <h1 className="text-sm font-bold uppercase text-slate-100 tracking-tight">Visual Diff Comparator</h1>
+              <p className="text-[11px] text-slate-400 font-mono">
                 {nameA} ↔ {nameB}
               </p>
             </div>
@@ -471,19 +471,19 @@ export default function DiffComparatorPage() {
           <div className="flex flex-wrap items-center gap-2 font-mono">
             <PlanPill tier={ent.tier} />
             {!hasChanges ? (
-              <span className="brutal-badge brutal-badge-lime text-xs">
+              <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
                 <CheckCircle2 className="h-3.5 w-3.5 inline mr-1" />
                 SAME CONTENT
               </span>
             ) : (
-              <div className="flex items-center gap-1.5 text-xs font-black">
-                <span className="brutal-badge brutal-badge-lime">
+              <div className="flex items-center gap-1.5 text-xs font-bold font-mono">
+                <span className="rounded-md bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-emerald-400">
                   +{stats.additions}
                 </span>
-                <span className="brutal-badge brutal-badge-pink">
+                <span className="rounded-md bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 text-rose-400">
                   −{stats.deletions}
                 </span>
-                <span className="brutal-badge brutal-badge-yellow">
+                <span className="rounded-md bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-amber-400">
                   ~{stats.modifications}
                 </span>
               </div>
@@ -492,7 +492,7 @@ export default function DiffComparatorPage() {
             <button
               type="button"
               onClick={swapTexts}
-              className="brutal-btn !text-xs !py-1.5 !px-3 font-black"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 transition-all"
               title="Swap Left ↔ Right input text"
             >
               <ArrowLeftRight className="h-3.5 w-3.5" />
@@ -502,7 +502,7 @@ export default function DiffComparatorPage() {
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
-              className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-4 font-black"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-cyan)] px-3.5 py-1.5 text-xs font-black text-black hover:bg-cyan-300 transition-all shadow-md"
             >
               <Pencil className="h-3.5 w-3.5" />
               Edit Texts
@@ -511,15 +511,15 @@ export default function DiffComparatorPage() {
         </div>
       </header>
 
-      {/* Expanded Diff Options Controls Toolbar */}
-      <div className="shrink-0 flex flex-wrap items-center gap-3 border-b-3 border-black bg-[var(--brutal-yellow)] px-4 py-2.5 sm:px-6 font-mono text-black font-black">
+      {/* Options Toolbar */}
+      <div className="shrink-0 flex flex-wrap items-center gap-3 border-b border-[var(--bevel-shadow)] bg-[var(--surface-panel)] px-4 py-2.5 sm:px-6 font-mono text-slate-200 font-medium">
         {/* Split / Unified View Mode */}
-        <div className="inline-flex rounded-md border-2 border-black bg-white p-0.5 shadow-[2px_2px_0_#000000]">
+        <div className="inline-flex rounded-lg border border-slate-700 bg-slate-900 p-0.5">
           <button
             type="button"
             onClick={() => setViewMode("split")}
-            className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-black transition ${
-              effectiveView === "split" ? "bg-[var(--brutal-yellow)] text-black" : "text-slate-600"
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold transition ${
+              effectiveView === "split" ? "bg-slate-800 text-[var(--accent-cyan)]" : "text-slate-400"
             }`}
           >
             <Columns2 className="h-3 w-3" />
@@ -535,8 +535,8 @@ export default function DiffComparatorPage() {
               setViewMode("unified");
             }}
             title={canUnified ? "Combined (unified) view" : "Free+ required"}
-            className={`inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-black transition ${
-              effectiveView === "unified" ? "bg-[var(--brutal-cyan)] text-black" : "text-slate-600"
+            className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold transition ${
+              effectiveView === "unified" ? "bg-slate-800 text-[var(--accent-cyan)]" : "text-slate-400"
             } ${!canUnified ? "opacity-50" : ""}`}
           >
             <AlignJustify className="h-3 w-3" />
@@ -545,10 +545,10 @@ export default function DiffComparatorPage() {
         </div>
 
         {/* Granularity Dropdown */}
-        <label className="flex items-center gap-1 text-[11px] font-black uppercase text-black">
+        <label className="flex items-center gap-1.5 text-[11px] font-bold uppercase text-slate-400">
           Granularity:
           <select
-            className="brutal-input text-[11px] !py-1 !px-2 font-black"
+            className="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-slate-200 outline-none focus:border-[var(--accent-cyan)]"
             value={effectiveGranularity}
             onChange={(e) => {
               const g = e.target.value as DiffGranularity;
@@ -559,11 +559,11 @@ export default function DiffComparatorPage() {
               setGranularity(g);
             }}
           >
-            <option value="word">Word Level</option>
-            <option value="char" disabled={!canChar}>
+            <option value="word" className="bg-slate-900 text-slate-200">Word Level</option>
+            <option value="char" disabled={!canChar} className="bg-slate-900 text-slate-200">
               Character Level{!canChar ? " · Pro+" : ""}
             </option>
-            <option value="line">Line Level</option>
+            <option value="line" className="bg-slate-900 text-slate-200">Line Level</option>
           </select>
         </label>
 
@@ -573,7 +573,7 @@ export default function DiffComparatorPage() {
             type="button"
             disabled={!hasChanges}
             onClick={() => jumpTo(findPrevChangeIndex(rows, highlightIdx))}
-            className="brutal-btn !py-1 !px-2 text-xs font-black disabled:opacity-40"
+            className="rounded-lg border border-slate-700 bg-slate-800 p-1 text-slate-300 hover:bg-slate-700 disabled:opacity-40"
             aria-label="Previous change"
             title="Previous change"
           >
@@ -583,7 +583,7 @@ export default function DiffComparatorPage() {
             type="button"
             disabled={!hasChanges}
             onClick={() => jumpTo(findNextChangeIndex(rows, highlightIdx))}
-            className="brutal-btn !py-1 !px-2 text-xs font-black disabled:opacity-40"
+            className="rounded-lg border border-slate-700 bg-slate-800 p-1 text-slate-300 hover:bg-slate-700 disabled:opacity-40"
             aria-label="Next change"
             title="Next change"
           >
@@ -592,61 +592,61 @@ export default function DiffComparatorPage() {
         </div>
 
         {/* Ignore Options Checkboxes */}
-        <div className="flex flex-wrap items-center gap-3 text-[11px] font-black uppercase">
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+        <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold uppercase text-slate-400">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={ignoreCase}
               onChange={(e) => setIgnoreCase(e.target.checked)}
             />
             Ignore Case
           </label>
 
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={ignoreWhitespace}
               onChange={(e) => setIgnoreWhitespace(e.target.checked)}
             />
             Ignore Spaces
           </label>
 
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={ignoreEmptyLines}
               onChange={(e) => setIgnoreEmptyLines(e.target.checked)}
             />
             Ignore Empty Lines
           </label>
 
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={ignoreComments}
               onChange={(e) => setIgnoreComments(e.target.checked)}
             />
-            Ignore Comments (# //)
+            Ignore Comments
           </label>
 
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={trimLines}
               onChange={(e) => setTrimLines(e.target.checked)}
             />
             Trim Lines
           </label>
 
-          <label className="flex items-center gap-1 cursor-pointer select-none">
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
             <input
               type="checkbox"
-              className="w-3.5 h-3.5 accent-black rounded border-2 border-black"
+              className="w-3.5 h-3.5 accent-[var(--accent-cyan)] rounded"
               checked={collapseUnchangedLines}
               onChange={(e) => setCollapseUnchangedLines(e.target.checked)}
             />
@@ -654,7 +654,7 @@ export default function DiffComparatorPage() {
           </label>
         </div>
 
-        {/* Action Buttons — patch export is Pro+ */}
+        {/* Action Buttons */}
         <div className="ml-auto flex items-center gap-2">
           <FeatureLock locked={!canPatch} requires="pro" mode="badge" title="Patch export" />
           <button
@@ -671,7 +671,7 @@ export default function DiffComparatorPage() {
               flash("Patch copied");
               window.setTimeout(() => setCopied(false), 1800);
             }}
-            className="brutal-btn brutal-btn-lime !text-xs !py-1 !px-3 font-black disabled:opacity-40"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
           >
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             Copy Patch{!canPatch ? " · Pro+" : ""}
@@ -694,7 +694,7 @@ export default function DiffComparatorPage() {
               URL.revokeObjectURL(url);
               flash("Downloaded changes.diff");
             }}
-            className="brutal-btn brutal-btn-cyan !text-xs !py-1 !px-3 font-black disabled:opacity-40"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
           >
             <Download className="h-3.5 w-3.5" />
             .diff{!canPatch ? " · Pro+" : ""}
@@ -703,15 +703,14 @@ export default function DiffComparatorPage() {
       </div>
 
       {sizeLimited && Number.isFinite(maxChars) && (
-        <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] font-medium text-amber-900 sm:px-6">
+        <div className="shrink-0 border-b border-amber-900/50 bg-amber-950/30 px-4 py-2 text-[11px] font-medium text-amber-300 sm:px-6">
           Plan limit: only the first {maxChars.toLocaleString()} characters per side are compared.
-          Upgrade for larger diffs.
         </div>
       )}
 
-      {/* ONE big result */}
-      <main className="relative mx-3 mb-3 mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm sm:mx-4 sm:mb-4">
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-2">
+      {/* Main Diff Area */}
+      <main className="relative mx-3 mb-3 mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] shadow-2xl sm:mx-4 sm:mb-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] px-4 py-2">
           <p className="text-xs text-slate-400">
             <span className="mr-3 inline-flex items-center gap-1">
               <span className="h-2 w-2 rounded-full bg-emerald-400" /> added
@@ -726,7 +725,7 @@ export default function DiffComparatorPage() {
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="text-xs font-medium text-sky-600 hover:text-sky-700"
+            className="text-xs font-bold text-[var(--accent-cyan)] hover:underline"
           >
             Change input texts →
           </button>
@@ -737,10 +736,10 @@ export default function DiffComparatorPage() {
             <div
               ref={leftScrollRef}
               onScroll={() => onSyncScroll("left")}
-              className="min-h-0 overflow-auto border-b border-slate-100 md:border-b-0 md:border-r md:border-slate-100"
+              className="min-h-0 overflow-auto border-b border-slate-800 md:border-b-0 md:border-r md:border-slate-800"
             >
-              <div className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 text-[11px] font-medium text-slate-500 backdrop-blur">
-                Original
+              <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900/90 px-3 py-1.5 text-[11px] font-bold text-slate-400 backdrop-blur">
+                Original ({nameA})
               </div>
               {rows.map((row, idx) => renderSplit(row, idx, "left"))}
             </div>
@@ -749,8 +748,8 @@ export default function DiffComparatorPage() {
               onScroll={() => onSyncScroll("right")}
               className="min-h-0 overflow-auto"
             >
-              <div className="sticky top-0 z-10 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 text-[11px] font-medium text-slate-500 backdrop-blur">
-                Modified
+              <div className="sticky top-0 z-10 border-b border-slate-800 bg-slate-900/90 px-3 py-1.5 text-[11px] font-bold text-slate-400 backdrop-blur">
+                Modified ({nameB})
               </div>
               {rows.map((row, idx) => renderSplit(row, idx, "right"))}
             </div>
@@ -769,14 +768,14 @@ export default function DiffComparatorPage() {
         <div className="fixed inset-0 z-50 flex justify-end">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             aria-label="Close"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="relative flex h-full w-full max-w-lg flex-col bg-white shadow-2xl animate-in slide-in-from-right sm:max-w-xl">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+          <aside className="relative flex h-full w-full max-w-lg flex-col bg-[var(--surface-panel)] border-l border-slate-800 shadow-2xl animate-in slide-in-from-right sm:max-w-xl">
+            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3 bg-[var(--surface-recessed)]">
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">Edit texts</h2>
+                <h2 className="text-sm font-bold text-slate-100 uppercase">Edit texts</h2>
                 <p className="text-[11px] text-slate-400">
                   Paste or upload — results update live
                 </p>
@@ -784,7 +783,7 @@ export default function DiffComparatorPage() {
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
                 aria-label="Close drawer"
               >
                 <X className="h-4 w-4" />
@@ -793,11 +792,11 @@ export default function DiffComparatorPage() {
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
               {/* Original */}
-              <div className="flex min-h-[40%] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+              <div className="flex min-h-[40%] flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950/40">
+                <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-800">Original</p>
-                    <p className="truncate text-[11px] text-slate-400">{nameA}</p>
+                    <p className="text-xs font-bold text-slate-200">Original</p>
+                    <p className="truncate text-[11px] text-slate-500 font-mono">{nameA}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -821,7 +820,7 @@ export default function DiffComparatorPage() {
                         }
                         fileARef.current?.click();
                       }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
                     >
                       <Upload className="h-3 w-3" />
                       File{!canUpload ? " · Free+" : ""}
@@ -833,7 +832,7 @@ export default function DiffComparatorPage() {
                   onChange={(e) => setTextA(e.target.value)}
                   spellCheck={false}
                   placeholder="Paste original…"
-                  className="min-h-[8rem] flex-1 resize-none border-0 px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-800 outline-none"
+                  className="min-h-[8rem] flex-1 resize-none border-0 bg-transparent px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-200 outline-none placeholder:text-slate-600"
                 />
               </div>
 
@@ -846,7 +845,7 @@ export default function DiffComparatorPage() {
                     setNameA(nameB);
                     setNameB(nameA);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-700 bg-slate-800 px-3 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700"
                 >
                   <ArrowLeftRight className="h-3.5 w-3.5" />
                   Swap
@@ -854,11 +853,11 @@ export default function DiffComparatorPage() {
               </div>
 
               {/* Modified */}
-              <div className="flex min-h-[40%] flex-1 flex-col overflow-hidden rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-3 py-2">
+              <div className="flex min-h-[40%] flex-1 flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950/40">
+                <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900/60 px-3 py-2">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-800">Modified</p>
-                    <p className="truncate text-[11px] text-slate-400">{nameB}</p>
+                    <p className="text-xs font-bold text-slate-200">Modified</p>
+                    <p className="truncate text-[11px] text-slate-500 font-mono">{nameB}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <input
@@ -882,7 +881,7 @@ export default function DiffComparatorPage() {
                         }
                         fileBRef.current?.click();
                       }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
                     >
                       <Upload className="h-3 w-3" />
                       File{!canUpload ? " · Free+" : ""}
@@ -894,16 +893,16 @@ export default function DiffComparatorPage() {
                   onChange={(e) => setTextB(e.target.value)}
                   spellCheck={false}
                   placeholder="Paste modified…"
-                  className="min-h-[8rem] flex-1 resize-none border-0 px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-800 outline-none"
+                  className="min-h-[8rem] flex-1 resize-none border-0 bg-transparent px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-200 outline-none placeholder:text-slate-600"
                 />
               </div>
             </div>
 
-            <div className="border-t border-slate-100 p-4">
+            <div className="border-t border-slate-800 p-4 bg-[var(--surface-recessed)]">
               <button
                 type="button"
                 onClick={() => setDrawerOpen(false)}
-                className="w-full rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+                className="w-full rounded-xl bg-[var(--accent-cyan)] py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
               >
                 Done — view results
               </button>
@@ -913,7 +912,7 @@ export default function DiffComparatorPage() {
       )}
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-100 shadow-2xl">
           {toast}
         </div>
       )}
