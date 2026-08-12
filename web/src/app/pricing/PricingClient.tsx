@@ -4,8 +4,10 @@ import React, { useState } from "react";
 import { PRICING } from "@/lib/site";
 import { Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
 import { CheckoutModal } from "@/components/CheckoutModal";
+import { useAuth } from "@clerk/nextjs";
 
 export function PricingClient() {
+  const { isSignedIn } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<{
     id: string;
     name: string;
@@ -68,21 +70,23 @@ export function PricingClient() {
               </div>
 
               {tier.id === "free" ? (
-                <a
-                  href={tier.ctaHref}
-                  className="sk-btn text-xs w-full justify-center sk-btn-ghost"
-                >
-                  <span>{tier.cta}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
-              ) : tier.id === "team" ? (
-                <a
-                  href={tier.ctaHref}
-                  className="sk-btn text-xs w-full justify-center sk-btn-ghost"
-                >
-                  <span>{tier.cta}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+                isSignedIn ? (
+                  <a
+                    href="/dashboard"
+                    className="sk-btn text-xs w-full justify-center sk-btn-ghost"
+                  >
+                    <span>Go to Dashboard</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <a
+                    href={tier.ctaHref}
+                    className="sk-btn text-xs w-full justify-center sk-btn-ghost"
+                  >
+                    <span>{tier.cta}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                )
               ) : (
                 <button
                   type="button"
