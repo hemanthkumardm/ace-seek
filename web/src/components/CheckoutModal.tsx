@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import {
   CreditCard,
+  Sparkles,
   X,
   CheckCircle2,
   ArrowRight,
@@ -291,6 +292,7 @@ export function CheckoutModal({
                   After payment, your plan unlocks on www, vlsi, and tools via the
                   API key shown next.
                 </p>
+              </div>
             </div>
 
             {errorMessage && (
