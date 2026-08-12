@@ -71,7 +71,7 @@ export function FeatureLock({
             Upgrade to <strong className="text-cyan-400">{need}</strong> (or higher) and activate your API key to unlock.
           </p>
           <a
-            href="/pricing"
+            href={mainPricingHref()}
             className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--accent-cyan)] text-black font-black px-4 py-1.5 text-[11px] hover:bg-cyan-300 transition-all shadow-md"
           >
             <Lock className="h-3 w-3" />

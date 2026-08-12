@@ -102,7 +102,7 @@ export function VlsiStudioGate({
         </p>
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           <a
-            href="/pricing"
+            href={mainPricingHref()}
             className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-cyan)] px-4 py-2 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
           >
             <Lock className="h-3.5 w-3.5" />
