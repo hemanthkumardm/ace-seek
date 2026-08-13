@@ -16,13 +16,13 @@ export async function POST(req: NextRequest) {
 
     if (!keyId || !keySecret) {
       return NextResponse.json(
-        { error: "Razorpay credentials are not configured on the server." },
+        { error: "Razorpay credentials (RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET) are not configured on the server." },
         { status: 500 }
       );
     }
 
     const body = await req.json();
-    const plan = String(body.plan || "pro").toLowerCase();
+    const plan = String(body.planId || body.plan || "pro").toLowerCase();
     
     // Amount in INR rupees (or custom amount passed)
     let amountInRupees = Number(body.amount) || PLAN_PRICES_INR[plan] || 1299;
@@ -63,9 +63,11 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
+      orderId: order.id,
       order_id: order.id,
       amount: order.amount,
       currency: order.currency,
+      keyId,
       key_id: keyId,
       plan,
       user_id: body.userId || null,

@@ -79,7 +79,10 @@ export function CheckoutModal({ planId, planName, price, isOpen, onClose }: Chec
       });
 
       const orderData = await res.json();
-      if (!res.ok || !orderData.orderId) {
+      const orderId = orderData.orderId || orderData.order_id;
+      const keyId = orderData.keyId || orderData.key_id;
+
+      if (!res.ok || !orderId) {
         setErrorMessage(orderData.error || "Failed to create payment order.");
         setLoading(false);
         return;
@@ -100,12 +103,12 @@ export function CheckoutModal({ planId, planName, price, isOpen, onClose }: Chec
       if (user?.primaryPhoneNumber?.phoneNumber) prefillObj.contact = user.primaryPhoneNumber.phoneNumber;
 
       const options: RazorpayOptions = {
-        key: orderData.keyId,
+        key: keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "Ace-Seek Technologies",
         description: `Subscription for ${planName} Plan`,
-        order_id: orderData.orderId,
+        order_id: orderId,
         remember_customer: false,
         prefill: prefillObj,
         handler: async function (response) {
