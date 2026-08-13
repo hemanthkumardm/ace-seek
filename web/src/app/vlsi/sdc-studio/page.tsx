@@ -23,6 +23,9 @@ import {
   Eye,
   Layers,
   ArrowRightLeft,
+  Maximize2,
+  Minimize2,
+  X,
 } from "lucide-react";
 import {
   SdcStudioState,
@@ -106,6 +109,7 @@ function InteractiveSdcStudioPage() {
     "matrix"
   );
   const [baselineState, setBaselineState] = useState<SdcStudioState | null>(null);
+  const [isWaveformPopoutOpen, setIsWaveformPopoutOpen] = useState(false);
   const [attachOpen, setAttachOpen] = useState(false);
   const [attachModeName, setAttachModeName] = useState("func");
   const [attachFileName, setAttachFileName] = useState("constraints_func.sdc");
@@ -716,6 +720,160 @@ function InteractiveSdcStudioPage() {
   // Calculation metrics
   const dutyRatio = selectedClk.waveformFalling / (selectedClk.periodNs || 1);
   const freqMhz = (1000 / (selectedClk.periodNs || 1)).toFixed(1);
+
+  const renderWaveformSvg = (clk: PrimaryClock, heightClass = "h-32") => {
+    const duty = clk.waveformFalling / (clk.periodNs || 1);
+    const srcPx = clk.latencySource * 20;
+    const netPx = clk.latencyNetwork * 20;
+    const totalPx = srcPx + netPx;
+
+    const baseRiseX = 50;
+    const activeRiseX = Math.min(220, baseRiseX + totalPx);
+    const activeFallX = activeRiseX + duty * 180;
+    const activeCaptureX = Math.min(440, activeRiseX + 180);
+
+    return (
+      <svg viewBox="0 0 500 115" className={`w-full ${heightClass}`}>
+        {/* Ideal Reference Dotted Line (0ns) */}
+        <line x1={baseRiseX} y1="10" x2={baseRiseX} y2="105" stroke="#94a3b8" strokeDasharray="3,3" strokeWidth="1.5" />
+        <text x={baseRiseX} y="105" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">
+          0.00ns
+        </text>
+
+        {/* Source Latency Arrow (Purple) */}
+        {clk.latencySource > 0 && (
+          <g>
+            <line
+              x1={baseRiseX}
+              y1="14"
+              x2={baseRiseX + srcPx}
+              y2="14"
+              stroke="#9333ea"
+              strokeWidth="2"
+            />
+            <polygon
+              points={`${baseRiseX + srcPx},14 ${baseRiseX + srcPx - 4},11 ${baseRiseX + srcPx - 4},17`}
+              fill="#9333ea"
+            />
+            <text x={baseRiseX + Math.max(2, srcPx / 2)} y="10" textAnchor="start" fill="#7e22ce" fontSize="8" fontWeight="extrabold">
+              Src Lat (+{clk.latencySource.toFixed(2)}ns)
+            </text>
+          </g>
+        )}
+
+        {/* Network Latency Arrow (Indigo) */}
+        {clk.latencyNetwork > 0 && (
+          <g>
+            <line
+              x1={baseRiseX + srcPx}
+              y1="14"
+              x2={activeRiseX}
+              y2="14"
+              stroke="#4f46e5"
+              strokeWidth="2"
+            />
+            <polygon
+              points={`${activeRiseX},14 ${activeRiseX - 4},11 ${activeRiseX - 4},17`}
+              fill="#4f46e5"
+            />
+            <text
+              x={Math.max(baseRiseX + srcPx + 4, activeRiseX - 60)}
+              y="10"
+              fill="#4338ca"
+              fontSize="8"
+              fontWeight="extrabold"
+            >
+              Net Lat (+{clk.latencyNetwork.toFixed(2)}ns)
+            </text>
+          </g>
+        )}
+
+        {/* Setup Uncertainty Shaded Band (Amber at Capture Edge) */}
+        {clk.uncertaintySetup > 0 && (
+          <rect
+            x={activeCaptureX - clk.uncertaintySetup * 15}
+            y="32"
+            width={Math.max(6, clk.uncertaintySetup * 30)}
+            height="50"
+            fill="#f59e0b"
+            fillOpacity="0.25"
+            stroke="#d97706"
+            strokeDasharray="2,2"
+            rx="4"
+          />
+        )}
+
+        {/* Hold Uncertainty Shaded Band (Rose at Active Launch Edge) */}
+        {clk.uncertaintyHold > 0 && (
+          <rect
+            x={activeRiseX - clk.uncertaintyHold * 15}
+            y="32"
+            width={Math.max(6, clk.uncertaintyHold * 30)}
+            height="50"
+            fill="#f43f5e"
+            fillOpacity="0.25"
+            stroke="#e11d48"
+            strokeDasharray="2,2"
+            rx="4"
+          />
+        )}
+
+        {/* Primary Waveform Path */}
+        <path
+          d={`M 10 82 L ${activeRiseX} 82 L ${activeRiseX} 37 L ${activeFallX} 37 L ${activeFallX} 82 L ${activeCaptureX} 82 L ${activeCaptureX} 37 L ${activeCaptureX + duty * 180} 37 L ${activeCaptureX + duty * 180} 82 L 490 82`}
+          fill="none"
+          stroke="#0284c7"
+          strokeWidth="3"
+        />
+
+        {/* Hold Uncertainty Marker Label */}
+        {clk.uncertaintyHold > 0 && (
+          <text
+            x={activeRiseX}
+            y="27"
+            textAnchor="middle"
+            fill="#be123c"
+            fontSize="8.5"
+            fontWeight="extrabold"
+          >
+            Hold Unc (±{clk.uncertaintyHold.toFixed(2)}ns)
+          </text>
+        )}
+
+        {/* Setup Uncertainty Marker Label */}
+        {clk.uncertaintySetup > 0 && (
+          <text
+            x={activeCaptureX}
+            y="27"
+            textAnchor="middle"
+            fill="#b45309"
+            fontSize="8.5"
+            fontWeight="extrabold"
+          >
+            Setup Unc (±{clk.uncertaintySetup.toFixed(2)}ns)
+          </text>
+        )}
+
+        {/* Shifted Rising Edge Marker */}
+        <circle cx={activeRiseX} cy="37" r="4.5" fill="#10b981" />
+        <text x={activeRiseX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
+          Arr ({(clk.latencySource + clk.latencyNetwork).toFixed(2)}ns)
+        </text>
+
+        {/* Falling Edge Marker */}
+        <circle cx={activeFallX} cy="37" r="4.5" fill="#3b82f6" />
+        <text x={activeFallX} y="96" textAnchor="middle" fill="#1d4ed8" fontSize="8.5" fontWeight="extrabold">
+          Fall ({(clk.latencySource + clk.latencyNetwork + clk.waveformFalling).toFixed(2)}ns)
+        </text>
+
+        {/* Capture Edge Marker */}
+        <circle cx={activeCaptureX} cy="37" r="4.5" fill="#10b981" />
+        <text x={activeCaptureX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
+          Capture ({(clk.latencySource + clk.latencyNetwork + clk.periodNs).toFixed(2)}ns)
+        </text>
+      </svg>
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden p-3 md:p-5 gap-4 select-none">
@@ -1371,6 +1529,16 @@ function InteractiveSdcStudioPage() {
 
                       <button
                         type="button"
+                        onClick={() => setIsWaveformPopoutOpen(true)}
+                        className="neu-btn px-2.5 py-1 text-xs font-bold text-sky-600 flex items-center gap-1 hover:bg-sky-50"
+                        title="Pop out live waveform into a floating window while scrolling"
+                      >
+                        <Maximize2 className="h-3.5 w-3.5" />
+                        <span>Float Pop-up</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => deletePrimaryClock(selectedClk.id)}
                         disabled={state.primaryClocks.length <= 1}
                         className="neu-btn px-2.5 py-1 text-xs font-bold text-rose-600 flex items-center gap-1 hover:bg-rose-50 disabled:opacity-40"
@@ -1384,158 +1552,7 @@ function InteractiveSdcStudioPage() {
 
                   {/* SVG Waveform Visualization */}
                   <div className="neu-inset p-3 bg-[#e8edf5]">
-                    {(() => {
-                      const srcPx = selectedClk.latencySource * 20;
-                      const netPx = selectedClk.latencyNetwork * 20;
-                      const totalPx = srcPx + netPx;
-
-                      const baseRiseX = 50;
-                      const activeRiseX = Math.min(220, baseRiseX + totalPx);
-                      const activeFallX = activeRiseX + dutyRatio * 180;
-                      const activeCaptureX = Math.min(440, activeRiseX + 180);
-
-                      return (
-                        <svg viewBox="0 0 500 115" className="w-full h-32">
-                          {/* Ideal Reference Dotted Line (0ns) */}
-                          <line x1={baseRiseX} y1="10" x2={baseRiseX} y2="105" stroke="#94a3b8" strokeDasharray="3,3" strokeWidth="1.5" />
-                          <text x={baseRiseX} y="105" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">
-                            0.00ns
-                          </text>
-
-                          {/* Source Latency Arrow (Purple) */}
-                          {selectedClk.latencySource > 0 && (
-                            <g>
-                              <line
-                                x1={baseRiseX}
-                                y1="14"
-                                x2={baseRiseX + srcPx}
-                                y2="14"
-                                stroke="#9333ea"
-                                strokeWidth="2"
-                              />
-                              <polygon
-                                points={`${baseRiseX + srcPx},14 ${baseRiseX + srcPx - 4},11 ${baseRiseX + srcPx - 4},17`}
-                                fill="#9333ea"
-                              />
-                              <text x={baseRiseX + Math.max(2, srcPx / 2)} y="10" textAnchor="start" fill="#7e22ce" fontSize="8" fontWeight="extrabold">
-                                Src Lat (+{selectedClk.latencySource.toFixed(2)}ns)
-                              </text>
-                            </g>
-                          )}
-
-                          {/* Network Latency Arrow (Indigo) */}
-                          {selectedClk.latencyNetwork > 0 && (
-                            <g>
-                              <line
-                                x1={baseRiseX + srcPx}
-                                y1="14"
-                                x2={activeRiseX}
-                                y2="14"
-                                stroke="#4f46e5"
-                                strokeWidth="2"
-                              />
-                              <polygon
-                                points={`${activeRiseX},14 ${activeRiseX - 4},11 ${activeRiseX - 4},17`}
-                                fill="#4f46e5"
-                              />
-                              <text
-                                x={Math.max(baseRiseX + srcPx + 4, activeRiseX - 60)}
-                                y="10"
-                                fill="#4338ca"
-                                fontSize="8"
-                                fontWeight="extrabold"
-                              >
-                                Net Lat (+{selectedClk.latencyNetwork.toFixed(2)}ns)
-                              </text>
-                            </g>
-                          )}
-
-                          {/* Setup Uncertainty Shaded Band (Amber at Capture Edge) */}
-                          {selectedClk.uncertaintySetup > 0 && (
-                            <rect
-                              x={activeCaptureX - selectedClk.uncertaintySetup * 15}
-                              y="32"
-                              width={Math.max(6, selectedClk.uncertaintySetup * 30)}
-                              height="50"
-                              fill="#f59e0b"
-                              fillOpacity="0.25"
-                              stroke="#d97706"
-                              strokeDasharray="2,2"
-                              rx="4"
-                            />
-                          )}
-
-                          {/* Hold Uncertainty Shaded Band (Rose at Active Launch Edge) */}
-                          {selectedClk.uncertaintyHold > 0 && (
-                            <rect
-                              x={activeRiseX - selectedClk.uncertaintyHold * 15}
-                              y="32"
-                              width={Math.max(6, selectedClk.uncertaintyHold * 30)}
-                              height="50"
-                              fill="#f43f5e"
-                              fillOpacity="0.25"
-                              stroke="#e11d48"
-                              strokeDasharray="2,2"
-                              rx="4"
-                            />
-                          )}
-
-                          {/* Primary Waveform Path (Shifted by Source + Network Latency) */}
-                          <path
-                            d={`M 10 82 L ${activeRiseX} 82 L ${activeRiseX} 37 L ${activeFallX} 37 L ${activeFallX} 82 L ${activeCaptureX} 82 L ${activeCaptureX} 37 L ${activeCaptureX + dutyRatio * 180} 37 L ${activeCaptureX + dutyRatio * 180} 82 L 490 82`}
-                            fill="none"
-                            stroke="#0284c7"
-                            strokeWidth="3"
-                          />
-
-                          {/* Hold Uncertainty Marker Label (Row Y=27) */}
-                          {selectedClk.uncertaintyHold > 0 && (
-                            <text
-                              x={activeRiseX}
-                              y="27"
-                              textAnchor="middle"
-                              fill="#be123c"
-                              fontSize="8.5"
-                              fontWeight="extrabold"
-                            >
-                              Hold Unc (±{selectedClk.uncertaintyHold.toFixed(2)}ns)
-                            </text>
-                          )}
-
-                          {/* Setup Uncertainty Marker Label (Row Y=27) */}
-                          {selectedClk.uncertaintySetup > 0 && (
-                            <text
-                              x={activeCaptureX}
-                              y="27"
-                              textAnchor="middle"
-                              fill="#b45309"
-                              fontSize="8.5"
-                              fontWeight="extrabold"
-                            >
-                              Setup Unc (±{selectedClk.uncertaintySetup.toFixed(2)}ns)
-                            </text>
-                          )}
-
-                          {/* Shifted Rising Edge Marker */}
-                          <circle cx={activeRiseX} cy="37" r="4.5" fill="#10b981" />
-                          <text x={activeRiseX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
-                            Arr ({(selectedClk.latencySource + selectedClk.latencyNetwork).toFixed(2)}ns)
-                          </text>
-
-                          {/* Falling Edge Marker */}
-                          <circle cx={activeFallX} cy="37" r="4.5" fill="#3b82f6" />
-                          <text x={activeFallX} y="96" textAnchor="middle" fill="#1d4ed8" fontSize="8.5" fontWeight="extrabold">
-                            Fall ({(selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.waveformFalling).toFixed(2)}ns)
-                          </text>
-
-                          {/* Capture Edge Marker */}
-                          <circle cx={activeCaptureX} cy="37" r="4.5" fill="#10b981" />
-                          <text x={activeCaptureX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
-                            Capture ({(selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.periodNs).toFixed(2)}ns)
-                          </text>
-                        </svg>
-                      );
-                    })()}
+                    {renderWaveformSvg(selectedClk)}
                   </div>
                 </div>
 
@@ -3419,9 +3436,84 @@ Slack:= -0.085`}
         </div>
       </div>
 
+      {/* FLOATING LIVE WAVEFORM POP-UP (PICTURE-IN-PICTURE) */}
+      {isWaveformPopoutOpen ? (
+        <div className="fixed bottom-6 right-6 z-50 w-[470px] max-w-[92vw] shadow-2xl rounded-2xl border border-sky-400/80 bg-white/95 backdrop-blur-md overflow-hidden transition-all duration-300 animate-in slide-in-from-bottom-5">
+          {/* Floating Header */}
+          <div className="bg-slate-900 text-white px-3.5 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-black text-sky-300">
+              <Activity className="h-4 w-4 animate-pulse text-cyan-400" />
+              <span>Live Waveform PiP</span>
+              <span className="bg-sky-950 text-sky-300 border border-sky-700/60 text-[10px] px-2 py-0.5 rounded-full font-mono">
+                {(1000 / (selectedClk.periodNs || 1)).toFixed(1)} MHz
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Quick Clock Selector Dropdown inside Pop-up */}
+              <select
+                value={selectedClkId}
+                onChange={(e) => setSelectedClkId(e.target.value)}
+                className="bg-slate-800 text-sky-200 border border-slate-700 rounded text-xs px-2 py-0.5 font-bold outline-none cursor-pointer hover:bg-slate-700"
+              >
+                {state.primaryClocks.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    PRI: {c.name} ({c.periodNs.toFixed(2)}ns)
+                  </option>
+                ))}
+                {state.generatedClocks.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    GEN: {g.name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setIsWaveformPopoutOpen(false)}
+                className="text-slate-400 hover:text-white transition p-1 rounded hover:bg-slate-800"
+                title="Close floating waveform pop-up"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Floating Body Canvas */}
+          <div className="p-3 bg-[#e8edf5]">
+            {renderWaveformSvg(selectedClk, "h-28")}
+          </div>
+
+          {/* Floating Footer Status Bar */}
+          <div className="px-3.5 py-2 bg-slate-100 border-t border-slate-200/80 flex items-center justify-between text-[11px] font-bold text-slate-700">
+            <span>
+              Arrival: {(selectedClk.latencySource + selectedClk.latencyNetwork).toFixed(2)}ns | Setup Unc: ±{selectedClk.uncertaintySetup.toFixed(2)}ns
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsWaveformPopoutOpen(false)}
+              className="text-sky-700 hover:underline flex items-center gap-1 text-[10px] font-black"
+            >
+              <Minimize2 className="h-3 w-3" />
+              <span>Dock Back</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsWaveformPopoutOpen(true)}
+          className="fixed bottom-6 right-6 z-40 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs px-3.5 py-2.5 rounded-full shadow-2xl border border-sky-300 flex items-center gap-2 transition-all hover:scale-105"
+          title="Open Live Waveform Floating Pop-up"
+        >
+          <Activity className="h-4 w-4 text-cyan-200 animate-pulse" />
+          <span>Float Waveform</span>
+        </button>
+      )}
+
       {/* TOAST */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 neu-panel px-5 py-3 text-xs font-black text-sky-700 shadow-xl flex items-center gap-2">
+        <div className="fixed bottom-6 right-20 z-50 neu-panel px-5 py-3 text-xs font-black text-sky-700 shadow-xl flex items-center gap-2">
           <Check className="h-4 w-4 text-emerald-600" />
           <span>{toast}</span>
         </div>
