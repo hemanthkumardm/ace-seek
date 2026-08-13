@@ -18,6 +18,7 @@ import {
   Loader2,
   Sparkles,
   ShieldCheck,
+  Clock,
 } from "lucide-react";
 
 type UserProfile = {
@@ -34,9 +35,62 @@ const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => void }) {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [trialStatus, setTrialStatus] = useState<{
+    activated: boolean;
+    expiresAt?: string;
+    daysRemaining?: number;
+    expired?: boolean;
+  }>({ activated: false });
+  const [countdownText, setCountdownText] = useState<string>("");
 
   const freeKey = user.freeKey || user.apiKey;
   const trialKey = user.trialKey || user.apiKey.replace("ace_free_", "ace_trial_");
+
+  useEffect(() => {
+    if (!trialKey) return;
+    fetch("/api/validate-key", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey: trialKey }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.expiresAt) {
+          setTrialStatus({
+            activated: true,
+            expiresAt: data.expiresAt,
+            daysRemaining: data.daysRemaining,
+            expired: Boolean(data.trialExpired),
+          });
+        }
+      })
+      .catch(() => {});
+  }, [trialKey]);
+
+  useEffect(() => {
+    if (!trialStatus.expiresAt) return;
+    const targetTime = new Date(trialStatus.expiresAt).getTime();
+
+    const updateTimer = () => {
+      const diff = targetTime - Date.now();
+      if (diff <= 0) {
+        setCountdownText("Trial Expired (Reverted to Free)");
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setCountdownText(
+        `${days}d ${hours}h ${mins}m ${secs}s remaining`
+      );
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trialStatus.expiresAt]);
 
   const handleCopy = (keyStr: string, label: string) => {
     if (!keyStr) return;
@@ -118,15 +172,22 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* KEY 1: 7-DAY PRO TRIAL KEY */}
+            {/* KEY 1: 7-DAY MAX TRIAL KEY */}
             <div className="rounded-xl border border-yellow-500/40 bg-yellow-950/10 p-5 space-y-3 relative overflow-hidden">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-                  <span>1. 7-Day Pro Trial Key</span>
+                  <span>1. 7-Day MAX Trial Key</span>
                 </span>
-                <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-bold text-yellow-300 border border-yellow-500/30">
-                  Starts On First Use
+                <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-bold text-yellow-300 border border-yellow-500/30 font-mono flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-yellow-400" />
+                  <span>
+                    {trialStatus.expired
+                      ? "Expired (Fell back to Free)"
+                      : countdownText
+                      ? countdownText
+                      : "Starts On First Use"}
+                  </span>
                 </span>
               </div>
 
@@ -148,7 +209,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
 
               <p className="text-[11px] text-yellow-200/80 leading-relaxed font-mono">
-                ⚡ Timer begins on first API call/login. Valid for 7 full days from first use.
+                ⚡ Unlocks 100% MAX features across all Workstations. The 7-day countdown starts on first use.
               </p>
             </div>
 
@@ -159,7 +220,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
                   <span>2. Permanent Free Key</span>
                 </span>
-                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30 font-mono">
                   Never Expires
                 </span>
               </div>
@@ -182,74 +243,78 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
 
               <p className="text-[11px] text-emerald-200/80 leading-relaxed font-mono">
-                🔒 Permanent access. Includes 25 converts/day & SDC Studio viewing.
+                🛡️ Always active with standard limits (5 doc converts/day &amp; standard EDA features).
               </p>
             </div>
           </div>
+        </div>
 
-          <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed">
-            <div className="flex items-center gap-2 text-[var(--foreground)] font-bold mb-1">
-              <HelpCircle className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <span>How to Authorize Workstations:</span>
-            </div>
-            <p>
-              • Step 1: Copy either your <strong>7-Day Pro Trial Key</strong> or <strong>Permanent Free Key</strong> above.
-            </p>
-            <p>
-              • Step 2: Open any product workstation (e.g. <code>tools.ace-seek.com</code> or <code>vlsi.ace-seek.com</code>).
-            </p>
-            <p>
-              • Step 3: Paste into the <strong>API Key Bar</strong> to activate your entitlements.
-            </p>
+        {/* WORKSTATION ACCESSIBILITY GRID */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Boxes className="w-5 h-5 text-[var(--accent-blue)]" />
+              <span>Available Microservices &amp; Workstations</span>
+            </h2>
+            <span className="text-xs text-[var(--muted)] font-mono">
+              Use your API key above for instant authentication
+            </span>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            {PRODUCTS.map((prod) => (
+              <div key={prod.slug} className="sk-card group p-6 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="sk-badge sk-badge-cyan">
+                      {prod.status === "live" ? "OPERATIONAL" : "COMING SOON"}
+                    </span>
+                    <span className="text-[10px] text-[var(--muted)] font-mono">
+                      Subdomain: {prod.slug}.ace-seek.com
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold group-hover:text-[var(--accent-cyan)] transition">
+                    {prod.name}
+                  </h3>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                    {prod.blurb}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-[#10b981] flex items-center gap-1">
+                    <span className="sk-led sk-led-green" /> Hub Operational
+                  </span>
+                  <a
+                    href={prod.appPath}
+                    className="sk-btn sk-btn-primary !text-xs !py-1.5"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>Launch {prod.name}</span>
+                    <Cpu className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--bevel-shadow)] pb-3">
-            <div className="flex items-center gap-2">
-              <Boxes className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <h2 className="text-base font-bold tracking-tight">
-                Subdomain Ecosystem Specifications
-              </h2>
+        {/* HELP & DOCUMENTATION */}
+        <div className="sk-recessed p-6 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+          <div className="flex items-center gap-3">
+            <HelpCircle className="w-5 h-5 text-[var(--muted)]" />
+            <div>
+              <p className="font-bold text-white">Need developer documentation or custom API keys?</p>
+              <p className="text-[var(--muted)]">Check our guides or reach out to support@ace-seek.com</p>
             </div>
-            <span className="sk-badge font-mono">{PRODUCTS.length} PRODUCTS</span>
           </div>
-
-          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {PRODUCTS.map((p) => {
-              const live = p.status === "live";
-              return (
-                <li key={p.id}>
-                  <div className="sk-panel p-6 flex flex-col justify-between h-full space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="sk-icon-well">
-                            <Cpu className="w-4 h-4 text-[var(--accent-cyan)]" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-[var(--foreground)]">
-                              {p.name}
-                            </h3>
-                            <p className="font-mono text-[11px] text-[var(--accent-cyan)]">
-                              {p.host}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="sk-badge">
-                          <span
-                            className={`sk-led ${live ? "sk-led-green" : "sk-led-amber"}`}
-                          />
-                          <span>{live ? "Live Host" : "Soon"}</span>
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--muted)] leading-relaxed">{p.blurb}</p>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <a
+            href="https://www.ace-seek.com/docs"
+            className="sk-btn sk-btn-ghost !text-xs"
+          >
+            <span>API Docs &rarr;</span>
+          </a>
         </div>
       </main>
 
@@ -258,99 +323,88 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
   );
 }
 
-function ClerkDashboard() {
-  const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      router.push("/login?redirect=/dashboard");
-      return;
-    }
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthenticated");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.authenticated && data.user) {
-          setProfile(data.user);
-        } else {
-          router.push("/login?redirect=/dashboard");
-        }
-      })
-      .catch(() => router.push("/login?redirect=/dashboard"))
-      .finally(() => setLoading(false));
-  }, [isLoaded, isSignedIn, router, clerkUser?.id]);
-
-  if (!isLoaded || loading) {
-    return (
-      <div className="min-h-full flex flex-col justify-center items-center py-32">
-        <Loader2 className="w-6 h-6 text-[var(--accent-cyan)] animate-spin" />
-        <p className="font-mono text-xs mt-3">VERIFYING SESSION…</p>
-      </div>
-    );
-  }
-
-  if (!profile) return null;
-
-  return (
-    <DashboardBody
-      user={profile}
-      onLogout={async () => {
-        await signOut({ redirectUrl: "/login" });
-      }}
-    />
-  );
-}
-
-function LegacyDashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthenticated");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.authenticated && data.user) setUser(data.user);
-        else router.push("/login?redirect=/dashboard");
-      })
-      .catch(() => router.push("/login?redirect=/dashboard"))
-      .finally(() => setLoading(false));
-  }, [router]);
-
-  if (loading) {
-    return (
-      <div className="min-h-full flex flex-col justify-center items-center py-32">
-        <Loader2 className="w-6 h-6 text-[var(--accent-cyan)] animate-spin" />
-        <p className="font-mono text-xs mt-3">VERIFYING USER SESSION…</p>
-      </div>
-    );
-  }
-  if (!user) return null;
-
-  return (
-    <DashboardBody
-      user={user}
-      onLogout={async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
-        router.refresh();
-      }}
-    />
-  );
-}
-
 export default function DashboardPage() {
-  if (clerkPk?.trim()) return <ClerkDashboard />;
-  return <LegacyDashboard />;
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const [fallbackUser, setFallbackUser] = useState<UserProfile | null>(null);
+
+  const clerkRes = useUser();
+  const { signOut } = useClerk();
+  const { isSignedIn, userId } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+    const raw = localStorage.getItem("ace_seek_user");
+    if (raw) {
+      try {
+        setFallbackUser(JSON.parse(raw));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-cyan)]" />
+      </div>
+    );
+  }
+
+  let currentUser: UserProfile | null = null;
+
+  if (clerkPk?.trim() && isSignedIn && clerkRes.user) {
+    const u = clerkRes.user;
+    const uid = u.id;
+    const freeKey = `ace_free_usr_${uid.slice(5)}_${uid.slice(-6)}`;
+    const trialKey = `ace_trial_usr_${uid.slice(5)}_${uid.slice(-6)}`;
+    currentUser = {
+      id: uid,
+      email: u.primaryEmailAddress?.emailAddress || "user@ace-seek.com",
+      name: u.fullName || u.firstName || "Engineer",
+      plan: "free",
+      apiKey: freeKey,
+      freeKey,
+      trialKey,
+    };
+  } else if (fallbackUser) {
+    currentUser = fallbackUser;
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-dark)] flex flex-col items-center justify-center p-6 text-center space-y-6 text-white">
+        <div className="sk-icon-well w-14 h-14">
+          <Key className="w-7 h-7 text-[var(--accent-cyan)]" />
+        </div>
+        <div className="space-y-2 max-w-sm">
+          <h2 className="text-xl font-bold">Authentication Required</h2>
+          <p className="text-xs text-[var(--muted)]">
+            Please log in to access your Ace-Seek API keys and EDA workstations.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <a href="/login" className="sk-btn sk-btn-primary">
+            Log In &rarr;
+          </a>
+          <a href="/" className="sk-btn sk-btn-ghost">
+            Back to Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogout = async () => {
+    localStorage.removeItem("ace_seek_user");
+    localStorage.removeItem("ace_seek_api_key");
+    localStorage.removeItem("ace_api_key");
+    if (clerkPk?.trim() && signOut) {
+      await signOut();
+    }
+    router.push("/");
+  };
+
+  return <DashboardBody user={currentUser} onLogout={handleLogout} />;
 }

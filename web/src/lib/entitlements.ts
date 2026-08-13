@@ -374,7 +374,7 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
   // Issued dashboard keys — original casing required for HMAC (do not lower-case user id)
   const issued = verifyIssuedApiKey(raw);
   if (issued.ok) {
-    const tier = issued.plan === "trial" ? "pro" : issued.plan;
+    const tier = issued.plan === "trial" ? "max" : issued.plan;
     return entitlementsForPlan(tier);
   }
 

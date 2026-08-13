@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
       if (dbRecord.key_type === "trial") {
         const trialActivation = await activateTrialKeyFirstUse(apiKey);
         if (trialActivation && trialActivation.active) {
-          const ent = entitlementsForPlan("pro");
+          const ent = entitlementsForPlan("max");
           return NextResponse.json({
             valid: true,
-            plan: "pro",
-            tier: "pro",
+            plan: "max",
+            tier: "max",
             keyType: "trial",
             trialActive: true,
             daysRemaining: trialActivation.daysRemaining,
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
           tier: "free",
           keyType: "trial",
           trialExpired: true,
-          message: "Your 7-day Pro trial has expired. Reverted to Free plan.",
+          message: "Your 7-day Max trial has expired. Reverted to Free plan.",
           email: dbRecord.email,
           apiKey,
           entitlements: publicEntitlements(ent),
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (issued.plan === "trial") {
         const trialActivation = await activateTrialKeyFirstUse(apiKey);
         const isTrialValid = trialActivation ? trialActivation.active : true;
-        const activePlan = isTrialValid ? "pro" : "free";
+        const activePlan = isTrialValid ? "max" : "free";
         const ent = entitlementsForPlan(activePlan);
 
         return NextResponse.json({
