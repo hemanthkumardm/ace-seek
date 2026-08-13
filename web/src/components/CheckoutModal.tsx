@@ -1,128 +1,123 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  CreditCard,
-  Sparkles,
-  X,
-  CheckCircle2,
-  ArrowRight,
-  ShieldCheck,
-  Loader2,
-  AlertCircle,
-  Key,
-  Copy,
-  Check,
-} from "lucide-react";
-import { useAuth, useUser } from "@clerk/nextjs";
-import { SITE_URL } from "@/lib/site";
+import { useUser } from "@clerk/nextjs";
+import { X, ShieldCheck, CheckCircle2, Loader2, Copy, Check } from "lucide-react";
 
 declare global {
   interface Window {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    Razorpay: any;
+    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
   }
 }
 
-type Props = {
-  /** Stable plan id: pro | max | team */
+interface RazorpayOptions {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  remember_customer?: boolean;
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+  theme?: {
+    color?: string;
+  };
+  handler: (response: {
+    razorpay_payment_id: string;
+    razorpay_order_id: string;
+    razorpay_signature: string;
+  }) => void;
+  modal?: {
+    ondismiss?: () => void;
+  };
+}
+
+interface RazorpayInstance {
+  open: () => void;
+  on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void;
+}
+
+interface CheckoutModalProps {
   planId: string;
   planName: string;
   price: string;
   isOpen: boolean;
   onClose: () => void;
-};
+}
 
-export function CheckoutModal({
-  planId,
-  planName,
-  price,
-  isOpen,
-  onClose,
-}: Props) {
-  const { isSignedIn, userId } = useAuth();
+export function CheckoutModal({ planId, planName, price, isOpen, onClose }: CheckoutModalProps) {
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [purchasedKey, setPurchasedKey] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (document.getElementById("razorpay-checkout-script")) return;
-
-    const script = document.createElement("script");
-    script.id = "razorpay-checkout-script";
-    script.src = "https://checkout.razorpay.com/v1/checkout.js";
-    script.async = true;
-    document.body.appendChild(script);
-  }, []);
+    if (!isOpen) {
+      setErrorMessage(null);
+      setPurchasedKey(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleCheckout = async () => {
-    setLoading(true);
-    setErrorMessage("");
-
     try {
-      const plan = planId.toLowerCase();
-      if (plan !== "pro" && plan !== "max" && plan !== "team") {
-        throw new Error("Invalid plan for checkout.");
-      }
+      setLoading(true);
+      setErrorMessage(null);
 
-      // Prefer signed-in Clerk user for unique keys; fallback is server-generated
+      // 1. Create Razorpay order on server
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          userId: userId || undefined,
-          email: user?.primaryEmailAddress?.emailAddress,
-        }),
+        body: JSON.stringify({ planId }),
       });
 
       const orderData = await res.json();
-      if (!res.ok || !orderData.order_id) {
-        throw new Error(orderData.error || "Failed to initialize payment order.");
+      if (!res.ok || !orderData.orderId) {
+        setErrorMessage(orderData.error || "Failed to create payment order.");
+        setLoading(false);
+        return;
       }
 
-      const keyId =
-        orderData.key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-
-      if (!keyId) {
-        throw new Error("Payment gateway is not configured.");
+      // 2. Ensure Razorpay SDK is loaded
+      if (typeof window === "undefined" || !window.Razorpay) {
+        setErrorMessage("Razorpay SDK failed to load. Please check your connection.");
+        setLoading(false);
+        return;
       }
 
-      if (typeof window.Razorpay === "undefined") {
-        throw new Error(
-          "Checkout is still loading. Please try again in a moment."
-        );
-      }
+      // Construct prefill object without default phone numbers
+      const prefillObj: { name?: string; email?: string; contact?: string } = {};
+      const userFullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ");
+      if (userFullName) prefillObj.name = userFullName;
+      if (user?.primaryEmailAddress?.emailAddress) prefillObj.email = user.primaryEmailAddress.emailAddress;
+      if (user?.primaryPhoneNumber?.phoneNumber) prefillObj.contact = user.primaryPhoneNumber.phoneNumber;
 
-      const options = {
-        key: keyId,
+      const options: RazorpayOptions = {
+        key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "Ace-Seek",
-        description: `${planName} plan license`,
-        order_id: orderData.order_id,
-        handler: async function (response: {
-          razorpay_payment_id: string;
-          razorpay_order_id: string;
-          razorpay_signature: string;
-        }) {
-          setLoading(true);
+        name: "Ace-Seek Technologies",
+        description: `Subscription for ${planName} Plan`,
+        order_id: orderData.orderId,
+        remember_customer: false,
+        prefill: prefillObj,
+        handler: async function (response) {
           try {
             const verifyRes = await fetch("/api/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
                 razorpay_signature: response.razorpay_signature,
-                plan,
-                userId: userId || orderData.user_id || undefined,
-                email: user?.primaryEmailAddress?.emailAddress,
+                planId,
               }),
             });
 
@@ -132,9 +127,7 @@ export function CheckoutModal({
               window.dispatchEvent(new Event("ace_key_updated"));
               setPurchasedKey(verifyData.apiKey);
             } else {
-              setErrorMessage(
-                verifyData.error || "Payment verification failed."
-              );
+              setErrorMessage(verifyData.error || "Payment verification failed.");
             }
           } catch {
             setErrorMessage("Network error during payment verification.");
@@ -147,33 +140,20 @@ export function CheckoutModal({
             setLoading(false);
           },
         },
-        prefill: {
-          name:
-            [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-            "",
-          email: user?.primaryEmailAddress?.emailAddress || "",
-          contact: user?.primaryPhoneNumber?.phoneNumber || "",
-        },
         theme: {
           color: "#06b6d4",
         },
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on(
-        "payment.failed",
-        function (resp: { error?: { description?: string } }) {
-          setErrorMessage(
-            resp.error?.description || "Payment failed or was declined."
-          );
-          setLoading(false);
-        }
-      );
+      rzp.on("payment.failed", function (resp: { error?: { description?: string } }) {
+        setErrorMessage(resp.error?.description || "Payment failed or was declined.");
+        setLoading(false);
+      });
       rzp.open();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setErrorMessage(msg);
-    } finally {
       setLoading(false);
     }
   };
@@ -181,145 +161,120 @@ export function CheckoutModal({
   const handleCopyKey = () => {
     if (!purchasedKey) return;
     navigator.clipboard.writeText(purchasedKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedKey(true);
+    setTimeout(() => setCopiedKey(false), 2000);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 font-mono">
-      <div className="relative w-full max-w-lg rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] p-6 shadow-2xl space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md bg-[#0f172a] border border-[#1e293b] rounded-2xl shadow-2xl overflow-hidden p-6 md:p-8 space-y-6">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-all"
+          className="absolute top-4 right-4 text-[var(--muted)] hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
         >
-          <X className="h-4 w-4" />
+          <X className="w-5 h-5" />
         </button>
 
         {purchasedKey ? (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" /> Payment Verified
-                </span>
-                <h3 className="text-base font-black text-white uppercase tracking-tight">
-                  {planName} Plan Activated
-                </h3>
-              </div>
+          <div className="space-y-6 text-center py-4">
+            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Payment verified. Your{" "}
-              <strong className="text-cyan-400">{planName}</strong> API license
-              key is ready. Paste it on vlsi / tools to unlock your plan.
-            </p>
-
-            <div className="rounded-xl border border-emerald-500/30 bg-black/80 p-4 space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
-                <span className="flex items-center gap-1">
-                  <Key className="h-3.5 w-3.5 text-emerald-400" /> Active API Key
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopyKey}
-                  className="text-cyan-400 hover:underline flex items-center gap-1 text-[10px] font-mono"
-                >
-                  {copied ? (
-                    <Check className="h-3 w-3 text-emerald-400" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                  {copied ? "COPIED" : "COPY KEY"}
-                </button>
-              </div>
-              <p className="text-xs font-mono text-emerald-300 break-all bg-emerald-950/40 p-2 rounded border border-emerald-800/40">
-                {purchasedKey}
+            <div className="space-y-2">
+              <h3 className="text-xl font-black text-white">Payment Successful!</h3>
+              <p className="text-xs text-slate-400">
+                Your <span className="text-cyan-400 font-bold">{planName} Plan</span> key has been generated and dispatched to your email.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
-            >
-              <span>Done</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+            <div className="bg-slate-950 border border-cyan-500/40 rounded-xl p-4 space-y-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Your New Pro API License Key:
+              </span>
+              <div className="font-mono text-xs text-cyan-300 font-bold break-all bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                {purchasedKey}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleCopyKey}
+                className="sk-btn sk-btn-primary flex-1 justify-center !py-2.5 !text-xs"
+              >
+                {copiedKey ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>Copied Key</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Key</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="sk-btn sk-btn-ghost flex-1 justify-center !py-2.5 !text-xs"
+              >
+                Close
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="space-y-5">
-            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                <CreditCard className="h-5 w-5" />
-              </div>
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" /> Secure Checkout
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-400">
+                  Razorpay Secure Checkout
                 </span>
-                <h3 className="text-base font-black text-white uppercase tracking-tight">
-                  {planName} Plan — {price}
-                </h3>
               </div>
+              <h3 className="text-xl font-black text-white">
+                Upgrade to {planName}
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Unlock 500 converts/day, exact PDF&rarr;DOCX, and full VLSI Studio features.
+              </p>
             </div>
 
-            <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-              <p>
-                Upgrade to{" "}
-                <strong className="text-cyan-400">{planName}</strong> with secure
-                checkout (UPI, cards, net banking, wallets).
-              </p>
-
-              {!isSignedIn && (
-                <div className="rounded-lg bg-amber-950/40 border border-amber-500/30 p-3 text-[11px] text-amber-200">
-                  Tip:{" "}
-                  <a href={`${SITE_URL}/login`} className="underline font-bold">
-                    Sign in first
-                  </a>{" "}
-                  so your paid key is bound to your account. You can still pay as
-                  guest — we will issue a one-time license key.
-                </div>
-              )}
-
-              <div className="rounded-lg bg-slate-900/80 border border-slate-800 p-3 text-[11px] text-slate-300 space-y-1">
-                <span className="font-bold flex items-center gap-1 text-cyan-400">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Instant license
-                </span>
-                <p className="text-slate-400">
-                  After payment, your plan unlocks on www, vlsi, and tools via the
-                  API key shown next.
-                </p>
-              </div>
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-between font-mono">
+              <span className="text-xs text-slate-400">TOTAL DUE:</span>
+              <span className="text-xl font-black text-white">{price}</span>
             </div>
 
             {errorMessage && (
-              <div className="rounded-lg bg-rose-950/60 border border-rose-500/50 p-3 text-xs font-bold text-rose-300 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
-                <span>{errorMessage}</span>
+              <div className="p-3 bg-red-950/40 border border-red-500/40 rounded-xl text-xs text-red-300 font-mono">
+                {errorMessage}
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={loading}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-[var(--accent-cyan)] px-4 py-2.5 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Processing…</span>
-                </>
-              ) : (
-                <>
-                  <span>Pay {price}</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </>
-              )}
-            </button>
+            <div className="space-y-3 pt-2">
+              <button
+                type="button"
+                onClick={handleCheckout}
+                disabled={loading}
+                className="sk-btn sk-btn-primary w-full justify-center !py-3 font-bold !text-xs tracking-wider"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Opening Payment Gateway...</span>
+                  </>
+                ) : (
+                  <span>Proceed to Pay {price} &rarr;</span>
+                )}
+              </button>
+
+              <p className="text-[10px] text-center text-slate-500 font-mono">
+                Encrypted 256-bit SSL transaction via Razorpay Gateway.
+              </p>
+            </div>
           </div>
         )}
       </div>
