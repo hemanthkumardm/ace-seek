@@ -148,19 +148,25 @@ export async function activateTrialKeyFirstUse(apiKey: string): Promise<{
     };
   }
 
-  // FIRST USE DETECTED! Calculate 7 days from now.
+  // FIRST USE DETECTED! Calculate 7 days from now and lock permanently in DB.
   const firstUsedAtDate = now;
   const expiresAtDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   try {
+    const payload = {
+      user_id: rec?.user_id || "clerk_user",
+      email: rec?.email || "user@ace-seek.com",
+      key_type: "trial",
+      api_key: apiKey,
+      tier: "max",
+      status: "active",
+      first_used_at: firstUsedAtDate.toISOString(),
+      expires_at: expiresAtDate.toISOString(),
+    };
+
     const { error } = await supabase
       .from("user_api_keys")
-      .update({
-        first_used_at: firstUsedAtDate.toISOString(),
-        expires_at: expiresAtDate.toISOString(),
-        status: "active",
-      })
-      .eq("api_key", apiKey);
+      .upsert(payload, { onConflict: "api_key" });
 
     if (error) {
       logger.error("supabase.activate_trial_error", { apiKeyPrefix: apiKey.slice(0, 15), error });
