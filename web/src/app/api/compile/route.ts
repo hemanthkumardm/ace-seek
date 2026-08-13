@@ -29,103 +29,109 @@ const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
 const externalCompilerUrl = process.env.DOC_COMPILER_API_URL?.replace(/\/$/, "");
 
 export async function GET(req: NextRequest) {
-  const jobId = req.nextUrl.searchParams.get("jobId");
-  const wantResult = req.nextUrl.searchParams.get("result") === "1";
+  try {
+    const jobId = req.nextUrl.searchParams.get("jobId");
+    const wantResult = req.nextUrl.searchParams.get("result") === "1";
 
-  // Proxy GET job status/result if external compiler URL is configured
-  if (externalCompilerUrl) {
-    try {
-      const targetUrl = new URL(`${externalCompilerUrl}/api/compile`);
-      req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
-      const res = await fetch(targetUrl.toString(), {
-        headers: { "Content-Type": "application/json" },
-      });
+    // Proxy GET job status/result if external compiler URL is configured
+    if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
+      try {
+        const targetUrl = new URL(`${externalCompilerUrl}/api/compile`);
+        req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+        const res = await fetch(targetUrl.toString(), {
+          headers: { "Content-Type": "application/json" },
+        });
+        if (wantResult) {
+          const blob = await res.arrayBuffer();
+          const headers = new Headers(res.headers);
+          return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
+        }
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
+      } catch {
+        // Fallback to local handler if proxy fetch fails
+      }
+    }
+
+    if (jobId) {
+      const job = readJob(jobId);
+      if (!job) {
+        return NextResponse.json({ error: "Job not found" }, { status: 404 });
+      }
+
       if (wantResult) {
-        const blob = await res.arrayBuffer();
-        const headers = new Headers(res.headers);
-        return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
-      }
-      const data = await res.json();
-      return NextResponse.json(data, { status: res.status });
-    } catch {
-      // Fallback to local handler if proxy fetch fails
-    }
-  }
-
-  if (jobId) {
-    const job = readJob(jobId);
-    if (!job) {
-      return NextResponse.json({ error: "Job not found" }, { status: 404 });
-    }
-
-    if (wantResult) {
-      if (job.status !== "done") {
-        return NextResponse.json(
-          { error: "Job not ready", status: job.status },
-          { status: 409 }
+        if (job.status !== "done") {
+          return NextResponse.json(
+            { error: "Job not ready", status: job.status },
+            { status: 409 }
+          );
+        }
+        const buf = await readJobOutput(jobId);
+        if (!buf) {
+          return NextResponse.json({ error: "Output missing" }, { status: 404 });
+        }
+        const headers = new Headers();
+        headers.set("Content-Type", contentTypeFor(job.format));
+        headers.set(
+          "Content-Disposition",
+          `inline; filename="${job.filename}.${job.format}"`
         );
+        headers.set("X-Md2pdf-Backend", job.backend || "");
+        headers.set("X-Md2pdf-Engine", job.engine || "");
+        headers.set("X-Md2pdf-Ms", String(job.ms ?? ""));
+        headers.set("X-Md2pdf-Job", jobId);
+        return new NextResponse(new Uint8Array(buf), { status: 200, headers });
       }
-      const buf = await readJobOutput(jobId);
-      if (!buf) {
-        return NextResponse.json({ error: "Output missing" }, { status: 404 });
-      }
-      const headers = new Headers();
-      headers.set("Content-Type", contentTypeFor(job.format));
-      headers.set(
-        "Content-Disposition",
-        `inline; filename="${job.filename}.${job.format}"`
-      );
-      headers.set("X-Md2pdf-Backend", job.backend || "");
-      headers.set("X-Md2pdf-Engine", job.engine || "");
-      headers.set("X-Md2pdf-Ms", String(job.ms ?? ""));
-      headers.set("X-Md2pdf-Job", jobId);
-      return new NextResponse(new Uint8Array(buf), { status: 200, headers });
+
+      return NextResponse.json({
+        id: job.id,
+        status: job.status,
+        backend: job.backend,
+        engine: job.engine,
+        ms: job.ms,
+        error: job.error,
+        details: job.details,
+        format: job.format,
+        filename: job.filename,
+        updatedAt: job.updatedAt,
+      });
     }
+
+    const root = projectRoot();
+    const aic = path.join(root, "bin/aic");
+    const caps = hostCapabilities();
+    const fastLocal =
+      caps.pandoc && (caps.tectonic || caps.xelatex || caps.lualatex || caps.pdflatex);
 
     return NextResponse.json({
-      id: job.id,
-      status: job.status,
-      backend: job.backend,
-      engine: job.engine,
-      ms: job.ms,
-      error: job.error,
-      details: job.details,
-      format: job.format,
-      filename: job.filename,
-      updatedAt: job.updatedAt,
+      ok: true,
+      isVercel,
+      hasExternalCompiler: Boolean(externalCompilerUrl),
+      externalCompilerUrl: externalCompilerUrl || null,
+      projectRoot: root,
+      aic: existsSync(aic),
+      capabilities: caps,
+      fastLocal,
+      dockerReady: Boolean(caps.docker && caps.dockerImage),
+      isProductionContainer: process.env.AIC_FORCE_LOCAL === "1",
+      sizeDockerBytes: Number(process.env.AIC_SIZE_DOCKER || SIZE_DOCKER_DEFAULT),
+      tip: externalCompilerUrl
+        ? `Using external microservice compiler at ${externalCompilerUrl}`
+        : isVercel
+          ? "Vercel Serverless environment detected. Docker is unavailable in serverless lambdas. Set DOC_COMPILER_API_URL to an external node or use browser PDF rendering."
+          : !caps.docker
+            ? "Docker CLI not found on PATH."
+            : !caps.dockerImage
+              ? "Docker image 'aic' missing. Run: docker build -t aic ."
+              : fastLocal
+                ? "Host engine ready — small files use local; large/docker backend use image aic."
+                : "Install tectonic: ./scripts/install-fast-deps.sh — or use Docker backend.",
     });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[api/compile GET] error:", msg);
+    return NextResponse.json({ error: "Server error", details: msg }, { status: 500 });
   }
-
-  const root = projectRoot();
-  const aic = path.join(root, "bin/aic");
-  const caps = hostCapabilities();
-  const fastLocal =
-    caps.pandoc && (caps.tectonic || caps.xelatex || caps.lualatex || caps.pdflatex);
-
-  return NextResponse.json({
-    ok: true,
-    isVercel,
-    hasExternalCompiler: Boolean(externalCompilerUrl),
-    externalCompilerUrl: externalCompilerUrl || null,
-    projectRoot: root,
-    aic: existsSync(aic),
-    capabilities: caps,
-    fastLocal,
-    dockerReady: Boolean(caps.docker && caps.dockerImage),
-    isProductionContainer: process.env.AIC_FORCE_LOCAL === "1",
-    sizeDockerBytes: Number(process.env.AIC_SIZE_DOCKER || SIZE_DOCKER_DEFAULT),
-    tip: externalCompilerUrl
-      ? `Using external microservice compiler at ${externalCompilerUrl}`
-      : isVercel
-        ? "Vercel Serverless environment detected. Docker is unavailable in serverless lambdas. Set DOC_COMPILER_API_URL to an external node or use browser PDF rendering."
-        : !caps.docker
-          ? "Docker CLI not found on PATH."
-          : !caps.dockerImage
-            ? "Docker image 'aic' missing. Run: docker build -t aic ."
-            : fastLocal
-              ? "Host engine ready — small files use local; large/docker backend use image aic."
-              : "Install tectonic: ./scripts/install-fast-deps.sh — or use Docker backend.",
-  });
 }
 
 export async function POST(req: NextRequest) {
@@ -133,7 +139,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
 
     // If an external compiler node URL is configured in Vercel env, proxy the request directly!
-    if (externalCompilerUrl) {
+    if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
       try {
         const proxyRes = await fetch(`${externalCompilerUrl}/api/compile`, {
           method: "POST",
