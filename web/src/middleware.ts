@@ -1,6 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { isApexHost } from "@/lib/site";
+import { isApexHost, productHostSlug, HOST_TO_APP } from "@/lib/site";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
@@ -16,9 +16,10 @@ function applyHostRouting(req: NextRequest): NextResponse {
     req.headers.get("host") ||
     "";
   const { pathname, search } = req.nextUrl;
+  const slug = productHostSlug(host);
 
   // 1. CANONICAL PRICING REDIRECT:
-  // If user visits /pricing on any subdomain (tools.ace-seek.com or vlsi.ace-seek.com),
+  // If user visits /pricing on any subdomain (tools.ace-seek.com, vlsi.ace-seek.com, doc.tools.ace-seek.com),
   // redirect canonical 307 to apex https://www.ace-seek.com/pricing
   if (pathname === "/pricing" || pathname.startsWith("/pricing/")) {
     if (!isApexHost(host) && process.env.NODE_ENV === "production") {
@@ -27,6 +28,29 @@ function applyHostRouting(req: NextRequest): NextResponse {
         "https://www.ace-seek.com"
       );
       return NextResponse.redirect(canonicalPricingUrl, 307);
+    }
+  }
+
+  // 2. SUBDOMAIN REWRITE ROUTING:
+  // Map tools.ace-seek.com -> /tools
+  // Map vlsi.ace-seek.com -> /vlsi
+  // Map <slug>.tools.ace-seek.com -> product appPath
+  if (slug && (pathname === "/" || pathname === "")) {
+    if (slug === "tools") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/tools";
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    if (slug === "vlsi") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/vlsi";
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    const targetPath = HOST_TO_APP[slug];
+    if (targetPath) {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = targetPath;
+      return NextResponse.rewrite(rewriteUrl);
     }
   }
 
