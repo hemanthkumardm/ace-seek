@@ -38,18 +38,33 @@ export async function GET(req: NextRequest) {
       try {
         const targetUrl = new URL(`${externalCompilerUrl}/api/compile`);
         req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
-        const res = await fetch(targetUrl.toString(), {
-          headers: { "Content-Type": "application/json" },
-        });
+        const res = await fetch(targetUrl.toString());
         if (wantResult) {
           const blob = await res.arrayBuffer();
-          const headers = new Headers(res.headers);
-          return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
+          const cleanHeaders = new Headers();
+          const contentType = res.headers.get("content-type");
+          const contentDisp = res.headers.get("content-disposition");
+          const xBackend = res.headers.get("x-md2pdf-backend");
+          const xEngine = res.headers.get("x-md2pdf-engine");
+          const xMs = res.headers.get("x-md2pdf-ms");
+
+          if (contentType) cleanHeaders.set("Content-Type", contentType);
+          if (contentDisp) cleanHeaders.set("Content-Disposition", contentDisp);
+          if (xBackend) cleanHeaders.set("X-Md2pdf-Backend", xBackend);
+          if (xEngine) cleanHeaders.set("X-Md2pdf-Engine", xEngine);
+          if (xMs) cleanHeaders.set("X-Md2pdf-Ms", xMs);
+
+          return new NextResponse(new Uint8Array(blob), {
+            status: res.status,
+            headers: cleanHeaders,
+          });
         }
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });
-      } catch {
-        // Fallback to local handler if proxy fetch fails
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[api/compile GET proxy error]", msg);
+        // Fallback to local handler
       }
     }
 

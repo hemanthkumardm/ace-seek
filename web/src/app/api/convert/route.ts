@@ -85,12 +85,29 @@ export async function GET(req: NextRequest) {
       const res = await fetch(targetUrl.toString());
       if (req.nextUrl.searchParams.get("result") === "1") {
         const blob = await res.arrayBuffer();
-        const headers = new Headers(res.headers);
-        return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
+        const cleanHeaders = new Headers();
+        const contentType = res.headers.get("content-type");
+        const contentDisp = res.headers.get("content-disposition");
+        const xBackend = res.headers.get("x-convert-backend");
+        const xEngine = res.headers.get("x-convert-engine");
+        const xMs = res.headers.get("x-convert-ms");
+
+        if (contentType) cleanHeaders.set("Content-Type", contentType);
+        if (contentDisp) cleanHeaders.set("Content-Disposition", contentDisp);
+        if (xBackend) cleanHeaders.set("X-Convert-Backend", xBackend);
+        if (xEngine) cleanHeaders.set("X-Convert-Engine", xEngine);
+        if (xMs) cleanHeaders.set("X-Convert-Ms", xMs);
+
+        return new NextResponse(new Uint8Array(blob), {
+          status: res.status,
+          headers: cleanHeaders,
+        });
       }
       const data = await res.json();
       return NextResponse.json(data, { status: res.status });
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[api/convert GET proxy error]", msg);
       // Fallback to local handler
     }
   }
