@@ -192,7 +192,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-yellow-200 truncate">
+                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-yellow-200 truncate select-all">
                   {trialKey}
                 </div>
                 <button
@@ -226,7 +226,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-emerald-200 truncate">
+                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-emerald-200 truncate select-all">
                   {freeKey}
                 </div>
                 <button
@@ -326,11 +326,13 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
 export default function DashboardPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [apiUser, setApiUser] = useState<UserProfile | null>(null);
   const [fallbackUser, setFallbackUser] = useState<UserProfile | null>(null);
 
   const clerkRes = useUser();
   const { signOut } = useClerk();
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -342,9 +344,20 @@ export default function DashboardPage() {
         // ignore
       }
     }
+
+    // Fetch exact authentic API keys from backend route /api/auth/me
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.authenticated && data.user) {
+          setApiUser(data.user);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  if (!mounted) {
+  if (!mounted || loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center text-white">
         <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-cyan)]" />
@@ -352,25 +365,7 @@ export default function DashboardPage() {
     );
   }
 
-  let currentUser: UserProfile | null = null;
-
-  if (clerkPk?.trim() && isSignedIn && clerkRes.user) {
-    const u = clerkRes.user;
-    const uid = u.id;
-    const freeKey = `ace_free_usr_${uid.slice(5)}_${uid.slice(-6)}`;
-    const trialKey = `ace_trial_usr_${uid.slice(5)}_${uid.slice(-6)}`;
-    currentUser = {
-      id: uid,
-      email: u.primaryEmailAddress?.emailAddress || "user@ace-seek.com",
-      name: u.fullName || u.firstName || "Engineer",
-      plan: "free",
-      apiKey: freeKey,
-      freeKey,
-      trialKey,
-    };
-  } else if (fallbackUser) {
-    currentUser = fallbackUser;
-  }
+  const currentUser: UserProfile | null = apiUser || fallbackUser;
 
   if (!currentUser) {
     return (
