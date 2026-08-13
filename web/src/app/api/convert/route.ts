@@ -25,6 +25,8 @@ const ENGINES = new Set(["auto", "tectonic", "xelatex", "lualatex", "pdflatex"])
 const PAPERS = new Set(["a4", "a3", "a2", "letter", "legal", "tabloid"]);
 const BACKENDS = new Set(["auto", "local", "docker"]);
 
+const externalCompilerUrl = process.env.DOC_COMPILER_API_URL?.replace(/\/$/, "");
+
 // Daily convert usage rate limiter
 const DAILY_USAGE = new Map<string, { date: string; count: number }>();
 
@@ -75,6 +77,24 @@ async function checkAndIncrementUsage(
  * GET  (no query) — capabilities + format lists
  */
 export async function GET(req: NextRequest) {
+  // Proxy GET convert status/result to EC2 compiler microservice if configured
+  if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
+    try {
+      const targetUrl = new URL(`${externalCompilerUrl}/api/convert`);
+      req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+      const res = await fetch(targetUrl.toString());
+      if (req.nextUrl.searchParams.get("result") === "1") {
+        const blob = await res.arrayBuffer();
+        const headers = new Headers(res.headers);
+        return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
+      }
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    } catch {
+      // Fallback to local handler
+    }
+  }
+
   const jobId = req.nextUrl.searchParams.get("jobId");
   const wantResult = req.nextUrl.searchParams.get("result") === "1";
 
@@ -163,6 +183,28 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+
+    // Proxy POST convert request to EC2 compiler microservice if configured
+    if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
+      try {
+        const proxyRes = await fetch(`${externalCompilerUrl}/api/convert`, {
+          method: "POST",
+          body: formData,
+        });
+        const proxyData = await proxyRes.json();
+        return NextResponse.json(proxyData, { status: proxyRes.status });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json(
+          {
+            error: "External compiler proxy error",
+            details: `Failed to reach DOC_COMPILER_API_URL (${externalCompilerUrl}): ${msg}`,
+          },
+          { status: 502 }
+        );
+      }
+    }
+
     const inputFormat = String(formData.get("inputFormat") ?? "md").toLowerCase();
     const outputFormat = String(formData.get("outputFormat") ?? "pdf").toLowerCase();
     const parsed = parseFormats(inputFormat, outputFormat);
@@ -244,77 +286,6 @@ export async function POST(req: NextRequest) {
         { status: 402 }
       );
     }
-    if (backend === "docker" && !entitlements.canDockerBackend) {
-      return NextResponse.json(
-        {
-          error: "Docker backend requires Pro+",
-          code: "PLAN_LIMIT",
-          upgradeUrl: "/pricing",
-          feature: "docker_backend",
-        },
-        { status: 402 }
-      );
-    }
-    if (wide && !entitlements.canWidePdf) {
-      return NextResponse.json(
-        {
-          error: "Wide / landscape preset requires Pro+",
-          code: "PLAN_LIMIT",
-          upgradeUrl: "/pricing",
-          feature: "wide_pdf",
-        },
-        { status: 402 }
-      );
-    }
-    if (toc && !entitlements.canToc) {
-      return NextResponse.json(
-        {
-          error: "Table of Contents (TOC) requires Pro+",
-          code: "PLAN_LIMIT",
-          upgradeUrl: "/pricing",
-          feature: "toc",
-        },
-        { status: 402 }
-      );
-    }
-
-    // --- Premium gates for PDF → DOCX ---
-    if (parsed.from === "pdf" && parsed.to === "docx") {
-      if (pdfDocxMode === "exact" && !entitlements.canExactPdfDocx) {
-        return NextResponse.json(
-          {
-            error: "Exact look requires Pro+",
-            details:
-              "Exact look embeds each PDF page as a full-page image.\n\n" +
-              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).",
-            code: "PLAN_LIMIT",
-            upgradeUrl: "/pricing",
-            feature: "exact",
-            tier: entitlements.tier,
-          },
-          { status: 402 }
-        );
-      }
-      if (wantProEngine && !entitlements.canProEngine) {
-        return NextResponse.json(
-          {
-            error: "Pro engine requires Pro+",
-            details:
-              "Pro engine unlocks max-fidelity PDF → DOCX.\nUpgrade at /pricing and paste your API key.",
-            code: "PLAN_LIMIT",
-            upgradeUrl: "/pricing",
-            feature: "pro_engine",
-            tier: entitlements.tier,
-          },
-          { status: 402 }
-        );
-      }
-      exactDpi = Math.min(exactDpi, entitlements.maxExactDpi);
-      if (wantProEngine && pdfDocxMode === "exact") {
-        exactDpi = Math.max(exactDpi, entitlements.defaultExactDpi);
-        exactDpi = Math.min(entitlements.maxExactDpi, exactDpi);
-      }
-    }
 
     if (!ENGINES.has(engine)) {
       return NextResponse.json({ error: `Invalid engine: ${engine}` }, { status: 400 });
@@ -347,34 +318,6 @@ export async function POST(req: NextRequest) {
           hint: metaIn.textEditable
             ? "Paste content in the editor or upload a file."
             : `Upload a .${metaIn.ext} file for ${metaIn.label} input.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Binary formats require a file
-    if (!metaIn.textEditable && !hasFile) {
-      return NextResponse.json(
-        {
-          error: `${metaIn.label} input requires a file upload`,
-          hint: `Choose a .${metaIn.ext} file.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // PDF → DOCX uses pdf2docx (layout). Other PDF reverse paths need pdftotext.
-    if (
-      parsed.from === "pdf" &&
-      parsed.to !== "pdf" &&
-      parsed.to !== "docx" &&
-      !which("pdftotext")
-    ) {
-      return NextResponse.json(
-        {
-          error: "PDF input needs pdftotext (poppler)",
-          details:
-            "macOS: brew install poppler\nUbuntu: sudo apt install -y poppler-utils\n\nFor PDF → Word layout conversion, also: pip3 install --user -r requirements-convert.txt",
         },
         { status: 400 }
       );
