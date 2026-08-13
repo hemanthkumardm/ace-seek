@@ -1395,26 +1395,29 @@ function InteractiveSdcStudioPage() {
                       const activeCaptureX = Math.min(440, activeRiseX + 180);
 
                       return (
-                        <svg viewBox="0 0 500 105" className="w-full h-28">
+                        <svg viewBox="0 0 500 115" className="w-full h-32">
                           {/* Ideal Reference Dotted Line (0ns) */}
-                          <line x1={baseRiseX} y1="10" x2={baseRiseX} y2="95" stroke="#cbd5e1" strokeDasharray="3,3" />
+                          <line x1={baseRiseX} y1="10" x2={baseRiseX} y2="105" stroke="#94a3b8" strokeDasharray="3,3" strokeWidth="1.5" />
+                          <text x={baseRiseX} y="105" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">
+                            0.00ns
+                          </text>
 
                           {/* Source Latency Arrow (Purple) */}
                           {selectedClk.latencySource > 0 && (
                             <g>
                               <line
                                 x1={baseRiseX}
-                                y1="18"
+                                y1="14"
                                 x2={baseRiseX + srcPx}
-                                y2="18"
+                                y2="14"
                                 stroke="#9333ea"
                                 strokeWidth="2"
                               />
                               <polygon
-                                points={`${baseRiseX + srcPx},18 ${baseRiseX + srcPx - 4},15 ${baseRiseX + srcPx - 4},21`}
+                                points={`${baseRiseX + srcPx},14 ${baseRiseX + srcPx - 4},11 ${baseRiseX + srcPx - 4},17`}
                                 fill="#9333ea"
                               />
-                              <text x={baseRiseX + 4} y="13" fill="#9333ea" fontSize="9" fontWeight="bold">
+                              <text x={baseRiseX + Math.max(2, srcPx / 2)} y="10" textAnchor="start" fill="#7e22ce" fontSize="8" fontWeight="extrabold">
                                 Src Lat (+{selectedClk.latencySource.toFixed(2)}ns)
                               </text>
                             </g>
@@ -1425,17 +1428,23 @@ function InteractiveSdcStudioPage() {
                             <g>
                               <line
                                 x1={baseRiseX + srcPx}
-                                y1="18"
+                                y1="14"
                                 x2={activeRiseX}
-                                y2="18"
+                                y2="14"
                                 stroke="#4f46e5"
                                 strokeWidth="2"
                               />
                               <polygon
-                                points={`${activeRiseX},18 ${activeRiseX - 4},15 ${activeRiseX - 4},21`}
+                                points={`${activeRiseX},14 ${activeRiseX - 4},11 ${activeRiseX - 4},17`}
                                 fill="#4f46e5"
                               />
-                              <text x={baseRiseX + srcPx + 4} y="13" fill="#4f46e5" fontSize="9" fontWeight="bold">
+                              <text
+                                x={Math.max(baseRiseX + srcPx + 4, activeRiseX - 60)}
+                                y="10"
+                                fill="#4338ca"
+                                fontSize="8"
+                                fontWeight="extrabold"
+                              >
                                 Net Lat (+{selectedClk.latencyNetwork.toFixed(2)}ns)
                               </text>
                             </g>
@@ -1445,11 +1454,11 @@ function InteractiveSdcStudioPage() {
                           {selectedClk.uncertaintySetup > 0 && (
                             <rect
                               x={activeCaptureX - selectedClk.uncertaintySetup * 15}
-                              y="25"
+                              y="32"
                               width={Math.max(6, selectedClk.uncertaintySetup * 30)}
                               height="50"
                               fill="#f59e0b"
-                              fillOpacity="0.3"
+                              fillOpacity="0.25"
                               stroke="#d97706"
                               strokeDasharray="2,2"
                               rx="4"
@@ -1460,11 +1469,11 @@ function InteractiveSdcStudioPage() {
                           {selectedClk.uncertaintyHold > 0 && (
                             <rect
                               x={activeRiseX - selectedClk.uncertaintyHold * 15}
-                              y="25"
+                              y="32"
                               width={Math.max(6, selectedClk.uncertaintyHold * 30)}
                               height="50"
                               fill="#f43f5e"
-                              fillOpacity="0.3"
+                              fillOpacity="0.25"
                               stroke="#e11d48"
                               strokeDasharray="2,2"
                               rx="4"
@@ -1473,43 +1482,57 @@ function InteractiveSdcStudioPage() {
 
                           {/* Primary Waveform Path (Shifted by Source + Network Latency) */}
                           <path
-                            d={`M 10 75 L ${activeRiseX} 75 L ${activeRiseX} 30 L ${activeFallX} 30 L ${activeFallX} 75 L ${activeCaptureX} 75 L ${activeCaptureX} 30 L ${activeCaptureX + dutyRatio * 180} 30 L ${activeCaptureX + dutyRatio * 180} 75 L 490 75`}
+                            d={`M 10 82 L ${activeRiseX} 82 L ${activeRiseX} 37 L ${activeFallX} 37 L ${activeFallX} 82 L ${activeCaptureX} 82 L ${activeCaptureX} 37 L ${activeCaptureX + dutyRatio * 180} 37 L ${activeCaptureX + dutyRatio * 180} 82 L 490 82`}
                             fill="none"
                             stroke="#0284c7"
                             strokeWidth="3"
                           />
 
-                          {/* Shifted Rising Edge Marker */}
-                          <circle cx={activeRiseX} cy="30" r="4.5" fill="#10b981" />
-                          <text x={activeRiseX - 20} y="88" fill="#10b981" fontSize="9" fontWeight="bold">
-                            Arr ({ (selectedClk.latencySource + selectedClk.latencyNetwork).toFixed(2) }ns)
-                          </text>
-
-                          {/* Falling Edge Marker */}
-                          <circle cx={activeFallX} cy="30" r="4.5" fill="#3b82f6" />
-                          <text x={activeFallX - 15} y="88" fill="#3b82f6" fontSize="9" fontWeight="bold">
-                            Fall ({ (selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.waveformFalling).toFixed(2) }ns)
-                          </text>
-
-                          {/* Capture Edge Marker */}
-                          <circle cx={activeCaptureX} cy="30" r="4.5" fill="#10b981" />
-                          <text x={activeCaptureX - 25} y="88" fill="#10b981" fontSize="9" fontWeight="bold">
-                            Capture ({ (selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.periodNs).toFixed(2) }ns)
-                          </text>
-
-                          {/* Hold Uncertainty Marker Label */}
+                          {/* Hold Uncertainty Marker Label (Row Y=27) */}
                           {selectedClk.uncertaintyHold > 0 && (
-                            <text x={Math.max(10, activeRiseX - 35)} y="24" fill="#e11d48" fontSize="9" fontWeight="bold">
+                            <text
+                              x={activeRiseX}
+                              y="27"
+                              textAnchor="middle"
+                              fill="#be123c"
+                              fontSize="8.5"
+                              fontWeight="extrabold"
+                            >
                               Hold Unc (±{selectedClk.uncertaintyHold.toFixed(2)}ns)
                             </text>
                           )}
 
-                          {/* Setup Uncertainty Marker Label */}
+                          {/* Setup Uncertainty Marker Label (Row Y=27) */}
                           {selectedClk.uncertaintySetup > 0 && (
-                            <text x={Math.max(200, activeCaptureX - 35)} y="24" fill="#d97706" fontSize="9" fontWeight="bold">
+                            <text
+                              x={activeCaptureX}
+                              y="27"
+                              textAnchor="middle"
+                              fill="#b45309"
+                              fontSize="8.5"
+                              fontWeight="extrabold"
+                            >
                               Setup Unc (±{selectedClk.uncertaintySetup.toFixed(2)}ns)
                             </text>
                           )}
+
+                          {/* Shifted Rising Edge Marker */}
+                          <circle cx={activeRiseX} cy="37" r="4.5" fill="#10b981" />
+                          <text x={activeRiseX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
+                            Arr ({(selectedClk.latencySource + selectedClk.latencyNetwork).toFixed(2)}ns)
+                          </text>
+
+                          {/* Falling Edge Marker */}
+                          <circle cx={activeFallX} cy="37" r="4.5" fill="#3b82f6" />
+                          <text x={activeFallX} y="96" textAnchor="middle" fill="#1d4ed8" fontSize="8.5" fontWeight="extrabold">
+                            Fall ({(selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.waveformFalling).toFixed(2)}ns)
+                          </text>
+
+                          {/* Capture Edge Marker */}
+                          <circle cx={activeCaptureX} cy="37" r="4.5" fill="#10b981" />
+                          <text x={activeCaptureX} y="96" textAnchor="middle" fill="#047857" fontSize="8.5" fontWeight="extrabold">
+                            Capture ({(selectedClk.latencySource + selectedClk.latencyNetwork + selectedClk.periodNs).toFixed(2)}ns)
+                          </text>
                         </svg>
                       );
                     })()}
