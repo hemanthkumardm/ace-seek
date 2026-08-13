@@ -1,12 +1,9 @@
 # Dockerfile.web — single container for AIC web UI + Pandoc + TeX
 # Used by docker-compose on Oracle (or any VPS).
 #
-# Build:  docker compose build
-# Run:    docker compose up -d
-#
-# Inside this image, compiles use host TeX (local backend) — no Docker-in-Docker.
+# Build:  docker build -f Dockerfile.web -t aic .
+# Run:    docker run -d --name ace-compiler -p 3000:3000 aic
 
-# pandoc/latex is amd64-only (use QEMU on Apple Silicon)
 FROM --platform=linux/amd64 pandoc/latex:latest
 
 USER root
@@ -29,11 +26,11 @@ RUN apk add --no-cache \
 # TeX Live from base image is already on PATH via pandoc/latex
 WORKDIR /app
 
-# CLI + templates
+# CLI + scripts
 COPY bin/ ./bin/
 COPY scripts/ ./scripts/
-COPY templates/ ./templates/
-RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess
+RUN mkdir -p ./templates
+RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess || true
 
 # Web app deps first (better layer cache)
 COPY web/package.json web/package-lock.json* ./web/
@@ -53,10 +50,10 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
 # Baked into the Next build for command-center → product links
-ARG NEXT_PUBLIC_SITE_URL=https://ace-seek.com
-ARG NEXT_PUBLIC_DOC_URL=https://doc.ace-seek.com
-ARG NEXT_PUBLIC_TIMING_URL=https://timing.ace-seek.com
-ARG NEXT_PUBLIC_SCRIPTS_URL=https://scripts.ace-seek.com
+ARG NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
+ARG NEXT_PUBLIC_DOC_URL=https://tools.ace-seek.com
+ARG NEXT_PUBLIC_TIMING_URL=https://vlsi.ace-seek.com
+ARG NEXT_PUBLIC_SCRIPTS_URL=https://tools.ace-seek.com
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_DOC_URL=$NEXT_PUBLIC_DOC_URL
 ENV NEXT_PUBLIC_TIMING_URL=$NEXT_PUBLIC_TIMING_URL
