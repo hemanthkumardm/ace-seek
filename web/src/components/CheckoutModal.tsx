@@ -150,9 +150,9 @@ export function CheckoutModal({
         prefill: {
           name:
             [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-            "Ace-Seek User",
-          email: user?.primaryEmailAddress?.emailAddress || "user@ace-seek.com",
-          contact: "8498045817",
+            "",
+          email: user?.primaryEmailAddress?.emailAddress || "",
+          contact: user?.primaryPhoneNumber?.phoneNumber || "",
         },
         theme: {
           color: "#06b6d4",

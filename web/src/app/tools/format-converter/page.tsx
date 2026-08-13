@@ -50,7 +50,7 @@ export default function FormatConverterPage() {
       if (!allowedFrom.includes(ff) || !allowedTo.includes(tt)) {
         setOutput("");
         setError(
-          `“${ff} → ${tt}” needs a higher plan (you’re on ${ent.label}). Upgrade at /pricing.`
+          `“${ff} → ${tt}” needs a higher plan (you’re on ${ent.label}). Upgrade at https://www.ace-seek.com/pricing.`
         );
         setNote("");
         return;

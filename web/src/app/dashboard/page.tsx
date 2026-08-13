@@ -6,7 +6,6 @@ import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { PRODUCTS } from "@/lib/site";
 import {
-  LayoutDashboard,
   Cpu,
   Key,
   Zap,
@@ -17,6 +16,8 @@ import {
   LogOut,
   User,
   Loader2,
+  Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 
 type UserProfile = {
@@ -25,18 +26,23 @@ type UserProfile = {
   name: string;
   plan: "free" | "pro" | "team";
   apiKey: string;
+  freeKey?: string;
+  trialKey?: string;
 };
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => void }) {
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const handleCopy = () => {
-    if (!user.apiKey) return;
-    navigator.clipboard.writeText(user.apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const freeKey = user.freeKey || user.apiKey;
+  const trialKey = user.trialKey || user.apiKey.replace("ace_free_", "ace_trial_");
+
+  const handleCopy = (keyStr: string, label: string) => {
+    if (!keyStr) return;
+    navigator.clipboard.writeText(keyStr);
+    setCopiedKey(label);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   return (
@@ -76,7 +82,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
             </div>
             <div className="flex gap-2 mt-1">
               <a
-                href="/pricing"
+                href="https://www.ace-seek.com/pricing"
                 className="sk-btn sk-btn-primary !text-xs !py-1 flex-1 justify-center"
               >
                 <Zap className="w-3 h-3 fill-white" />
@@ -94,6 +100,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
         </div>
 
+        {/* DUAL API KEYS CONTAINER */}
         <div className="sk-panel p-6 md:p-8 space-y-6 border-[var(--accent-cyan)]/50 shadow-cyan-950/20">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--bevel-shadow)] pb-4">
             <div className="flex items-center gap-3">
@@ -101,68 +108,98 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                 <Key className="w-5 h-5 text-[var(--accent-cyan)]" />
               </div>
               <div>
-                <h2 className="text-base font-bold">Your Unique Plan API License Key</h2>
+                <h2 className="text-base font-bold">Your Account API License Keys</h2>
                 <p className="text-xs text-[var(--muted)]">
-                  Same key on every device for your{" "}
-                  <span className="font-mono text-[var(--accent-cyan)] uppercase font-bold">
-                    {user.plan}
-                  </span>{" "}
-                  plan.
+                  Provisioned keys for VLSI EDA Studios and Document Compiler Workstations.
                 </p>
               </div>
             </div>
-            <span className="sk-badge sk-badge-live">PERSONAL KEY</span>
+            <span className="sk-badge sk-badge-live">2 KEYS PROVISIONED</span>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-              Active API Token ({user.plan.toUpperCase()} TIER):
-            </label>
-            <div className="flex items-center gap-3">
-              <div className="sk-lcd flex-1 py-2.5 px-4 font-mono text-sm tracking-wider flex items-center justify-between overflow-x-auto">
-                <span className="truncate">{user.apiKey}</span>
-                <span className="text-xs opacity-75 text-[var(--accent-cyan)] font-sans font-semibold ml-2 shrink-0">
-                  {user.plan.toUpperCase()}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* KEY 1: 7-DAY PRO TRIAL KEY */}
+            <div className="rounded-xl border border-yellow-500/40 bg-yellow-950/10 p-5 space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                  <span>1. 7-Day Pro Trial Key</span>
+                </span>
+                <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-bold text-yellow-300 border border-yellow-500/30">
+                  Starts On First Use
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={handleCopy}
-                className="sk-btn sk-btn-primary !text-xs !py-2.5 !px-5 shrink-0"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
+
+              <div className="flex items-center gap-2">
+                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-yellow-200 truncate">
+                  {trialKey}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(trialKey, "trial")}
+                  className="sk-btn sk-btn-primary !text-xs !py-2 !px-3 shrink-0"
+                >
+                  {copiedKey === "trial" ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Copy API Key</span>
-                  </>
-                )}
-              </button>
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-yellow-200/80 leading-relaxed font-mono">
+                ⚡ Timer begins on first API call/login. Valid for 7 full days from first use.
+              </p>
+            </div>
+
+            {/* KEY 2: PERMANENT FREE KEY */}
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/10 p-5 space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>2. Permanent Free Key</span>
+                </span>
+                <span className="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                  Never Expires
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-emerald-200 truncate">
+                  {freeKey}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(freeKey, "free")}
+                  className="sk-btn sk-btn-primary !text-xs !py-2 !px-3 shrink-0"
+                >
+                  {copiedKey === "free" ? (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  ) : (
+                    <Copy className="w-3.5 h-3.5" />
+                  )}
+                </button>
+              </div>
+
+              <p className="text-[11px] text-emerald-200/80 leading-relaxed font-mono">
+                🔒 Permanent access. Includes 25 converts/day & SDC Studio viewing.
+              </p>
             </div>
           </div>
 
           <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed">
             <div className="flex items-center gap-2 text-[var(--foreground)] font-bold mb-1">
               <HelpCircle className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <span>How to Authorize Subdomain Apps:</span>
+              <span>How to Authorize Workstations:</span>
             </div>
             <p>
-              • Step 1: Click <strong>&quot;Copy API Key&quot;</strong> above.
+              • Step 1: Copy either your <strong>7-Day Pro Trial Key</strong> or <strong>Permanent Free Key</strong> above.
             </p>
             <p>
-              • Step 2: Open a subdomain (e.g. <code>doc.ace-seek.com</code> or{" "}
-              <code>vlsi.ace-seek.com</code>).
+              • Step 2: Open any product workstation (e.g. <code>tools.ace-seek.com</code> or <code>vlsi.ace-seek.com</code>).
             </p>
             <p>
-              • Step 3: Paste into <strong>API Key Authorization</strong> to unlock{" "}
-              {user.plan.toUpperCase()} capabilities.
-            </p>
-            <p className="pt-1 text-[var(--accent-cyan)]">
-              Multi-device: sign in with the same Ace-Seek account — this key stays identical.
+              • Step 3: Paste into the <strong>API Key Bar</strong> to activate your entitlements.
             </p>
           </div>
         </div>

@@ -220,16 +220,16 @@ export function SiteFooter() {
             <CreditCard className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>SaaS Core</span>
           </p>
-          <a href="/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Pricing & Plans
           </a>
-          <a href="/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             User Dashboard & API Keys
           </a>
-          <a href="/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Promotions & Offers
           </a>
-          <a href="/advertise" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/advertise" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Advertise & Sponsorship
           </a>
         </div>

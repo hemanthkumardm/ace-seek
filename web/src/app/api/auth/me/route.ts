@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { getSessionData } from "@/lib/user-store";
-import { apiKeyForUserId } from "@/lib/api-keys";
+import { apiKeyForUserId, generateUserDualKeys } from "@/lib/api-keys";
 import { planFromClerkMetadata } from "@/lib/clerk-config";
+import { getUserKeysFromDb, saveApiKeyToDb } from "@/lib/supabase-keys";
+import { sendWelcomeTrialEmail } from "@/lib/email-service";
 
 function clerkEnabled(): boolean {
   return Boolean(
@@ -39,6 +41,38 @@ export async function GET(req: NextRequest) {
         email ||
         "Engineer";
 
+      const dualKeys = generateUserDualKeys(userId);
+      const activeKey = apiKeyForUserId(userId, plan);
+
+      // Async background sync to Supabase & onboarding welcome email
+      if (email) {
+        getUserKeysFromDb(userId, email).then(async (existingKeys) => {
+          if (existingKeys.length === 0) {
+            // First time user! Save keys to Supabase and send welcome email
+            await saveApiKeyToDb({
+              userId,
+              email,
+              keyType: "free",
+              apiKey: dualKeys.freeKey,
+              tier: "free",
+            });
+            await saveApiKeyToDb({
+              userId,
+              email,
+              keyType: "trial",
+              apiKey: dualKeys.trialKey,
+              tier: "pro",
+            });
+            await sendWelcomeTrialEmail({
+              toEmail: email,
+              customerName: name,
+              freeKey: dualKeys.freeKey,
+              trialKey: dualKeys.trialKey,
+            });
+          }
+        }).catch(() => {});
+      }
+
       return NextResponse.json({
         authenticated: true,
         provider: "clerk",
@@ -47,7 +81,9 @@ export async function GET(req: NextRequest) {
           email,
           name,
           plan,
-          apiKey: apiKeyForUserId(userId, plan),
+          apiKey: activeKey,
+          freeKey: dualKeys.freeKey,
+          trialKey: dualKeys.trialKey,
         },
       });
     } catch {
@@ -66,6 +102,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
+  const dualKeys = generateUserDualKeys(session.userId);
+
   return NextResponse.json({
     authenticated: true,
     provider: "legacy",
@@ -75,6 +113,8 @@ export async function GET(req: NextRequest) {
       name: session.name,
       plan: session.plan,
       apiKey: session.apiKey,
+      freeKey: dualKeys.freeKey,
+      trialKey: dualKeys.trialKey,
     },
   });
 }

@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
 import { verifyIssuedApiKey } from "@/lib/api-keys";
 import {
-  entitlementsFromApiKey,
   publicEntitlements,
   entitlementsForPlan,
 } from "@/lib/entitlements";
+import { activateTrialKeyFirstUse, getApiKeyRecordFromDb } from "@/lib/supabase-keys";
 
 /**
  * Validate dashboard API keys for subdomain login (vlsi / tools).
+ * Handles Free, 7-Day Trial (activated on first use), Pro, Max, and Team keys.
  * Returns plan + full public entitlements matrix for client-side UI locks.
  */
 export async function POST(req: NextRequest) {
@@ -71,7 +72,97 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. In-memory user store key lookup
+    // 2. Check Supabase DB for manual/custom key record overrides first
+    const dbRecord = await getApiKeyRecordFromDb(apiKey);
+    if (dbRecord) {
+      if (dbRecord.status === "revoked") {
+        return NextResponse.json(
+          { valid: false, error: "This API Key has been revoked by admin." },
+          { status: 403 }
+        );
+      }
+
+      if (dbRecord.key_type === "trial") {
+        const trialActivation = await activateTrialKeyFirstUse(apiKey);
+        if (trialActivation && trialActivation.active) {
+          const ent = entitlementsForPlan("pro");
+          return NextResponse.json({
+            valid: true,
+            plan: "pro",
+            tier: "pro",
+            keyType: "trial",
+            trialActive: true,
+            daysRemaining: trialActivation.daysRemaining,
+            expiresAt: trialActivation.expiresAt,
+            email: dbRecord.email,
+            apiKey,
+            entitlements: publicEntitlements(ent),
+          });
+        }
+
+        // Trial expired & fell back to Free tier
+        const ent = entitlementsForPlan("free");
+        return NextResponse.json({
+          valid: true,
+          plan: "free",
+          tier: "free",
+          keyType: "trial",
+          trialExpired: true,
+          message: "Your 7-day Pro trial has expired. Reverted to Free plan.",
+          email: dbRecord.email,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+
+      const activePlan = dbRecord.tier;
+      const ent = entitlementsForPlan(activePlan);
+      return NextResponse.json({
+        valid: true,
+        plan: activePlan,
+        tier: activePlan,
+        email: dbRecord.email,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 3. Cryptographic HMAC issued key verification
+    const issued = verifyIssuedApiKey(apiKey);
+    if (issued.ok) {
+      if (issued.plan === "trial") {
+        const trialActivation = await activateTrialKeyFirstUse(apiKey);
+        const isTrialValid = trialActivation ? trialActivation.active : true;
+        const activePlan = isTrialValid ? "pro" : "free";
+        const ent = entitlementsForPlan(activePlan);
+
+        return NextResponse.json({
+          valid: true,
+          plan: activePlan,
+          tier: activePlan,
+          keyType: "trial",
+          trialActive: isTrialValid,
+          trialExpired: !isTrialValid,
+          daysRemaining: trialActivation?.daysRemaining ?? 7,
+          expiresAt: trialActivation?.expiresAt,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+
+      const ent = entitlementsForPlan(issued.plan);
+      return NextResponse.json({
+        valid: true,
+        plan: issued.plan,
+        tier: issued.plan,
+        email: ent.email,
+        name: ent.name,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 4. In-memory user store key lookup fallback
     const legacy = findUserByApiKey(apiKey);
     if (legacy) {
       const ent = {
@@ -86,23 +177,6 @@ export async function POST(req: NextRequest) {
         email: legacy.email,
         name: legacy.name,
         apiKey: legacy.apiKey,
-        entitlements: publicEntitlements(ent),
-      });
-    }
-
-    // 4. Cryptographic HMAC issued key verification
-    // IMPORTANT: build entitlements from issued.plan — do not re-parse key with
-    // entitlementsFromApiKey after lower-casing (breaks HMAC → false Guest).
-    const issued = verifyIssuedApiKey(apiKey);
-    if (issued.ok) {
-      const ent = entitlementsForPlan(issued.plan);
-      return NextResponse.json({
-        valid: true,
-        plan: issued.plan,
-        tier: issued.plan,
-        email: ent.email,
-        name: ent.name,
-        apiKey,
         entitlements: publicEntitlements(ent),
       });
     }

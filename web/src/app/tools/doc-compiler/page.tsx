@@ -430,7 +430,7 @@ export default function DocCompilerPage() {
             )}
             {!isPremium && (
               <a
-                href="/pricing"
+                href="https://www.ace-seek.com/pricing"
                 className="ml-auto inline-flex items-center gap-1 text-[11px] font-black uppercase text-black hover:underline"
               >
                 <Crown className="h-3.5 w-3.5" />

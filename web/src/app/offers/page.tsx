@@ -15,7 +15,7 @@ const OFFERS = [
     discount: "20% OFF",
     code: "ANNUAL2026",
     cta: "Claim Annual Deal",
-    href: "/pricing",
+    href: "https://www.ace-seek.com/pricing",
   },
   {
     title: "VLSI Startup & Academic Grant",
