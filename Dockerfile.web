@@ -49,6 +49,10 @@ ENV AIC_BACKEND_DEFAULT=local
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Clerk authentication environment variables
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_c3VwZXItY2F0dGxlLTc5LmNsZXJrLmFjY291bnRzLmRldiQ
+ENV CLERK_SECRET_KEY=sk_test_321ystwxZHxC2dOk5VH2XF8B9a80lC19uYzbBkQ74g
+
 # Baked into the Next build for command-center → product links
 ARG NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
 ARG NEXT_PUBLIC_DOC_URL=https://tools.ace-seek.com
