@@ -49,6 +49,26 @@ interface CheckoutModalProps {
   onClose: () => void;
 }
 
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window !== "undefined" && window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const existing = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true));
+      existing.addEventListener("error", () => resolve(false));
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 export function CheckoutModal({ planId, planName, price, isOpen, onClose }: CheckoutModalProps) {
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
@@ -57,7 +77,9 @@ export function CheckoutModal({ planId, planName, price, isOpen, onClose }: Chec
   const [copiedKey, setCopiedKey] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      loadRazorpayScript();
+    } else {
       setErrorMessage(null);
       setPurchasedKey(null);
       setLoading(false);
@@ -71,7 +93,15 @@ export function CheckoutModal({ planId, planName, price, isOpen, onClose }: Chec
       setLoading(true);
       setErrorMessage(null);
 
-      // 1. Create Razorpay order on server
+      // 1. Ensure Razorpay SDK is loaded
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded || typeof window === "undefined" || !window.Razorpay) {
+        setErrorMessage("Razorpay SDK failed to load. Please check your network connection.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Create Razorpay order on server
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,13 +114,6 @@ export function CheckoutModal({ planId, planName, price, isOpen, onClose }: Chec
 
       if (!res.ok || !orderId) {
         setErrorMessage(orderData.error || "Failed to create payment order.");
-        setLoading(false);
-        return;
-      }
-
-      // 2. Ensure Razorpay SDK is loaded
-      if (typeof window === "undefined" || !window.Razorpay) {
-        setErrorMessage("Razorpay SDK failed to load. Please check your connection.");
         setLoading(false);
         return;
       }
