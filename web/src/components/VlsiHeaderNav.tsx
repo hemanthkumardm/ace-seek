@@ -152,11 +152,11 @@ export function VlsiHeaderNav({
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
                     pathname === "/vlsi/reports"
                       ? "bg-slate-900 text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      : "bg-slate-800 text-white hover:bg-slate-700"
                   }`}
                 >
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  <span>Reports</span>
+                  <FolderOpen className="w-3.5 h-3.5 text-cyan-300" />
+                  <span className="text-white font-bold">Reports</span>
                 </a>
                 <a
                   href="/vlsi/sdc-studio"

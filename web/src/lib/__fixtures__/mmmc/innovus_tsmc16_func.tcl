@@ -11,27 +11,19 @@ create_constraint_mode -name func \
 # FFGNP - Best Case
 create_library_set -name ffgnp_0p88v_125c \
     -timing [list \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpdulvt_170a/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpdulvt_100f/tcbn16ffcllbwp16p90cpdulvtffgnp0p88v125c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpdlvt_170a/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpdlvt_100f/tcbn16ffcllbwp16p90cpdlvtffgnp0p88v125c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90_170b/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90_170b/tcbn16ffcllbwp16p90ffgnp0p88v125c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpd_170b/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpd_170b/tcbn16ffcllbwp16p90cpdffgnp0p88v125c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta64x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta64x64m4wbshoyd_130b_ffgnp0p88v0p88v125c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta256x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta256x64m4wbshoyd_130b_ffgnp0p88v0p88v125c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta512x32m4wbshoyd_130b/CCS/tsdn16ffcllulvta512x32m4wbshoyd_130b_ffgnp0p88v0p88v125c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta1024x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta1024x64m4wbshoyd_130b_ffgnp0p88v0p88v125c.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_ulvt_ffgnp0p88v125c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_lvt_ffgnp0p88v125c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_rvt_ffgnp0p88v125c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/sram_ffgnp0p88v125c.lib \
     ]
 
 # SSGNP - Worst Case
 create_library_set -name ssgnp_0p72v_m40c \
     -timing [list \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpdulvt_170a/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpdulvt_100f/tcbn16ffcllbwp16p90cpdulvtssgnp0p72vm40c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpdlvt_170a/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpdlvt_100f/tcbn16ffcllbwp16p90cpdlvtssgnp0p72vm40c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90_170b/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90_170b/tcbn16ffcllbwp16p90ssgnp0p72vm40c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/StandardCell/base/tcbn16ffcllbwp16p90cpd_170b/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn16ffcllbwp16p90cpd_170b/tcbn16ffcllbwp16p90cpdssgnp0p72vm40c_ccs.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta64x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta64x64m4wbshoyd_130b_ssgnp0p72v0p72vm40c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta256x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta256x64m4wbshoyd_130b_ssgnp0p72v0p72vm40c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta512x32m4wbshoyd_130b/CCS/tsdn16ffcllulvta512x32m4wbshoyd_130b_ssgnp0p72v0p72vm40c.lib \
-        /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/LibrariesAndIPs/SRAM/MACROS/tsdn16ffcllulvta1024x64m4wbshoyd_130b/CCS/tsdn16ffcllulvta1024x64m4wbshoyd_130b_ssgnp0p72v0p72vm40c.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_ulvt_ssgnp0p72vm40c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_lvt_ssgnp0p72vm40c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/stdcell_rvt_ssgnp0p72vm40c_ccs.lib \
+        /mnt/data/pdk/generic_7nm/libs/sram_ssgnp0p72vm40c.lib \
     ]
 
 ################################################################################
@@ -39,11 +31,11 @@ create_library_set -name ssgnp_0p72v_m40c \
 ################################################################################
 create_rc_corner -name cbest_125c \
     -temperature 125 \
-    -qrc_tech /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/RC_RCExtraction/cbest/Tech/cbest/qrcTechFile
+    -qrc_tech /mnt/data/pdk/generic_7nm/rc/cbest/qrcTechFile
 
 create_rc_corner -name rcworst_m40c \
     -temperature -40 \
-    -qrc_tech /mnt/data/ExSLerateV2_BKND/TSMC_16nm_FFC/RC_RCExtraction/rcworst/Tech/rcworst/qrcTechFile
+    -qrc_tech /mnt/data/pdk/generic_7nm/rc/rcworst/qrcTechFile
 
 ################################################################################
 # Operating Conditions

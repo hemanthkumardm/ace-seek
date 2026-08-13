@@ -215,17 +215,16 @@ export function normalizeMmmcState(raw: Partial<MmmcState> | MmmcState): MmmcSta
   return state;
 }
 
-/** Minimal starter — structure mirrors Innovus dual-corner func mode */
 export function starterMmmcState(): MmmcState {
   const libSs = createLibrarySet({
     id: "lib_ss",
     name: "ssgnp_0p72v_m40c",
-    files: ["tcbn_ssgnp0p72vm40c_ccs.lib"],
+    files: ["stdcell_ssgnp0p72vm40c_ccs.lib"],
   });
   const libFf = createLibrarySet({
     id: "lib_ff",
     name: "ffgnp_0p88v_125c",
-    files: ["tcbn_ffgnp0p88v125c_ccs.lib"],
+    files: ["stdcell_ffgnp0p88v125c_ccs.lib"],
   });
   const rcWorst = createRcCorner({
     id: "rc_worst",
@@ -316,12 +315,12 @@ export const DEFAULT_MMMC_STATE: MmmcState = {
     {
       id: "lib_ss",
       name: "lib_ss_0p72v_m40c",
-      files: ["tcbn16_ss0p72v_m40c.lib"],
+      files: ["stdcell_ss0p72v_m40c.lib"],
     },
     {
       id: "lib_ff",
       name: "lib_ff_0p88v_125c",
-      files: ["tcbn16_ff0p88v_125c.lib"],
+      files: ["stdcell_ff0p88v_125c.lib"],
     },
   ],
   rcCorners: [
@@ -422,15 +421,15 @@ export const DEFAULT_MMMC_STATE: MmmcState = {
   ],
 };
 
-/** TSMC 16nm-style dual-corner func MMMC (structure from real Innovus reference) */
+/** Reference-style dual-corner func MMMC */
 export function innovusReferenceStyleState(): MmmcState {
   const libFf = createLibrarySet({
     id: "lib_ffgnp",
     name: "ffgnp_0p88v_125c",
     files: [
-      "/mnt/data/libs/tcbn16ffcllbwp16p90cpdulvtffgnp0p88v125c_ccs.lib",
-      "/mnt/data/libs/tcbn16ffcllbwp16p90cpdlvtffgnp0p88v125c_ccs.lib",
-      "/mnt/data/libs/tcbn16ffcllbwp16p90ffgnp0p88v125c_ccs.lib",
+      "/mnt/data/libs/stdcell_ulvt_ffgnp0p88v125c_ccs.lib",
+      "/mnt/data/libs/stdcell_lvt_ffgnp0p88v125c_ccs.lib",
+      "/mnt/data/libs/stdcell_rvt_ffgnp0p88v125c_ccs.lib",
       "/mnt/data/libs/sram_ffgnp0p88v0p88v125c.lib",
     ],
   });
@@ -438,9 +437,9 @@ export function innovusReferenceStyleState(): MmmcState {
     id: "lib_ssgnp",
     name: "ssgnp_0p72v_m40c",
     files: [
-      "/mnt/data/libs/tcbn16ffcllbwp16p90cpdulvtssgnp0p72vm40c_ccs.lib",
-      "/mnt/data/libs/tcbn16ffcllbwp16p90cpdlvtssgnp0p72vm40c_ccs.lib",
-      "/mnt/data/libs/tcbn16ffcllbwp16p90ssgnp0p72vm40c_ccs.lib",
+      "/mnt/data/libs/stdcell_ulvt_ssgnp0p72vm40c_ccs.lib",
+      "/mnt/data/libs/stdcell_lvt_ssgnp0p72vm40c_ccs.lib",
+      "/mnt/data/libs/stdcell_rvt_ssgnp0p72vm40c_ccs.lib",
       "/mnt/data/libs/sram_ssgnp0p72v0p72vm40c.lib",
     ],
   });
@@ -532,7 +531,7 @@ export const MMMC_PRESETS: {
   state: MmmcState;
 }[] = [
   {
-    name: "Innovus dual-corner func (TSMC-style)",
+    name: "Innovus dual-corner func (Generic PDK)",
     description:
       "Reference-style SSGNP setup @ rcworst/-40C + FFGNP hold @ cbest/125C with create_opcond and leakage/dynamic views.",
     state: innovusReferenceStyleState(),

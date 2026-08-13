@@ -83,6 +83,9 @@ export async function saveApiKeyToDb(params: {
   if (!supabase) return null;
 
   try {
+    const nowIso = new Date().toISOString();
+    const defaultTrialExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     const payload = {
       user_id: params.userId,
       email: params.email.toLowerCase(),
@@ -90,7 +93,12 @@ export async function saveApiKeyToDb(params: {
       api_key: params.apiKey,
       tier: params.tier,
       status: "active",
-      expires_at: params.expiresAt ? new Date(params.expiresAt).toISOString() : null,
+      first_used_at: params.keyType === "trial" ? nowIso : null,
+      expires_at: params.expiresAt
+        ? new Date(params.expiresAt).toISOString()
+        : params.keyType === "trial"
+        ? defaultTrialExpires
+        : null,
     };
 
     const { data, error } = await supabase

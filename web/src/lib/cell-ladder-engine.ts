@@ -11,7 +11,7 @@ import type { TimingPath, TimingStep } from "./timing-engine";
 // Types
 // ---------------------------------------------------------------------------
 
-export type CellNameStyle = "tsmc_d" | "x_suffix" | "trail_digit" | "opaque";
+export type CellNameStyle = "foundry_d" | "x_suffix" | "trail_digit" | "opaque";
 
 export interface ParsedCellName {
   raw: string;
@@ -79,7 +79,7 @@ const VT_RE = /(ULVT|ELVT|LVT|SVT|HVT|RVT)$/i;
 /**
  * Parse common foundry cell naming into family + drive + VT.
  * Supports:
- *  - TSMC-like: BUFFD4BWP16P90LVT, ND2D1BWP16P90, INVSKND10BWP16P90
+ *  - D-drive: BUFFD4BWP16P90LVT, ND2D1BWP16P90, INVSKND10BWP16P90
  *  - X-suffix: AND2X2, BUFX4, BUF_X4
  *  - Trailing digits: INVD1, CKBD8
  */
@@ -125,7 +125,7 @@ export function parseCellName(raw: string): ParsedCellName | null {
     }
   }
 
-  // 2) TSMC-style ...D<drive><suffix> e.g. BUFFD4BWP16P90, ND2D1BWP16P90
+  // 2) Foundry D-style ...D<drive><suffix> e.g. BUFFD4BWP16P90, ND2D1BWP16P90
   //    Prefer D before BWP / CP / letter-digit tech tokens
   const dMatch = base.match(/^(.*?)D(\d+)([A-Z].*)?$/i);
   if (dMatch && dMatch[2]) {
@@ -141,7 +141,7 @@ export function parseCellName(raw: string): ParsedCellName | null {
         drive,
         driveToken: `D${drive}`,
         vt,
-        style: "tsmc_d",
+        style: "foundry_d",
         rebuild: (d, vtNew) => {
           const v =
             vtNew === null ? "" : vtNew !== undefined ? vtNew : vt || "";

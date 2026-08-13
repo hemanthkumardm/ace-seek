@@ -186,7 +186,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                       ? "Expired (Fell back to Free)"
                       : countdownText
                       ? countdownText
-                      : "Starts On First Use"}
+                      : "7-Day Trial Active"}
                   </span>
                 </span>
               </div>
@@ -209,7 +209,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
 
               <p className="text-[11px] text-yellow-200/80 leading-relaxed font-mono">
-                ⚡ Unlocks 100% MAX features across all Workstations. The 7-day countdown starts on first use.
+                ⚡ Unlocks 100% MAX features across all Workstations.
               </p>
             </div>
 

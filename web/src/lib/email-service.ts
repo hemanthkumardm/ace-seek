@@ -164,7 +164,7 @@ export function generateWelcomeEmailHTML(payload: WelcomeTrialEmailPayload): str
         ${trialKey}
       </div>
       <div class="note-text">
-        ⚡ <strong>Activation Rule</strong>: Your 7-day trial timer begins <strong>on your first API call or workstation validation</strong> (not from signup). Enjoy 500 converts/day, exact look PDF→DOCX, and full VLSI studio features for 7 full days from first use.
+        ⚡ <strong>Activation Rule</strong>: Your 7-day trial timer begins <strong>from your registration / login date</strong>. Enjoy 500 converts/day, exact look PDF→DOCX, and full VLSI studio features for 7 full days.
       </div>
     </div>
 

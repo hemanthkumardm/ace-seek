@@ -633,7 +633,7 @@ assert(
 const userSyn = generateMmmcTcl(userCfg, "synopsys");
 assert(userSyn.includes("create_scenario view_func_user_setup"), `Synopsys scenarios from user config`);
 
-// B1.7: Real Innovus multi-line fixture (TSMC-style dual corner)
+// B1.7: Real Innovus multi-line fixture (Dual-corner reference)
 console.log("\n--- Phase B1.7: Innovus reference fixture parse / regenerate ---");
 const innovusFixturePath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -651,12 +651,12 @@ assert(parsedInnovus.constraintModes.length === 1, `Innovus fixture: 1 constrain
 assert(parsedInnovus.constraintModes[0]?.name === "func", `Innovus fixture: mode name func`);
 assert(parsedInnovus.librarySets.length === 2, `Innovus fixture: 2 library sets`);
 assert(
-  parsedInnovus.librarySets.find((l) => l.name === "ffgnp_0p88v_125c")?.files.length === 8,
-  `FFGNP library set has 8 .lib files`
+  parsedInnovus.librarySets.find((l) => l.name === "ffgnp_0p88v_125c")?.files.length === 4,
+  `FFGNP library set has 4 .lib files`
 );
 assert(
-  parsedInnovus.librarySets.find((l) => l.name === "ssgnp_0p72v_m40c")?.files.length === 8,
-  `SSGNP library set has 8 .lib files`
+  parsedInnovus.librarySets.find((l) => l.name === "ssgnp_0p72v_m40c")?.files.length === 4,
+  `SSGNP library set has 4 .lib files`
 );
 assert(parsedInnovus.rcCorners.length === 2, `Innovus fixture: 2 RC corners`);
 assert(
