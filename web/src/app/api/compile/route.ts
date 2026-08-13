@@ -23,16 +23,34 @@ const BACKENDS = new Set(["auto", "local", "docker"]);
 const SIZE_DOCKER_DEFAULT = 50_000;
 
 /**
- * POST — start compile job (returns immediately with jobId).
- * Browser polls GET ?jobId=… so long Docker runs don't cause NetworkError.
- *
- * GET ?jobId=xxx          — job status JSON
- * GET ?jobId=xxx&result=1 — finished file bytes
- * GET (no query)          — health / capabilities
+ * Check if running in Vercel Serverless environment where Docker is unavailable
  */
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+const externalCompilerUrl = process.env.DOC_COMPILER_API_URL?.replace(/\/$/, "");
+
 export async function GET(req: NextRequest) {
   const jobId = req.nextUrl.searchParams.get("jobId");
   const wantResult = req.nextUrl.searchParams.get("result") === "1";
+
+  // Proxy GET job status/result if external compiler URL is configured
+  if (externalCompilerUrl) {
+    try {
+      const targetUrl = new URL(`${externalCompilerUrl}/api/compile`);
+      req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+      const res = await fetch(targetUrl.toString(), {
+        headers: { "Content-Type": "application/json" },
+      });
+      if (wantResult) {
+        const blob = await res.arrayBuffer();
+        const headers = new Headers(res.headers);
+        return new NextResponse(new Uint8Array(blob), { status: res.status, headers });
+      }
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    } catch {
+      // Fallback to local handler if proxy fetch fails
+    }
+  }
 
   if (jobId) {
     const job = readJob(jobId);
@@ -86,6 +104,9 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    isVercel,
+    hasExternalCompiler: Boolean(externalCompilerUrl),
+    externalCompilerUrl: externalCompilerUrl || null,
     projectRoot: root,
     aic: existsSync(aic),
     capabilities: caps,
@@ -93,19 +114,45 @@ export async function GET(req: NextRequest) {
     dockerReady: Boolean(caps.docker && caps.dockerImage),
     isProductionContainer: process.env.AIC_FORCE_LOCAL === "1",
     sizeDockerBytes: Number(process.env.AIC_SIZE_DOCKER || SIZE_DOCKER_DEFAULT),
-    tip: !caps.docker
-      ? "Docker CLI not found on PATH."
-      : !caps.dockerImage
-        ? "Docker image 'aic' missing. Run: docker build -t aic ."
-        : fastLocal
-          ? "Host engine ready — small files use local; large/docker backend use image aic."
-          : "Install tectonic: ./scripts/install-fast-deps.sh — or use Docker backend.",
+    tip: externalCompilerUrl
+      ? `Using external microservice compiler at ${externalCompilerUrl}`
+      : isVercel
+        ? "Vercel Serverless environment detected. Docker is unavailable in serverless lambdas. Set DOC_COMPILER_API_URL to an external node or use browser PDF rendering."
+        : !caps.docker
+          ? "Docker CLI not found on PATH."
+          : !caps.dockerImage
+            ? "Docker image 'aic' missing. Run: docker build -t aic ."
+            : fastLocal
+              ? "Host engine ready — small files use local; large/docker backend use image aic."
+              : "Install tectonic: ./scripts/install-fast-deps.sh — or use Docker backend.",
   });
 }
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+
+    // If an external compiler node URL is configured in Vercel env, proxy the request directly!
+    if (externalCompilerUrl) {
+      try {
+        const proxyRes = await fetch(`${externalCompilerUrl}/api/compile`, {
+          method: "POST",
+          body: formData,
+        });
+        const proxyData = await proxyRes.json();
+        return NextResponse.json(proxyData, { status: proxyRes.status });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json(
+          {
+            error: "External compiler proxy error",
+            details: `Failed to reach DOC_COMPILER_API_URL (${externalCompilerUrl}): ${msg}`,
+          },
+          { status: 502 }
+        );
+      }
+    }
+
     const markdown = String(formData.get("markdown") ?? "");
     const engine = String(formData.get("engine") ?? "auto");
     const paper = String(formData.get("paper") ?? "a4");
@@ -139,8 +186,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Invalid backend: ${backend}` }, { status: 400 });
     }
 
+    const caps = hostCapabilities();
+
+    // Check Vercel serverless environment limitation
+    if (isVercel && !caps.docker && !caps.pandoc && !caps.tectonic) {
+      return NextResponse.json(
+        {
+          error: "Docker & TeX binaries unavailable in Vercel Serverless environment",
+          isVercel: true,
+          details:
+            "Vercel serverless lambdas run in read-only containers without a Docker daemon.\n\n" +
+            "To resolve this, set DOC_COMPILER_API_URL in your Vercel Environment Variables pointing to your hosted compiler microservice (e.g. AWS EC2, Fly.io, or DigitalOcean Docker node).",
+          hint: "Set DOC_COMPILER_API_URL=https://your-compiler-node.com in Vercel settings.",
+        },
+        { status: 503 }
+      );
+    }
+
     if (backend === "docker") {
-      const caps = hostCapabilities();
       if (!caps.docker) {
         return NextResponse.json(
           {
