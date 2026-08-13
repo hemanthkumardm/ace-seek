@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser, createClerkClient } from "@clerk/nextjs/server";
 import { getSessionData } from "@/lib/user-store";
 import { apiKeyForUserId, generateUserDualKeys } from "@/lib/api-keys";
 import { planFromClerkMetadata } from "@/lib/clerk-config";
@@ -44,11 +44,11 @@ export async function GET(req: NextRequest) {
       const dualKeys = generateUserDualKeys(userId);
       const activeKey = apiKeyForUserId(userId, plan);
 
-      // Async background sync to Supabase & onboarding welcome email
-      if (email) {
+      // Send welcome email ONLY ONCE per account creation
+      if (email && !meta.welcome_sent) {
         getUserKeysFromDb(userId, email).then(async (existingKeys) => {
           if (existingKeys.length === 0) {
-            // First time user! Save keys to Supabase and send welcome email
+            // First time user registration! Save dual keys in Supabase
             await saveApiKeyToDb({
               userId,
               email,
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
               email,
               keyType: "trial",
               apiKey: dualKeys.trialKey,
-              tier: "pro",
+              tier: "max",
             });
             await sendWelcomeTrialEmail({
               toEmail: email,
@@ -69,6 +69,16 @@ export async function GET(req: NextRequest) {
               freeKey: dualKeys.freeKey,
               trialKey: dualKeys.trialKey,
             });
+          }
+
+          // Mark welcome_sent = true in Clerk user metadata so logins NEVER re-trigger welcome email
+          try {
+            const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+            await clerk.users.updateUserMetadata(userId, {
+              privateMetadata: { welcome_sent: true },
+            });
+          } catch {
+            // ignore metadata write error
           }
         }).catch(() => {});
       }
