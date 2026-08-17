@@ -3511,13 +3511,13 @@ Slack:= -0.085`}
         </button>
       )}
 
-      {/* TOAST */}
-      {toast && (
-        <div className="fixed bottom-6 right-20 z-50 neu-panel px-5 py-3 text-xs font-black text-sky-700 shadow-xl flex items-center gap-2">
-          <Check className="h-4 w-4 text-emerald-600" />
+      {/* TOAST — shared neu-toast system */}
+      {toast ? (
+        <div className="neu-toast !right-20" role="status">
+          <Check className="h-4 w-4 shrink-0 text-emerald-600" />
           <span>{toast}</span>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

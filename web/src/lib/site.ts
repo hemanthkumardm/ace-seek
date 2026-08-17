@@ -1,18 +1,24 @@
 /**
  * Ace-Seek site model
  *
- *   www.ace-seek.com   → primary command center (pricing, signup, dashboard, SEO)
- *   main.ace-seek.com  → optional alias of main marketing host
- *   vlsi.ace-seek.com  → VLSI platform intro + API-key login + studios
- *   tools.ace-seek.com → Tools platform intro + API-key login + workstations
+ *   www.ace-seek.com        → primary command center (pricing, signup, dashboard, SEO)
+ *   main.ace-seek.com       → optional alias of main marketing host
+ *   vlsi.ace-seek.com       → ASIC authoring (SDC · Timing · MMMC · Power · Reports)
+ *   openroad.ace-seek.com   → OpenROAD PnR automation (upload VLSI handoff → Pro scripts / Max runs)
+ *   tools.ace-seek.com      → Tools platform intro + API-key login + workstations
  *
  * Apex ace-seek.com is NOT required (prefer www only).
  *
+ * One Next.js app serves all hosts (path roots /vlsi, /openroad, /tools).
+ *
  * Local (no DNS):
  *   /           → main
- *   /vlsi       → VLSI intro
+ *   /vlsi       → VLSI / ASIC intro
+ *   /openroad   → OpenROAD PnR intro
  *   /tools      → Tools intro
  */
+
+export type PlatformId = "vlsi" | "openroad" | "tools";
 
 /** Canonical main marketing / signup / dashboard host */
 export const SITE_URL =
@@ -26,6 +32,12 @@ export const VLSI_URL =
     ? "https://vlsi.ace-seek.com"
     : "/vlsi");
 
+export const OPENROAD_URL =
+  process.env.NEXT_PUBLIC_OPENROAD_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "production"
+    ? "https://openroad.ace-seek.com"
+    : "/openroad");
+
 export const TOOLS_URL =
   process.env.NEXT_PUBLIC_TOOLS_URL?.replace(/\/$/, "") ||
   (process.env.NODE_ENV === "production"
@@ -34,18 +46,18 @@ export const TOOLS_URL =
 
 export const BRAND = {
   name: "Ace-Seek",
-  tagline: "Automation and productivity for hardware & engineering teams",
+  tagline: "Automation and productivity for ASIC & engineering teams",
   description:
-    "A specialized suite of micro-tools for VLSI, STA, and technical documentation — one identity, many focused utilities.",
+    "A specialized suite of micro-tools for ASIC / VLSI, OpenROAD PnR automation, STA, and technical documentation — one identity, many focused utilities.",
 };
 
 /**
  * Home of the current product shell.
  * On subdomain host (vlsi.ace-seek.com) → "/".
- * On main site path mode → "/vlsi" or "/tools".
+ * On main site path mode → "/vlsi", "/openroad", or "/tools".
  */
 export function platformHomeHref(
-  platform: "vlsi" | "tools",
+  platform: PlatformId,
   host?: string | null
 ): string {
   const slug = productHostSlug(host);
@@ -55,6 +67,11 @@ export function platformHomeHref(
       ? VLSI_URL
       : "/vlsi";
   }
+  if (platform === "openroad") {
+    return typeof OPENROAD_URL === "string" && OPENROAD_URL.startsWith("http")
+      ? OPENROAD_URL
+      : "/openroad";
+  }
   return typeof TOOLS_URL === "string" && TOOLS_URL.startsWith("http")
     ? TOOLS_URL
     : "/tools";
@@ -62,7 +79,7 @@ export function platformHomeHref(
 
 /** Login page for platform (API key only). */
 export function platformLoginHref(
-  platform: "vlsi" | "tools",
+  platform: PlatformId,
   host?: string | null
 ): string {
   const home = platformHomeHref(platform, host);
@@ -226,8 +243,10 @@ export const HOST_TO_APP: Record<string, string> = Object.fromEntries(
   PRODUCTS.map((p) => [p.slug, p.appPath])
 );
 
-// Also accept legacy tools.* → tools hub
+// Platform subdomains (peer products — not nested under each other)
 HOST_TO_APP.tools = "/tools";
+HOST_TO_APP.vlsi = "/vlsi";
+HOST_TO_APP.openroad = "/openroad";
 
 export type PricingTier = {
   id: string;
@@ -275,6 +294,7 @@ export const PRICING: PricingTier[] = [
       "Full format suite (TOML/CSV/Base64…)",
       "STA TeX templates · table landscape",
       "Timing + MMMC + TCL export",
+      "OpenROAD: upload VLSI handoff + full flow scripts",
       "500 converts / day",
     ],
   },
@@ -291,8 +311,9 @@ export const PRICING: PricingTier[] = [
       "Unlimited converts & max file size",
       "Exact look up to 400 DPI",
       "Power Studio (UPF) + ECO paths",
+      "OpenROAD Max runs (container / dry-run jobs)",
       "Priority queue · private vault",
-      "All VLSI workstations unlocked",
+      "All VLSI / ASIC workstations unlocked",
     ],
   },
   {

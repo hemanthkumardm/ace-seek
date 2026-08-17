@@ -37,6 +37,7 @@ export function WorkstationAuthGuard({ children }: Props) {
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/vlsi" ||
+    pathname === "/openroad" ||
     pathname === "/tools" ||
     pathname === "/login" ||
     pathname.endsWith("/login");

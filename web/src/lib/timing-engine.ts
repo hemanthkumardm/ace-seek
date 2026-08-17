@@ -2791,7 +2791,7 @@ export function generateEcoProposals(
         id: `eco_io_${path.id}`,
         type: "io_constraint",
         title: "Review I/O delays & external budget",
-        detail: `in_delay ${path.inputDelay.toFixed(3)} · out_delay ${path.outputDelay.toFixed(3)} — co-optimize board/FPGA or SDC.`,
+        detail: `in_delay ${path.inputDelay.toFixed(3)} · out_delay ${path.outputDelay.toFixed(3)} — co-optimize board/package or SDC.`,
         target:
           path.pathKind === "reg2out" || path.pathKind === "in2out"
             ? path.endpoint

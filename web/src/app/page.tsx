@@ -3,6 +3,7 @@ import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import {
   BRAND,
   CONTENT_HUB,
+  OPENROAD_URL,
   PRICING,
   PRODUCTS,
   TOOLS_URL,
@@ -24,7 +25,6 @@ import {
   Server,
   Boxes,
   Compass,
-  Activity,
   ChevronRight,
   Tag,
   Megaphone,
@@ -129,63 +129,93 @@ export default function CommandCenterHome() {
             </a>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {/* Launch Card 1: VLSI Automation Suite */}
+          <div className="grid gap-6 md:grid-cols-3">
+            {/* Launch Card 1: VLSI / ASIC Automation Suite */}
             <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-[var(--accent-cyan)]/50 hover:border-[var(--accent-cyan)] transition-all">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="sk-icon-well w-10 h-10 rounded-lg">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg shrink-0">
                       <Cpu className="w-5 h-5 text-[var(--accent-cyan)]" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">VLSI Automation Suite</h3>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-white">VLSI / ASIC Suite</h3>
                       <span className="font-mono text-xs text-[var(--accent-cyan)]">vlsi.ace-seek.com</span>
                     </div>
                   </div>
-                  <span className="sk-badge sk-badge-live">5 Workstations</span>
+                  <span className="sk-badge sk-badge-live shrink-0">5</span>
                 </div>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  Advanced physical design & signoff web apps: SDC constraint studio, PrimeTime/Tempus timing analyzer, multi-corner MMMC view generator, and IEEE 1801 UPF power intent studio.
+                  Author SDC, Timing, MMMC, UPF — export OpenROAD-format handoff packs.
                 </p>
               </div>
-              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
-                <span className="text-xs font-mono text-slate-400">Direct Domain Link:</span>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-slate-400">Launch</span>
                 <a
                   href={VLSI_URL}
-                  className="sk-btn sk-btn-primary !text-xs !py-2 !px-4 font-bold"
+                  className="sk-btn sk-btn-primary !text-xs !py-2 !px-3 font-bold"
                 >
-                  <span>Launch vlsi.ace-seek.com →</span>
+                  <span>vlsi →</span>
                 </a>
               </div>
             </div>
 
-            {/* Launch Card 2: Developer & Utility Suite */}
-            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-emerald-500/50 hover:border-emerald-500 transition-all">
+            {/* Launch Card 2: OpenROAD PnR */}
+            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-emerald-400/50 hover:border-emerald-400 transition-all">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="sk-icon-well w-10 h-10 rounded-lg">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg shrink-0">
                       <Boxes className="w-5 h-5 text-emerald-400" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-white">Developer & Utility Suite</h3>
-                      <span className="font-mono text-xs text-emerald-400">tools.ace-seek.com</span>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-white">OpenROAD PnR</h3>
+                      <span className="font-mono text-xs text-emerald-400">openroad.ace-seek.com</span>
                     </div>
                   </div>
-                  <span className="sk-badge sk-badge-live">6 Workstations</span>
+                  <span className="sk-badge sk-badge-live shrink-0">Pro/Max</span>
                 </div>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  High-speed publication & utility tools: Markdown/PDF/DOCX compiler, visual diff comparator, format converters (JSON/YAML/TOML/CSV), AI output preprocessor, and LaTeX math builders.
+                  Upload VLSI handoff → Pro flow scripts · Max dry-run / container jobs.
                 </p>
               </div>
-              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
-                <span className="text-xs font-mono text-slate-400">Direct Domain Link:</span>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-slate-400">Launch</span>
+                <a
+                  href={OPENROAD_URL}
+                  className="sk-btn sk-btn-ghost !text-xs !py-2 !px-3 font-bold text-emerald-400 border-emerald-500/40 hover:bg-emerald-950/30"
+                >
+                  <span>openroad →</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Launch Card 3: Developer & Utility Suite */}
+            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-violet-500/50 hover:border-violet-500 transition-all">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg shrink-0">
+                      <Boxes className="w-5 h-5 text-violet-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-lg font-bold text-white">Tools Suite</h3>
+                      <span className="font-mono text-xs text-violet-400">tools.ace-seek.com</span>
+                    </div>
+                  </div>
+                  <span className="sk-badge sk-badge-live shrink-0">6</span>
+                </div>
+                <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  Doc compiler, diff, converters, AI sanitizer, TeX, tables.
+                </p>
+              </div>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-slate-400">Launch</span>
                 <a
                   href={TOOLS_URL}
-                  className="sk-btn sk-btn-ghost !text-xs !py-2 !px-4 font-bold text-emerald-400 border-emerald-500/40 hover:bg-emerald-950/30"
+                  className="sk-btn sk-btn-ghost !text-xs !py-2 !px-3 font-bold text-violet-300 border-violet-500/40 hover:bg-violet-950/30"
                 >
-                  <span>Launch tools.ace-seek.com →</span>
+                  <span>tools →</span>
                 </a>
               </div>
             </div>

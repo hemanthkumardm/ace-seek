@@ -13,7 +13,7 @@ Related docs:
 | `AUTH_CLERK.md` | Clerk setup |
 | `CLOUD_STACK.md` | Supabase + SDC cloud |
 | `FULL_FLEDGE_CLOUD.md` | Full cloud cutover plan |
-| `SUBDOMAIN_ARCHITECTURE.md` | Main vs vlsi vs tools domains |
+| `SUBDOMAIN_ARCHITECTURE.md` | Main vs vlsi vs tools domains (ASIC focus; no FPGA product) |
 
 ---
 
@@ -21,7 +21,8 @@ Related docs:
 
 | Layer | Status | Notes |
 |-------|--------|--------|
-| **VLSI engines** (SDC, Timing, MMMC, UPF, ECO, Report Hub, Genus scripts) | **Strong / done for MVP** | Covered by 403 automated asserts |
+| **VLSI / ASIC engines** (SDC, Timing, MMMC, UPF, ECO, Report Hub, Genus scripts) | **Strong / done for MVP** | Covered by 403 automated asserts; product focus is ASIC only |
+| **FPGA platform** | **Removed** | No `/fpga/*`, no `fpga.ace-seek.com` product surface |
 | **Tools suite** (doc compiler, diff, converters, TeX, etc.) | **MVP live** | Mostly client-side; API key gating uneven |
 | **Main marketing site** (pricing, signup, dashboard shell) | **MVP** | Clerk login/signup wired; billing not real |
 | **Auth (Clerk)** | **Wired, keys in `.env.local`** | Not proven on production deploy in this verify |

@@ -13,11 +13,15 @@ import {
 import { mainDashboardHref, mainSignupHref, SITE_URL } from "@/lib/site";
 
 type SubdomainAuthModalProps = {
-  subdomainName: "VLSI" | "TOOLS";
+  subdomainName: "VLSI" | "TOOLS" | "OPENROAD";
   /** After successful key validation */
   onAuthorize?: (apiKey: string) => void;
   /** Compact layout for dedicated /login page */
   compact?: boolean;
+  /** Alias of onAuthorize (legacy intro pages) */
+  onSuccess?: () => void;
+  /** Optional close handler for modal chrome on intro pages */
+  onClose?: () => void;
 };
 
 /**
@@ -27,6 +31,8 @@ type SubdomainAuthModalProps = {
 export function SubdomainAuthModal({
   subdomainName,
   onAuthorize,
+  onSuccess,
+  onClose,
   compact = false,
 }: SubdomainAuthModalProps) {
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -64,6 +70,7 @@ export function SubdomainAuthModal({
           window.dispatchEvent(new Event("ace_key_updated"));
         }
         if (onAuthorize) onAuthorize(keyToTest);
+        onSuccess?.();
       } else {
         setKeyStatus("invalid");
       }

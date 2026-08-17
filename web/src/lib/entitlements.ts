@@ -23,7 +23,9 @@ export type ToolId =
   | "vlsi_timing"
   | "vlsi_mmmc"
   | "vlsi_power"
-  | "vlsi_reports";
+  | "vlsi_reports"
+  | "openroad_scripts"
+  | "openroad_run";
 
 export type Entitlements = {
   tier: PlanTier;
@@ -95,6 +97,14 @@ export type Entitlements = {
   canVlsiReports: boolean;
   canVlsiExportTcl: boolean;
   canVlsiEco: boolean;
+
+  // --- OpenROAD peer platform (openroad.ace-seek.com) ---
+  /** Platform access (project upload + hub) */
+  canAccessOpenroad: boolean;
+  /** Pro: full Yosys/OpenROAD/OpenSTA script packs */
+  canOpenroadScripts: boolean;
+  /** Max: container / dry-run jobs */
+  canOpenroadRun: boolean;
 };
 
 const INF = Number.POSITIVE_INFINITY;
@@ -158,6 +168,10 @@ const GUEST: Entitlements = {
   canVlsiReports: false,
   canVlsiExportTcl: false,
   canVlsiEco: false,
+
+  canAccessOpenroad: false,
+  canOpenroadScripts: false,
+  canOpenroadRun: false,
 };
 
 const FREE: Entitlements = {
@@ -215,6 +229,11 @@ const FREE: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: false,
   canVlsiEco: false,
+
+  // Free: VLSI handoff download only; OpenROAD platform starts at Pro
+  canAccessOpenroad: false,
+  canOpenroadScripts: false,
+  canOpenroadRun: false,
 };
 
 const PRO: Entitlements = {
@@ -262,6 +281,11 @@ const PRO: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: true,
   canVlsiEco: false,
+
+  // Pro: upload handoff + full script / local docker packs
+  canAccessOpenroad: true,
+  canOpenroadScripts: true,
+  canOpenroadRun: false,
 };
 
 const MAX: Entitlements = {
@@ -291,6 +315,11 @@ const MAX: Entitlements = {
   canVlsiTiming: true,
   canVlsiMmmc: true,
   canVlsiReports: true,
+
+  // Max: hosted OpenROAD runs (dry-run now; container workers when provisioned)
+  canAccessOpenroad: true,
+  canOpenroadScripts: true,
+  canOpenroadRun: true,
 };
 
 const TEAM: Entitlements = {
@@ -434,6 +463,9 @@ export const FEATURE_MIN_PLAN: Record<string, PlanTier> = {
   vlsi_export_tcl: "pro",
   vlsi_power: "max",
   vlsi_eco: "max",
+  openroad_platform: "pro",
+  openroad_scripts: "pro",
+  openroad_run: "max",
   unlimited_converts: "max",
   team_seats: "team",
   sso: "team",
@@ -517,6 +549,11 @@ export function publicEntitlements(e: Entitlements) {
       reports: e.canVlsiReports,
       exportTcl: e.canVlsiExportTcl,
       eco: e.canVlsiEco,
+    },
+    openroad: {
+      access: e.canAccessOpenroad,
+      scripts: e.canOpenroadScripts,
+      run: e.canOpenroadRun,
     },
   };
 }

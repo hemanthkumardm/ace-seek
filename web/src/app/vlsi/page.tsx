@@ -15,6 +15,7 @@ import {
   ArrowUpRight,
   ArrowRight,
   Lock,
+  Boxes,
 } from "lucide-react";
 import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -25,6 +26,7 @@ import {
   type VlsiStudioId,
 } from "@/components/VlsiStudioGate";
 import { planLabel } from "@/lib/entitlements";
+import { OPENROAD_URL } from "@/lib/site";
 
 function StudioCardAction({
   studio,
@@ -114,7 +116,7 @@ export default function VlsiHome() {
               ● 5 WORKSTATIONS ONLINE
             </span>
             <span className="brutal-badge brutal-badge-cyan">
-              CADENCE & SYNOPSYS
+              CADENCE · SYNOPSYS · OPENROAD
             </span>
           </div>
         </div>
@@ -127,7 +129,13 @@ export default function VlsiHome() {
             </span>
           </h1>
           <p className="text-xs md:text-base text-slate-200 leading-relaxed font-bold max-w-3xl">
-            The next-generation web application suite built for physical design, timing closure, and signoff engineers. Author, analyze, lint, and export production-ready TCL & SDC constraints.
+            Author ASIC constraints and timing on VLSI — then download{" "}
+            <span className="text-emerald-300">OpenROAD-format</span> SDC /
+            corners packs and continue on{" "}
+            <a href={OPENROAD_URL} className="text-emerald-300 underline">
+              openroad.ace-seek.com
+            </a>{" "}
+            for Pro scripts or Max runs.
           </p>
         </div>
 
@@ -215,7 +223,7 @@ export default function VlsiHome() {
             </h2>
           </div>
           <span className="text-xs font-bold text-slate-400 font-mono hidden md:inline-block">
-            5 Professional Workstations
+            5 Workstations + OpenROAD handoff
           </span>
         </div>
 
@@ -328,6 +336,42 @@ export default function VlsiHome() {
               label="Open Power Studio"
               className="brutal-btn bg-rose-500 text-white hover:bg-rose-600 !text-xs w-full justify-between font-black"
             />
+          </div>
+
+          {/* OpenROAD handoff (export on VLSI → upload on openroad peer) */}
+          <div className="brutal-panel brutal-panel-interactive p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border-3 border-emerald-400 shadow-[5px_5px_0_#000000] md:col-span-3 lg:col-span-1">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-md bg-emerald-500 border-2 border-black flex items-center justify-center text-black">
+                  <Boxes className="w-5 h-5" />
+                </div>
+                <span className="brutal-badge brutal-badge-lime">HANDOFF</span>
+              </div>
+              <h3 className="text-lg font-black uppercase text-white">
+                OpenROAD Export
+              </h3>
+              <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                Download constraints.sdc + corners.tcl in OpenROAD format from
+                your SDC/MMMC work — then upload on openroad.ace-seek.com for Pro
+                scripts or Max runs.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <a
+                href="/vlsi/openroad-export"
+                className="brutal-btn bg-emerald-500 text-black hover:bg-emerald-400 !text-xs w-full justify-between font-black"
+              >
+                <span>Export OpenROAD pack</span>
+                <ChevronRight className="w-4 h-4" />
+              </a>
+              <a
+                href={OPENROAD_URL}
+                className="brutal-btn bg-white text-black !text-xs w-full justify-between font-black"
+              >
+                <span>openroad.ace-seek.com</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </a>
+            </div>
           </div>
         </div>
       </div>

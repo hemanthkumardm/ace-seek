@@ -31,10 +31,36 @@ function applyHostRouting(req: NextRequest): NextResponse {
     }
   }
 
-  // 2. SUBDOMAIN REWRITE ROUTING:
-  // Map tools.ace-seek.com -> /tools
-  // Map vlsi.ace-seek.com -> /vlsi
-  // Map <slug>.tools.ace-seek.com -> product appPath
+  // 2. PLATFORM HOST ROUTING
+  // Peer platforms share one deployment:
+  //   vlsi.ace-seek.com      → /vlsi/*
+  //   openroad.ace-seek.com  → /openroad/*
+  //   tools.ace-seek.com     → /tools/*
+  // Internal links keep the /vlsi|/openroad|/tools prefix so path mode and host
+  // mode both work.
+  if (slug === "openroad") {
+    if (pathname === "/" || pathname === "") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/openroad";
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    const openroadAliases: Record<string, string> = {
+      "/login": "/openroad/login",
+      "/project": "/openroad/project",
+      "/upload": "/openroad/project",
+      "/scripts": "/openroad/scripts",
+      "/export": "/openroad/scripts",
+      "/run": "/openroad/run",
+      "/jobs": "/openroad/run",
+    };
+    const aliasTarget = openroadAliases[pathname];
+    if (aliasTarget) {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = aliasTarget;
+      return NextResponse.rewrite(rewriteUrl);
+    }
+  }
+
   if (slug && (pathname === "/" || pathname === "")) {
     if (slug === "tools") {
       const rewriteUrl = req.nextUrl.clone();
@@ -44,6 +70,11 @@ function applyHostRouting(req: NextRequest): NextResponse {
     if (slug === "vlsi") {
       const rewriteUrl = req.nextUrl.clone();
       rewriteUrl.pathname = "/vlsi";
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    if (slug === "openroad") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/openroad";
       return NextResponse.rewrite(rewriteUrl);
     }
     const targetPath = HOST_TO_APP[slug];
