@@ -19,12 +19,20 @@ export async function GET(req: NextRequest) {
     }
 
     const availability = probePdkAvailability();
+    const isPrivileged = gate.ent.tier === "team" || gate.ent.tier === "max";
+
+    const diag = toolsDiagnostics();
     return NextResponse.json({
-      pdkRoot: defaultPdkRoot(),
-      orfsRoot: defaultOrfsRoot() || null,
-      jobsRoot,
+      pdkRoot: isPrivileged ? defaultPdkRoot() : "[configured]",
+      orfsRoot: isPrivileged ? (defaultOrfsRoot() || null) : null,
+      jobsRoot: isPrivileged ? jobsRoot : (jobsRoot ? "[active]" : null),
       jobsRootError,
-      tools: toolsDiagnostics(),
+      tools: {
+        mode: diag.effectiveMode,
+        reason: diag.reason,
+        docker: diag.dockerAvailable,
+        hostOk: diag.hostTools.ok,
+      },
       catalog: OPENROAD_PDKS.map((p) => ({
         id: p.id,
         label: p.label,

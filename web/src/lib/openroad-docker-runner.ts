@@ -1288,3 +1288,21 @@ export function runnerDiagnostics(): Record<string, string | boolean | object> {
     pdks: availability,
   };
 }
+
+/** Stop/kill active running child process for a job */
+export function abortOpenroadJob(jobId: string, ownerId?: string): boolean {
+  let killed = false;
+  for (const [key, proc] of children.entries()) {
+    if (ownerId && !key.startsWith(`${safeOwnerId(ownerId)}::`)) continue;
+    if (key.endsWith(`::${jobId}`) || key === jobId) {
+      try {
+        proc.kill("SIGKILL");
+        killed = true;
+      } catch {
+        /* ignore */
+      }
+      children.delete(key);
+    }
+  }
+  return killed;
+}

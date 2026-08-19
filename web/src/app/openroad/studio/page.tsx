@@ -1227,9 +1227,19 @@ export default function OpenroadPnRStudioPage() {
     setDefText(null);
     setDefName(null);
     setJob(null);
-    setErr("");
-    setSelectedStage("lint");
     clearStudioPersistence();
+
+    // Wipe server-side tenant jobs & checkpoints on disk
+    const key = apiKeyResolved();
+    fetch("/api/openroad/clear", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(key ? { "x-api-key": key } : {}),
+      },
+    }).catch(() => {
+      /* non-blocking server clear */
+    });
   };
 
   /** Run one stage in order only (re-run allowed on the open stage tab) */
