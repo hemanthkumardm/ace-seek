@@ -26,7 +26,14 @@ const SIZE_DOCKER_DEFAULT = 50_000;
  * Check if running in Vercel Serverless environment where Docker is unavailable
  */
 const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
-const externalCompilerUrl = process.env.DOC_COMPILER_API_URL?.replace(/\/$/, "");
+const externalCompilerUrl = (
+  process.env.DOC_COMPILER_API_URL ||
+  process.env.OPENROAD_API_URL ||
+  process.env.BACKEND_API_URL ||
+  process.env.EC2_BACKEND_URL ||
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL
+)?.replace(/\/$/, "");
 
 export async function GET(req: NextRequest) {
   try {

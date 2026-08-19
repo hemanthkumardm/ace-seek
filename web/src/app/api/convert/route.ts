@@ -25,7 +25,14 @@ const ENGINES = new Set(["auto", "tectonic", "xelatex", "lualatex", "pdflatex"])
 const PAPERS = new Set(["a4", "a3", "a2", "letter", "legal", "tabloid"]);
 const BACKENDS = new Set(["auto", "local", "docker"]);
 
-const externalCompilerUrl = process.env.DOC_COMPILER_API_URL?.replace(/\/$/, "");
+const externalCompilerUrl = (
+  process.env.DOC_COMPILER_API_URL ||
+  process.env.OPENROAD_API_URL ||
+  process.env.BACKEND_API_URL ||
+  process.env.EC2_BACKEND_URL ||
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL
+)?.replace(/\/$/, "");
 
 // Daily convert usage rate limiter
 const DAILY_USAGE = new Map<string, { date: string; count: number }>();
@@ -354,11 +361,14 @@ export async function POST(req: NextRequest) {
       parsed.from === "pdf" &&
       parsed.to === "docx";
 
+    // If input format is text-editable and text content is provided, prefer text over binary fileBuffer
+    const effectiveFileBuffer = metaIn.textEditable && hasText ? undefined : fileBuffer;
+
     const job = startConvertJob({
       inputFormat: parsed.from,
       outputFormat: parsed.to,
       text: hasText ? text : hasFile ? undefined : "",
-      fileBuffer,
+      fileBuffer: effectiveFileBuffer,
       originalName,
       engine,
       backend,

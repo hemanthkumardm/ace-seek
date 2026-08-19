@@ -28,14 +28,16 @@ export type OpenroadOwner = {
   source: "issued_key" | "key_hash" | "local_dev";
 };
 
+const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+
 function isProd(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
-/** Durable jobs root — fail closed in production if missing / under /tmp */
+/** Durable jobs root — fail closed in production on host/EC2 if missing / under /tmp */
 export function getOpenroadJobsRoot(): string {
   const env = process.env.OPENROAD_JOBS_DIR?.trim();
-  if (isProd()) {
+  if (isProd() && !isVercel) {
     if (!env) {
       throw new Error(
         "OPENROAD_JOBS_DIR must be set in production (e.g. /data/ace-openroad-jobs on EC2 EBS)"

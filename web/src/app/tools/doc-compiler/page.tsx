@@ -15,7 +15,12 @@ import {
   Crown,
   KeyRound,
   Lock,
+  Printer,
+  Sparkles,
+  Eye,
+  FileCode,
 } from "lucide-react";
+import { LiveDocumentPreview } from "@/components/live-document-preview";
 import {
   DocFormat,
   FORMAT_META,
@@ -105,6 +110,7 @@ export default function DocCompilerPage() {
   const [previewMeta, setPreviewMeta] = useState<PreviewMeta | null>(null);
   const [previewStale, setPreviewStale] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [previewTab, setPreviewTab] = useState<"live" | "pdf" | "raw">("live");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -223,8 +229,20 @@ export default function DocCompilerPage() {
   const swapFormats = useCallback(() => {
     setInputFormat(outputFormat);
     setOutputFormat(inputFormat);
+    setUploadFile(null);
     clearPreview();
   }, [inputFormat, outputFormat, clearPreview]);
+
+  const handleInputFormatChange = useCallback((newFmt: DocFormat) => {
+    setInputFormat(newFmt);
+    if (uploadFile) {
+      const fileExtFormat = detectFormatFromName(uploadFile.name);
+      if (fileExtFormat !== newFmt) {
+        setUploadFile(null);
+      }
+    }
+    clearPreview();
+  }, [uploadFile, clearPreview]);
 
   const setPreviewFromBlob = useCallback((blob: Blob) => {
     setPreviewBlob(blob);
@@ -272,7 +290,9 @@ export default function DocCompilerPage() {
       const formData = new FormData();
       formData.append("inputFormat", inputFormat);
       formData.append("outputFormat", outputFormat);
-      if (uploadFile) {
+      if (inMeta.textEditable) {
+        formData.append("text", text);
+      } else if (uploadFile) {
         formData.append("file", uploadFile);
       } else {
         formData.append("text", text);
@@ -318,6 +338,9 @@ export default function DocCompilerPage() {
       if (!fileRes.ok) throw new Error("Failed to fetch result");
       const blob = await fileRes.blob();
       setPreviewFromBlob(blob);
+      if (outputFormat === "pdf") {
+        setPreviewTab("pdf");
+      }
       if (finalStatus.textPreview) {
         setPreviewText(finalStatus.textPreview);
       } else if (["md", "tex", "plain", "html"].includes(outputFormat)) {
@@ -366,6 +389,10 @@ export default function DocCompilerPage() {
     a.click();
     URL.revokeObjectURL(url);
   }, [previewBlob, filename, outMeta.ext]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
   const hasPreview = Boolean(previewBlob);
   const canPreviewPdf = outputFormat === "pdf" && Boolean(previewUrl);
@@ -455,10 +482,7 @@ export default function DocCompilerPage() {
               <select
                 className="min-w-[9rem] rounded-md border-2 border-black bg-white px-3 py-2 text-xs font-black text-slate-900 outline-none shadow-[2px_2px_0_#000000]"
                 value={inputFormat}
-                onChange={(e) => {
-                  setInputFormat(e.target.value as DocFormat);
-                  clearPreview();
-                }}
+                onChange={(e) => handleInputFormatChange(e.target.value as DocFormat)}
               >
                 {INPUT_FORMATS.map((f) => (
                   <option key={f} value={f}>
@@ -709,7 +733,19 @@ export default function DocCompilerPage() {
             <span className="font-black text-slate-900">
               {inMeta.label} → {outMeta.label}
             </span>
-            {uploadFile && <span>· {uploadFile.name}</span>}
+            {uploadFile && (
+              <span className="inline-flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded border border-black/20 text-slate-900 font-bold">
+                📄 {uploadFile.name}
+                <button
+                  type="button"
+                  onClick={() => setUploadFile(null)}
+                  className="ml-1 text-rose-600 hover:text-rose-800 font-black text-[10px] uppercase underline cursor-pointer"
+                  title="Remove uploaded file"
+                >
+                  ✕ Clear
+                </button>
+              </span>
+            )}
             {note && <span className="text-slate-600 font-bold">· {note}</span>}
             {previewStale && hasPreview && (
               <span className="brutal-badge brutal-badge-pink">
@@ -781,32 +817,89 @@ export default function DocCompilerPage() {
 
           {/* Output */}
           <section className="flex min-h-[500px] flex-col bg-white">
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b-3 border-black bg-[var(--brutal-lime)] px-4 py-2 text-black font-black">
-              <div className="flex min-w-0 items-center gap-1.5 text-xs font-black text-black">
-                <Cpu className="h-3.5 w-3.5 shrink-0 text-black" />
-                <span className="truncate">
-                  OUTPUT · {outMeta.label}
-                  {previewMeta?.engine && (
-                    <span className="ml-2 font-bold opacity-80">
-                      {previewMeta.backend}/{previewMeta.engine}
-                      {previewMeta.ms ? ` · ${previewMeta.ms}ms` : ""}
-                    </span>
-                  )}
-                </span>
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b-3 border-black bg-[var(--brutal-lime)] px-3 py-1.5 text-black font-black">
+              {/* Preview Tabs */}
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("live")}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs font-black transition-all rounded-none border-2 border-black ${
+                    previewTab === "live"
+                      ? "bg-white text-black shadow-[2px_2px_0_#000]"
+                      : "bg-black/10 text-black hover:bg-black/20"
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                  <span>Live View (0ms)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("pdf")}
+                  disabled={!canPreviewPdf}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs font-black transition-all rounded-none border-2 border-black ${
+                    previewTab === "pdf"
+                      ? "bg-white text-black shadow-[2px_2px_0_#000]"
+                      : canPreviewPdf
+                      ? "bg-black/10 text-black hover:bg-black/20"
+                      : "opacity-40 cursor-not-allowed bg-transparent"
+                  }`}
+                  title={canPreviewPdf ? "View compiled TeX PDF" : "Compile to generate TeX PDF"}
+                >
+                  <Eye className="h-3.5 w-3.5 shrink-0" />
+                  <span>TeX PDF</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab("raw")}
+                  className={`flex items-center gap-1 px-2.5 py-1 text-xs font-black transition-all rounded-none border-2 border-black ${
+                    previewTab === "raw"
+                      ? "bg-white text-black shadow-[2px_2px_0_#000]"
+                      : "bg-black/10 text-black hover:bg-black/20"
+                  }`}
+                >
+                  <FileCode className="h-3.5 w-3.5 shrink-0" />
+                  <span>Raw</span>
+                </button>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+
+              {/* Action Buttons */}
+              <div className="flex shrink-0 items-center gap-1.5">
                 {isCompiling && (
-                  <span className="animate-pulse text-[11px] font-black text-black">
-                    WORKING…
+                  <span className="animate-pulse text-[11px] font-black text-black px-2">
+                    COMPILING…
                   </span>
                 )}
+
+                <button
+                  type="button"
+                  className="brutal-btn brutal-btn-cyan !text-[10px] !py-1 !px-2.5 font-black flex items-center gap-1"
+                  onClick={handlePrint}
+                  title="Instant Print or Save as PDF (0ms Browser Engine)"
+                >
+                  <Printer className="h-3 w-3" />
+                  <span>Instant PDF</span>
+                </button>
+
+                {hasPreview && (
+                  <button
+                    type="button"
+                    className="brutal-btn brutal-btn-yellow !text-[10px] !py-1 !px-2.5 font-black flex items-center gap-1"
+                    onClick={downloadPreview}
+                  >
+                    <Download className="h-3 w-3" />
+                    <span>Download .{outMeta.ext}</span>
+                  </button>
+                )}
+
                 {canCopy && !isCompiling && (
                   <button
                     type="button"
-                    className="brutal-btn brutal-btn-yellow !text-[10px] !py-1 !px-2 font-black"
+                    className="brutal-btn !bg-white !text-black !text-[10px] !py-1 !px-2 font-black flex items-center gap-1"
                     onClick={() => void copyOutput()}
                   >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
                     <span>{copied ? "Copied" : "Copy"}</span>
                   </button>
                 )}
@@ -824,27 +917,15 @@ export default function DocCompilerPage() {
                 </div>
               )}
 
-              {!previewUrl && !previewText && !isCompiling && !errorMsg && (
-                <div className="absolute inset-0 flex items-center justify-center p-8 text-center">
-                  <div className="max-w-xs space-y-2">
-                    <p className="text-sm font-semibold text-slate-800">No output yet</p>
-                    <p className="text-xs leading-relaxed text-slate-500">
-                      Choose <strong className="text-slate-700">From</strong> and{" "}
-                      <strong className="text-slate-700">To</strong>, provide input, then Convert.
-                    </p>
-                  </div>
+              {/* Tab: Live View */}
+              {previewTab === "live" && (
+                <div className="absolute inset-0 overflow-auto bg-white">
+                  <LiveDocumentPreview content={previewText || text} isWide={isWide} />
                 </div>
               )}
 
-              {isCompiling && !previewUrl && !previewText && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-xs font-medium text-slate-600 shadow-sm">
-                    Converting… {elapsed}s
-                  </div>
-                </div>
-              )}
-
-              {canPreviewPdf && (
+              {/* Tab: TeX PDF View */}
+              {previewTab === "pdf" && canPreviewPdf && (
                 <iframe
                   key={previewUrl!}
                   title="PDF preview"
@@ -853,64 +934,12 @@ export default function DocCompilerPage() {
                 />
               )}
 
-              {canPreviewText && !canPreviewPdf && (
-                <div className="absolute inset-0 flex min-h-0 flex-col">
-                  <div className="flex shrink-0 justify-end border-b border-slate-100 bg-white/90 px-3 py-1.5">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800"
-                      onClick={() => void copyOutput()}
-                    >
-                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      {copied ? "Copied" : "Copy all"}
-                    </button>
-                  </div>
-                  <pre className="min-h-0 flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed text-slate-800 whitespace-pre-wrap">
-                    {previewText}
+              {/* Tab: Raw View */}
+              {previewTab === "raw" && (
+                <div className="absolute inset-0 flex min-h-0 flex-col bg-slate-900 text-slate-100">
+                  <pre className="min-h-0 flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap">
+                    {previewText || text}
                   </pre>
-                </div>
-              )}
-
-              {hasPreview && !canPreviewPdf && !canPreviewText && (
-                <div className="absolute inset-0 flex items-center justify-center p-6">
-                  <div className="max-w-sm space-y-3 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {outMeta.label} ready
-                      {isPdfToDocx
-                        ? ` · ${pdfDocxMode === "exact" ? "Exact look" : "Editable"}`
-                        : ""}
-                    </p>
-                    <p className="text-xs leading-relaxed text-slate-500">
-                      {(previewBlob!.size / 1024).toFixed(1)} KB — use Download.
-                      {isPdfToDocx && pdfDocxMode === "exact"
-                        ? " Pages are images (looks like the PDF; text not editable)."
-                        : isPdfToDocx
-                          ? " Text/tables are editable; layout may differ slightly."
-                          : canCopy
-                            ? " Text copy is also available."
-                            : ""}
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {canCopy && (
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                          onClick={() => void copyOutput()}
-                        >
-                          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                          {copied ? "Copied" : "Copy"}
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800"
-                        onClick={downloadPreview}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        Download .{outMeta.ext}
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
             </div>

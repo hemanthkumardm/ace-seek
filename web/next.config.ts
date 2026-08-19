@@ -24,6 +24,25 @@ const nextConfig: NextConfig = {
       { source: "/script-helper", destination: "/tools/script-helper", permanent: true },
     ];
   },
+  async rewrites() {
+    const externalBackendUrl = (
+      process.env.OPENROAD_API_URL ||
+      process.env.DOC_COMPILER_API_URL ||
+      process.env.BACKEND_API_URL ||
+      process.env.EC2_BACKEND_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL
+    )?.replace(/\/$/, "");
+    if (externalBackendUrl && !process.env.AIC_FORCE_LOCAL) {
+      return [
+        {
+          source: "/api/openroad/:path*",
+          destination: `${externalBackendUrl}/api/openroad/:path*`,
+        },
+      ];
+    }
+    return [];
+  },
 };
 
 export default nextConfig;
