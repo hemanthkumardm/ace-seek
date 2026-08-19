@@ -349,6 +349,17 @@ export function entitlementsForPlan(plan: PlanTier): Entitlements {
 
 export function entitlementsFromApiKey(apiKey: string | null | undefined): Entitlements {
   const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  const isClusterWorker = process.env.AIC_FORCE_LOCAL === "1" || process.env.AIC_ROOT === "/app";
+  
+  // Dedicated EC2 computational cluster nodes always execute with full MAX capabilities
+  if (isClusterWorker) {
+    return {
+      ...entitlementsForPlan("max"),
+      name: "Cluster Worker Node",
+      email: "worker@cluster.local",
+    };
+  }
+
   if (!apiKey || !apiKey.trim()) {
     if (isDev) {
       return {

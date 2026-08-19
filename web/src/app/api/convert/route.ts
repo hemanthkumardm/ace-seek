@@ -204,9 +204,17 @@ export async function POST(req: NextRequest) {
     // Proxy POST convert request to EC2 compiler microservice if configured
     if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
       try {
+        const proxyFormData = new FormData();
+        for (const [k, v] of formData.entries()) {
+          proxyFormData.append(k, v);
+        }
+        const userKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
+        if (!userKey) {
+          proxyFormData.set("apiKey", "ace_max_usr_cluster_internal_worker");
+        }
         const proxyRes = await fetch(`${externalCompilerUrl}/api/convert`, {
           method: "POST",
-          body: formData,
+          body: proxyFormData,
         });
         const proxyData = await proxyRes.json();
         return NextResponse.json(proxyData, { status: proxyRes.status });
