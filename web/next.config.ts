@@ -39,12 +39,16 @@ const nextConfig: NextConfig = {
       process.env.NEXT_PUBLIC_BACKEND_URL
     )?.replace(/\/$/, "");
     if (externalBackendUrl && !process.env.AIC_FORCE_LOCAL) {
-      return [
-        {
-          source: "/api/openroad/:path*",
-          destination: `${externalBackendUrl}/api/openroad/:path*`,
-        },
-      ];
+      return {
+        beforeFiles: [
+          {
+            source: "/api/openroad/:path*",
+            destination: `${externalBackendUrl}/api/openroad/:path*`,
+          },
+        ],
+        afterFiles: [],
+        fallback: [],
+      };
     }
     return [];
   },

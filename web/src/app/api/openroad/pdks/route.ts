@@ -13,6 +13,33 @@ export async function GET(req: NextRequest) {
     const gate = requireOpenroadOwner(req);
     if (gate instanceof NextResponse) return gate;
 
+    const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+    const externalOpenroadUrl = (
+      process.env.OPENROAD_API_URL ||
+      process.env.DOC_COMPILER_API_URL ||
+      process.env.BACKEND_API_URL ||
+      process.env.EC2_BACKEND_URL ||
+      process.env.BACKEND_URL ||
+      process.env.NEXT_PUBLIC_BACKEND_URL
+    )?.replace(/\/$/, "");
+
+    if (externalOpenroadUrl && (!process.env.AIC_FORCE_LOCAL || isVercel)) {
+      try {
+        const targetUrl = new URL(`${externalOpenroadUrl}/api/openroad/pdks`);
+        req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+        const res = await fetch(targetUrl.toString(), {
+          headers: {
+            ...(req.headers.get("x-api-key") ? { "x-api-key": req.headers.get("x-api-key")! } : {}),
+            ...(req.headers.get("authorization") ? { authorization: req.headers.get("authorization")! } : {}),
+          },
+        });
+        const data = await res.json();
+        return NextResponse.json(data, { status: res.status });
+      } catch (err) {
+        /* fallback to local evaluation */
+      }
+    }
+
     let jobsRoot: string | null = null;
     let jobsRootError: string | null = null;
     try {
