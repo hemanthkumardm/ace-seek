@@ -21,18 +21,23 @@ ID_LIKE_LOWER="$(echo "${ID_LIKE:-$ID}" | tr '[:upper:]' '[:lower:]')"
 echo "→ OS: ${PRETTY_NAME:-unknown} ($ID_LIKE_LOWER)"
 
 # ---- swap space ----
-echo "[0/5] Creating 4GB Swap File (critical for AWS t2.micro)..."
-if [ ! -f /swapfile ]; then
-  fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+echo "[0/5] Ensuring 8GB Swap File for memory-safe builds..."
+SWAP_TOTAL_MB=$(free -m 2>/dev/null | awk '/Swap:/ {print $2}' || echo "0")
+if [ "${SWAP_TOTAL_MB:-0}" -lt 6000 ]; then
+  echo "  Allocating 8GB swapfile (was ${SWAP_TOTAL_MB:-0}MB)..."
+  swapoff /swapfile 2>/dev/null || true
+  rm -f /swapfile 2>/dev/null || true
+  fallocate -l 8G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=8192
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
-  if ! grep -q '/swapfile' /etc/fstab; then
+  if ! grep -q '/swapfile' /etc/fstab 2>/dev/null; then
     echo '/swapfile none swap sw 0 0' >> /etc/fstab
   fi
-  echo "  Swap created."
+  sysctl -w vm.swappiness=60 2>/dev/null || true
+  echo "  8GB Swap active."
 else
-  echo "  Swapfile already exists."
+  echo "  Sufficient swap already active (${SWAP_TOTAL_MB}MB)."
 fi
 
 # ---- packages ----

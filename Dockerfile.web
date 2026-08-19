@@ -43,6 +43,7 @@ COPY web/ ./
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV AIC_ROOT=/app
 # All compiles use TeX inside this container (no nested docker)
 ENV AIC_FORCE_LOCAL=1
@@ -64,7 +65,7 @@ ENV NEXT_PUBLIC_DOC_URL=$NEXT_PUBLIC_DOC_URL
 ENV NEXT_PUBLIC_TIMING_URL=$NEXT_PUBLIC_TIMING_URL
 ENV NEXT_PUBLIC_SCRIPTS_URL=$NEXT_PUBLIC_SCRIPTS_URL
 
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
 EXPOSE 3000
 
