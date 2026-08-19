@@ -20,14 +20,25 @@ services:
       AIC_FORCE_LOCAL: "1"
       AIC_BACKEND_DEFAULT: local
       # Public URLs (also set as build-args in Dockerfile.web)
-      NEXT_PUBLIC_SITE_URL: https://ace-seek.com
-      NEXT_PUBLIC_DOC_URL: https://doc.ace-seek.com
-      NEXT_PUBLIC_TIMING_URL: https://timing.ace-seek.com
-      NEXT_PUBLIC_SCRIPTS_URL: https://scripts.ace-seek.com
+      NEXT_PUBLIC_SITE_URL: https://www.ace-seek.com
+      NEXT_PUBLIC_PORTAL_URL: https://portal.ace-seek.com
+      NEXT_PUBLIC_OPENROAD_URL: https://openroad.ace-seek.com
+      NEXT_PUBLIC_VLSI_URL: https://vlsi.ace-seek.com
+      NEXT_PUBLIC_TOOLS_URL: https://tools.ace-seek.com
+      # OpenROAD ASIC Runner configuration
+      OPENROAD_RUNNER_ENABLED: "1"
+      OPENROAD_JOBS_DIR: /data/ace-openroad-jobs
+      PDK_ROOT: /data/volare
+      PDK: sky130A
+      OPENLANE_IMAGE: efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a
+      ACE_TOOLS_MODE: auto
       # Keep job/temp files inside a volume (survives restarts, not lost in container overlay)
       TMPDIR: /tmp/aic
     volumes:
       - aic-tmp:/tmp/aic
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /data/ace-openroad-jobs:/data/ace-openroad-jobs
+      - /data/volare:/data/volare
     # Free-tier friendly defaults (uncomment/adjust for Always Free VM shape)
     # mem_limit: 6g
     # cpus: 2.0

@@ -108,6 +108,32 @@ for u in opc ubuntu ec2-user admin azureuser; do
   fi
 done
 
+# ---- OpenROAD durable storage & PDKs ----
+echo "[3.5/5] Setting up OpenROAD durable storage and Sky130 PDK..."
+mkdir -p /data/ace-openroad-jobs /data/volare
+for u in opc ubuntu ec2-user admin azureuser; do
+  if id "$u" &>/dev/null; then
+    chown -R "$u:$u" /data 2>/dev/null || true
+  fi
+done
+chmod -R 777 /data/ace-openroad-jobs /data/volare 2>/dev/null || true
+
+# Install Python & Volare if available
+if command -v python3 >/dev/null 2>&1; then
+  if ! command -v volare >/dev/null 2>&1; then
+    echo "  Installing Volare PDK manager..."
+    python3 -m pip install --quiet volare || pip3 install --quiet volare || true
+  fi
+  if command -v volare >/dev/null 2>&1 && [ ! -d /data/volare/sky130A ]; then
+    echo "  Downloading Sky130 PDK into /data/volare (this may take a couple minutes)..."
+    volare enable --pdk sky130 --pdk-root /data/volare 2>/dev/null || echo "  Note: run 'volare enable --pdk sky130 --pdk-root /data/volare' after deploy"
+  fi
+fi
+
+# Pre-pull OpenLane Docker image
+echo "  Pulling OpenLane Docker image in background..."
+docker pull efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a 2>/dev/null || true
+
 # ---- repo root ----
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
