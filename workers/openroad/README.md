@@ -2,7 +2,7 @@
 
 Full **RTL → synth → floorplan → place → CTS → route → GDS** via **OpenLane Docker**.
 
-## mflowgen-inspired upgrades (Ace-Seek)
+## Modular flow upgrades (Ace-Seek)
 
 - **Stage nodes** (`web/src/lib/openroad-stage-nodes.ts`): each stage declares inputs/outputs/tool + pre/post assertions
 - **Flow checkpoints** (`OPENROAD_JOBS_DIR/owners/<ownerId>/checkpoints/<design_slug>/`): after Yosys synth and each OpenLane stage; enables resume without full rebuild (per-tenant; no global LATEST)

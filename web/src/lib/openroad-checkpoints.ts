@@ -1,5 +1,5 @@
 /**
- * mflowgen-style flow checkpoints between stages.
+ * Modular flow checkpoints between stages.
  * Host path: $OPENROAD_JOBS_DIR/owners/<ownerId>/checkpoints/<design_slug>/
  * Contents: manifest.json + netlist + optional OpenLane run snapshot.
  */

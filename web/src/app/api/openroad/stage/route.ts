@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
     );
     const hasCkpt = ckptInfo.exists;
 
-    // mflowgen-style preconditions
+    // Stage node preconditions
     const preAssert = runPreAssertions(stage, project, stageInputs, {
       completed: completedStages,
       hasCheckpoint: hasCkpt,
@@ -441,7 +441,7 @@ echo "SYNTH_DONE exit=$?"
           statsLines,
           netlist,
         };
-        // mflowgen-style checkpoint after successful synth
+        // Stage checkpoint after successful synth
         let checkpointPath: string | undefined;
         if (ok && netlist) {
           try {
@@ -648,7 +648,7 @@ echo "SYNTH_DONE exit=$?"
           message:
             result.status === "queued"
               ? `OpenLane queued — will run when a concurrency slot frees (stops after '${stage}').`
-              : `OpenLane Docker started — stops after '${stage}' (mflowgen-style stage node). Checkpoint will update on success.`,
+              : `OpenLane Docker started — stops after '${stage}' (modular stage node). Checkpoint will update on success.`,
         });
       }
 

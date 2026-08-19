@@ -1,5 +1,5 @@
 /**
- * mflowgen-inspired stage nodes for Ace-Seek OpenROAD.
+ * Modular stage nodes for Ace-Seek OpenROAD.
  * Each stage declares I/O contracts + pre/post assertions (pytest-style checks).
  */
 
@@ -200,7 +200,7 @@ function hasSdc(project: OpenroadProjectState): boolean {
   return project.files.some((f) => f.role === "sdc" || /\.sdc$/i.test(f.name));
 }
 
-/** Preconditions before running a stage (mflowgen-style) */
+/** Preconditions before running a stage */
 export function runPreAssertions(
   stage: FlowStageId,
   project: OpenroadProjectState,
@@ -299,7 +299,7 @@ export function runPreAssertions(
   return out;
 }
 
-/** Postconditions after a stage result (mflowgen-style) */
+/** Postconditions after a stage result */
 export function runPostAssertions(
   stage: FlowStageId,
   result: StageResultPayload | undefined,

@@ -2057,7 +2057,7 @@ export default function OpenroadPnRStudioPage() {
               {assertShow.length > 0 && (
                 <div className="neu-inset p-2 space-y-1 max-h-24 overflow-y-auto">
                   <p className="text-[9px] font-black uppercase text-slate-500">
-                    Assertions (mflowgen-style)
+                    Assertions (Stage Quality Checks)
                   </p>
                   {assertShow.slice(0, 8).map((a, i) => (
                     <p

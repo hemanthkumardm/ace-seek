@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pack OpenLane job results into mflowgen-style checkpoint directory.
+# Pack OpenLane job results into modular checkpoint directory.
 # Usage: pack_checkpoint.sh <job_dir> <design_slug> <stage> [owner_id]
 #
 # Sprint A: checkpoints live under owners/<ownerId>/checkpoints/<slug>/
