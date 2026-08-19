@@ -894,7 +894,12 @@ export default function OpenroadPnRStudioPage() {
             };
           });
         }
-        // metrics.csv only when present (usually late / signoff)
+        // Apply authoritative server-extracted PPA metrics
+        if (r.metrics && Object.keys(r.metrics).length > 0) {
+          setLiveMetricsExtra((prev) => ({ ...prev, ...r.metrics }));
+        }
+
+        // metrics.csv fallback if present
         const m = r.artifacts?.find((a) => /metrics\.csv$/i.test(a.name));
         if (m && terminal) void fetchArtifactText(jobId, m.name);
         if (

@@ -103,6 +103,7 @@ function dockerToResult(d: DockerJobRecord): OpenroadJobResult {
       path: a.path,
       size: a.size,
     })),
+    metrics: d.metrics,
     gdsFiles: d.gdsFiles,
     pollUrl: `/api/openroad/jobs/${d.jobId}`,
   };

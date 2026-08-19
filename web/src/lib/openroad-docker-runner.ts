@@ -30,7 +30,12 @@ import {
 import {
   STAGE_TO_OPENLANE_UNTIL,
 } from "./openroad-until-map";
-import type { FlowStageId } from "./openroad-flow-model";
+import {
+  type FlowStageId,
+  type FlowMetrics,
+  parseMetricsCsv,
+  parsePlacementTimingReport,
+} from "./openroad-flow-model";
 import {
   getOpenroadJobsRoot,
   mapKey,
@@ -69,6 +74,13 @@ export interface DockerJobRecord {
   exitCode?: number | null;
   /** Sprint 2 — set when rejected for queue depth */
   queueRejected?: boolean;
+  /** Sprint C — server-side extracted PPA metrics */
+  metrics?: Partial<FlowMetrics>;
+  /** Sprint C — structured telemetry */
+  telemetry?: {
+    durationSec?: number;
+    errorCategory?: string;
+  };
 }
 
 /** Persist enough to spawn after queue wait / process restart */
@@ -513,6 +525,29 @@ function collectArtifacts(jobDir: string): {
   return { artifacts, gdsFiles, logTail };
 }
 
+export function extractMetricsFromJob(jobDir: string): Partial<FlowMetrics> | undefined {
+  try {
+    const csvPath = path.join(jobDir, "results", "metrics.csv");
+    if (fs.existsSync(csvPath)) {
+      const m = parseMetricsCsv(fs.readFileSync(csvPath, "utf8"));
+      if (Object.keys(m).length > 0) return m;
+    }
+    const runCsv = path.join(jobDir, "designs", "ace_design", "runs", "ace_run", "reports", "metrics.csv");
+    if (fs.existsSync(runCsv)) {
+      const m = parseMetricsCsv(fs.readFileSync(runCsv, "utf8"));
+      if (Object.keys(m).length > 0) return m;
+    }
+    const staPath = path.join(jobDir, "results", "dpl_sta.rpt");
+    if (fs.existsSync(staPath)) {
+      const m = parsePlacementTimingReport(fs.readFileSync(staPath, "utf8"));
+      if (Object.keys(m).length > 0) return m;
+    }
+  } catch {
+    /* ignore */
+  }
+  return undefined;
+}
+
 function readStatusFile(jobDir: string): {
   status?: string;
   message?: string;
@@ -578,6 +613,7 @@ function refreshJobArtifacts(j: DockerJobRecord): void {
     j.artifacts = artifacts;
     j.gdsFiles = gdsFiles;
     if (logTail) j.logTail = logTail;
+    j.metrics = extractMetricsFromJob(j.jobDir) || j.metrics;
     const st = readStatusFile(j.jobDir);
     if (
       st.status === "succeeded" ||
@@ -1069,26 +1105,8 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     rec.artifacts = artifacts;
     rec.gdsFiles = gdsFiles;
     rec.logTail = logTail || rec.logTail;
-    try {
-      const man = snapshotOpenlaneJobToCheckpoint({
-        jobDir,
-        designName: meta.designName,
-        topModule: meta.topModule,
-        pdk: meta.pdkLabel,
-        stage:
-          (meta.untilStage as import("./openroad-flow-model").FlowStageId) ||
-          "gds",
-        ownerId: oid,
-      });
-      if (man) {
-        rec.logTail = (
-          rec.logTail +
-          `\nACE-Seek: checkpoint snapshot stage=${man.stage} files=${man.files.length}\n`
-        ).slice(-12000);
-      }
-    } catch {
-      /* */
-    }
+    rec.metrics = extractMetricsFromJob(jobDir);
+
     const st = readStatusFile(jobDir);
     const stageStop =
       /ACE-Seek: stopped after|stage-limited|stopped after/i.test(
@@ -1097,7 +1115,34 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     const stepOk = /ACE-Seek: === step .+ OK ===/i.test(rec.logTail);
     const hasStageEvidence =
       artifacts.length > 0 || gdsFiles.length > 0 || stepOk || stageStop;
-    if (code !== 0 && code != null) {
+
+    const isSuccessfulRun = (code === 0 && hasStageEvidence) || gdsFiles.length > 0 || stageStop;
+
+    // Hardened Checkpoint Guard (P1 #7): only write checkpoint on verified stage success
+    if (isSuccessfulRun && hasStageEvidence) {
+      try {
+        const man = snapshotOpenlaneJobToCheckpoint({
+          jobDir,
+          designName: meta.designName,
+          topModule: meta.topModule,
+          pdk: meta.pdkLabel,
+          stage:
+            (meta.untilStage as import("./openroad-flow-model").FlowStageId) ||
+            "gds",
+          ownerId: oid,
+        });
+        if (man) {
+          rec.logTail = (
+            rec.logTail +
+            `\nACE-Seek: checkpoint snapshot stage=${man.stage} files=${man.files.length}\n`
+          ).slice(-12000);
+        }
+      } catch {
+        /* */
+      }
+    }
+
+    if (code !== 0 && code != null && !stageStop) {
       rec.status = "failed";
       rec.message =
         st.message ||
@@ -1114,6 +1159,9 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
         (stageStop
           ? "Stage-limited OpenLane step finished (no GDS expected yet)"
           : "Flow exited 0 — check results/ for DEF/reports (GDS may be missing)");
+    } else if (stageStop) {
+      rec.status = "succeeded";
+      rec.message = "Stage-limited OpenLane step finished";
     } else if (code === 0) {
       rec.status = "failed";
       rec.message =
