@@ -81,6 +81,11 @@ function applyHostRouting(req: NextRequest): NextResponse {
       rewriteUrl.pathname = "/openroad";
       return NextResponse.rewrite(rewriteUrl);
     }
+    if (slug === "portal") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/portal";
+      return NextResponse.rewrite(rewriteUrl);
+    }
     const targetPath = HOST_TO_APP[slug];
     if (targetPath) {
       const rewriteUrl = req.nextUrl.clone();
