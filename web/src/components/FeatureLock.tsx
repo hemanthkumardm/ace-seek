@@ -84,7 +84,14 @@ export function FeatureLock({
   );
 }
 
-export function PlanPill({ tier }: { tier: PlanTier }) {
+export function PlanPill({
+  tier,
+  /** When false, render a neutral placeholder (avoids Guest→Team flash / hydration issues) */
+  ready = true,
+}: {
+  tier: PlanTier;
+  ready?: boolean;
+}) {
   const colors: Record<string, string> = {
     guest: "bg-slate-800 text-slate-400 border border-slate-700",
     free: "bg-slate-800 text-slate-300 border border-slate-700",
@@ -92,6 +99,16 @@ export function PlanPill({ tier }: { tier: PlanTier }) {
     max: "bg-purple-500/10 text-purple-400 border border-purple-500/30",
     team: "bg-amber-500/10 text-amber-400 border border-amber-500/30",
   };
+  if (!ready) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold font-mono bg-slate-800 text-slate-500 border border-slate-700 min-w-[4.5rem] justify-center"
+        aria-hidden
+      >
+        …
+      </span>
+    );
+  }
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold font-mono ${

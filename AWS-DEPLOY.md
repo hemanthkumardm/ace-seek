@@ -1,5 +1,8 @@
 # Deploy AIC on AWS EC2
 
+For **OpenROAD ASIC Studio** multi-tenant jobs on EC2 (durable
+`OPENROAD_JOBS_DIR`, owner isolation), see **`docs/OPENROAD_EC2.md`**.
+
 ## 0. Security Group (AWS Console) — do this first
 
 **EC2 → Instances → your instance → Security tab → Security group → Edit inbound rules**

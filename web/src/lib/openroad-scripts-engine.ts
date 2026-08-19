@@ -8,6 +8,7 @@ import {
 } from "./sdc-export-pack";
 import type { OpenroadProjectState } from "./openroad-project-hub";
 import { getFileByRole } from "./openroad-project-hub";
+import { getPdkDef } from "./openroad-pdk-catalog";
 
 export interface OpenroadFlowPackResult {
   files: ExportPackFile[];
@@ -15,32 +16,12 @@ export interface OpenroadFlowPackResult {
 }
 
 function pdkHint(pdk: string): { liberty: string; techLef: string; note: string } {
-  switch (pdk) {
-    case "asap7":
-      return {
-        liberty: "ASAP7/lib/asap7sc7p5t_AO_RVT_TT_nldm_211120.lib.gz",
-        techLef: "ASAP7/techlef/asap7_tech_1x_201209.lef",
-        note: "Point OPENROAD_FLOW_PATH / PDK_ROOT at your ASAP7 install",
-      };
-    case "nangate45":
-      return {
-        liberty: "Nangate45/lib/NangateOpenCellLibrary_typical.lib",
-        techLef: "Nangate45/lef/NangateOpenCellLibrary.tech.lef",
-        note: "Classic ORFS Nangate45 platform paths",
-      };
-    case "sky130":
-      return {
-        liberty: "sky130A/libs.ref/sky130_fd_sc_hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib",
-        techLef: "sky130A/libs.ref/sky130_fd_sc_hd/techlef/sky130_fd_sc_hd.tlef",
-        note: "Use open_pdks / ORFS sky130 platform; set PDK_ROOT",
-      };
-    default:
-      return {
-        liberty: "PATH/TO/typical.lib",
-        techLef: "PATH/TO/tech.lef",
-        note: "Generic PDK — edit liberty/LEF paths",
-      };
-  }
+  const def = getPdkDef(pdk);
+  return {
+    liberty: def.liberty,
+    techLef: def.techLef,
+    note: `${def.label} · ${def.installHint}`,
+  };
 }
 
 /** Generate Pro flow scripts from OpenROAD project hub state. */

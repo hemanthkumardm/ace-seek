@@ -19,8 +19,47 @@
 |------|----------|
 | Free | VLSI handoff export only (SDC Studio) |
 | Pro  | Project + Scripts |
-| Max  | + Run jobs |
+| Max  | + Run jobs (OpenLane Docker **synth → GDS**) |
 | Team | Max + seats |
+
+## Real Docker runner (synth → GDS)
+
+Worker scripts live in `workers/openroad/`:
+
+- `prepare_design.sh` — OpenLane design tree + `config.json`
+- `run_openlane.sh` — Docker OpenLane (`flow.tcl`) full flow through Magic/KLayout GDS
+
+Local requirements (verified on this machine):
+
+- Image: `efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a`
+- PDK: `$HOME/.volare/sky130A`
+
+Env (see `web/.env.local` / `docs/OPENROAD_EC2.md`):
+
+```env
+OPENROAD_RUNNER_ENABLED=1
+PDK_ROOT=/home/hemanth/.volare
+PDK=sky130A
+OPENLANE_IMAGE=efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a
+# Local ok; EC2 production MUST use durable EBS (not /tmp):
+# OPENROAD_JOBS_DIR=/data/ace-openroad-jobs
+```
+
+**Sprint A isolation:** jobs/checkpoints/uploads live under
+`OPENROAD_JOBS_DIR/owners/<ownerId>/…`. APIs require `x-api-key` and refuse
+cross-tenant job/ODB access. Production fails closed if `OPENROAD_JOBS_DIR` is
+missing or under `/tmp`.
+
+Optional remote (`/root/logiclance` on a worker host):
+
+```env
+OPENROAD_SSH_HOST=164.52.192.156
+OPENROAD_SSH_USER=root
+OPENROAD_SSH_KEY=/path/to/key
+OPENROAD_SSH_REMOTE_DIR=/root/logiclance/ace-openroad-jobs
+```
+
+API: `POST /api/openroad/run` `{ mode: "container" }` → poll `GET /api/openroad/jobs/:id` → download `?download=top.gds`.
 
 ## Env
 

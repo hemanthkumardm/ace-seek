@@ -17,6 +17,9 @@ const ROWS: { feature: string; free: string | boolean; pro: string | boolean; ma
   { feature: "SDC Studio", free: "Limited", pro: true, max: true, team: true },
   { feature: "Timing + MMMC", free: false, pro: true, max: true, team: true },
   { feature: "Power Studio + ECO", free: false, pro: false, max: true, team: true },
+  { feature: "VLSI → OpenROAD handoff export", free: true, pro: true, max: true, team: true },
+  { feature: "OpenROAD Project + flow scripts", free: false, pro: true, max: true, team: true },
+  { feature: "OpenROAD Run (dry-run / workers)", free: false, pro: false, max: true, team: true },
   { feature: "Daily convert limit", free: "25", pro: "500", max: "Unlimited", team: "Unlimited" },
   { feature: "Team seats / shared vault / admin", free: false, pro: false, max: false, team: true },
 ];

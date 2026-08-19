@@ -1,36 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { entitlementsFromApiKey } from "@/lib/entitlements";
 import { executeOpenroadJob } from "@/lib/openroad-run-engine";
+import { runnerDiagnostics } from "@/lib/openroad-docker-runner";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
+import { requireOpenroadOwner } from "@/lib/openroad-owner";
 
 /**
  * Max: POST OpenROAD job.
- * Header: x-api-key or body.apiKey
- * Body: { project, mode?: "dry_run" | "container" }
+ * mode: dry_run | container
+ * container → real OpenLane Docker (synth→GDS), poll /api/openroad/jobs/:id
+ * Sprint A: owner-namespaced job dirs.
  */
 export async function POST(req: NextRequest) {
   try {
+    const gate = requireOpenroadOwner(req, { needRun: true });
+    if (gate instanceof NextResponse) return gate;
+    const { owner } = gate;
+
     const body = (await req.json()) as {
       apiKey?: string;
       project?: OpenroadProjectState;
       mode?: "dry_run" | "container";
+      openlaneConfig?: Record<string, string | number | boolean>;
     };
-    const apiKey =
-      body.apiKey ||
-      req.headers.get("x-api-key") ||
-      req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-      "";
-
-    const ent = entitlementsFromApiKey(apiKey);
-    if (!ent.canAccessOpenroad || !ent.canOpenroadRun) {
-      return NextResponse.json(
-        {
-          error: "OpenROAD Run requires Max (or Team).",
-          tier: ent.tier,
-        },
-        { status: 403 }
-      );
-    }
 
     if (!body.project || !Array.isArray(body.project.files)) {
       return NextResponse.json(
@@ -39,16 +30,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const mode = body.mode || "container";
     const result = executeOpenroadJob({
       project: body.project,
-      mode: body.mode || "dry_run",
+      mode,
+      async: true,
+      openlaneConfig: body.openlaneConfig,
+      owner,
     });
 
-    return NextResponse.json({ ok: true, result });
+    if (result.status === "rejected") {
+      const queueFull = /queue full/i.test(result.message || "");
+      const busy = /already (queued|preparing|running|active)/i.test(
+        result.message || ""
+      );
+      return NextResponse.json(
+        {
+          ok: false,
+          error: result.message,
+          result,
+          runner: runnerDiagnostics(),
+        },
+        { status: queueFull ? 429 : busy ? 409 : 400 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      result,
+      runner: runnerDiagnostics(),
+    });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Run failed" },
       { status: 500 }
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  const gate = requireOpenroadOwner(req);
+  if (gate instanceof NextResponse) return gate;
+  return NextResponse.json({
+    ok: true,
+    runner: runnerDiagnostics(),
+    modes: ["dry_run", "container"],
+    note: "POST with Max API key to start jobs. container = OpenLane synth→GDS.",
+  });
 }

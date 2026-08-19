@@ -18,7 +18,7 @@ type Props = {
  */
 export function OpenroadPlatformGate({ children }: Props) {
   const pathname = usePathname();
-  const { ent, loading } = useEntitlements();
+  const { ent, loading, ready } = useEntitlements();
 
   const isPublic =
     pathname === "/" ||
@@ -30,7 +30,7 @@ export function OpenroadPlatformGate({ children }: Props) {
 
   if (isPublic) return <>{children}</>;
 
-  if (loading) {
+  if (loading || !ready) {
     return (
       <div className="flex min-h-[50vh] flex-1 items-center justify-center p-8">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-400 font-mono">
@@ -42,7 +42,10 @@ export function OpenroadPlatformGate({ children }: Props) {
   }
 
   const isRun =
-    pathname === "/openroad/run" || pathname.startsWith("/openroad/run/");
+    pathname === "/openroad/run" ||
+    pathname.startsWith("/openroad/run/") ||
+    pathname === "/openroad/studio" ||
+    pathname.startsWith("/openroad/studio/");
   const needsRun = isRun;
   const hasAccess = Boolean(ent.openroad?.access);
   const hasScripts = Boolean(ent.openroad?.scripts);
@@ -57,9 +60,9 @@ export function OpenroadPlatformGate({ children }: Props) {
   if (needsRun) {
     allowed = hasAccess && hasRun;
     requires = "max";
-    title = "OpenROAD Run (Max)";
+    title = "PnR Studio / Run (Max)";
     detail =
-      "Container / dry-run jobs unlock on Max. Pro can still download full script packs.";
+      "Full stage cockpit + OpenLane Docker synth→GDS unlock on Max. Pro can still download script packs.";
   }
 
   if (allowed) return <>{children}</>;
@@ -75,7 +78,7 @@ export function OpenroadPlatformGate({ children }: Props) {
           )}
         </div>
         <div className="mb-2 flex justify-center">
-          <PlanPill tier={ent.tier} />
+          <PlanPill tier={ent.tier} ready={ready && !loading} />
         </div>
         <h2 className="text-lg font-black uppercase text-slate-100 tracking-tight">
           {title}

@@ -18,7 +18,7 @@
  *   /tools      → Tools intro
  */
 
-export type PlatformId = "vlsi" | "openroad" | "tools";
+export type PlatformId = "vlsi" | "openroad" | "tools" | "portal";
 
 /** Canonical main marketing / signup / dashboard host */
 export const SITE_URL =
@@ -26,6 +26,12 @@ export const SITE_URL =
   "https://www.ace-seek.com";
 
 /** Absolute platform origins (production). Path-based fallbacks for local. */
+export const PORTAL_URL =
+  process.env.NEXT_PUBLIC_PORTAL_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "production"
+    ? "https://portal.ace-seek.com"
+    : "/portal");
+
 export const VLSI_URL =
   process.env.NEXT_PUBLIC_VLSI_URL?.replace(/\/$/, "") ||
   (process.env.NODE_ENV === "production"
@@ -247,6 +253,7 @@ export const HOST_TO_APP: Record<string, string> = Object.fromEntries(
 HOST_TO_APP.tools = "/tools";
 HOST_TO_APP.vlsi = "/vlsi";
 HOST_TO_APP.openroad = "/openroad";
+HOST_TO_APP.portal = "/portal";
 
 export type PricingTier = {
   id: string;

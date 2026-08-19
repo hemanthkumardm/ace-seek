@@ -29,7 +29,8 @@ import {
 export const OPENROAD_MANIFEST_NAME = "ace-seek-openroad.json";
 export const OPENROAD_HANDOFF_EVENT = "ace_openroad_handoff_updated";
 
-export type OpenroadPdkId = "sky130" | "asap7" | "nangate45" | "generic";
+export type { OpenroadPdkId } from "./openroad-pdk-catalog";
+import type { OpenroadPdkId } from "./openroad-pdk-catalog";
 
 export interface OpenroadManifest {
   version: 1;

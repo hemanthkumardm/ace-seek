@@ -96,10 +96,12 @@ function OpenroadExportInner() {
               value={pdk}
               onChange={(e) => setPdk(e.target.value as OpenroadPdkId)}
             >
-              <option value="sky130">sky130</option>
-              <option value="asap7">asap7</option>
-              <option value="nangate45">nangate45</option>
-              <option value="generic">generic</option>
+              <option value="sky130">sky130 (OpenLane sky130A)</option>
+              <option value="sky130B">sky130B (OpenLane ReRAM)</option>
+              <option value="gf180mcu">gf180mcu (OpenLane)</option>
+              <option value="asap7">asap7 (ORFS)</option>
+              <option value="nangate45">nangate45 (ORFS)</option>
+              <option value="generic">generic (scripts only)</option>
             </select>
           </label>
           <label className="text-[11px] font-black uppercase block space-y-1">

@@ -70,7 +70,7 @@ function StudioCardAction({
 export default function VlsiHome() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
-  const { ent } = useEntitlements();
+  const { ent, ready, loading: entLoading } = useEntitlements();
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
 
@@ -111,7 +111,7 @@ export default function VlsiHome() {
             <span className="text-[var(--brutal-cyan)] font-bold">// HARDWARE EDA SUITE</span>
           </div>
           <div className="flex items-center gap-2">
-            <PlanPill tier={ent.tier} />
+            <PlanPill tier={ent.tier} ready={ready && !entLoading} />
             <span className="brutal-badge brutal-badge-lime">
               ● 5 WORKSTATIONS ONLINE
             </span>

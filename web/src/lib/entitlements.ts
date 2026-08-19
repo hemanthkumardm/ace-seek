@@ -363,23 +363,28 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
   const raw = apiKey.trim();
   const shortcut = raw.toLowerCase();
 
-  // Developer bypass keys / plan shortcuts
-  if (
-    shortcut === "dev" ||
-    shortcut === "dev_key" ||
-    shortcut === "admin" ||
-    shortcut === "team" ||
-    shortcut === "local"
-  ) {
-    return {
-      ...entitlementsForPlan("team"),
-      name: "Local Developer",
-      email: "dev@localhost",
-    };
+  // Developer bypass / plan shortcuts — NEVER honor in production.
+  // Empty key already elevates to team in development; production must use real keys.
+  const allowShortcuts =
+    isDev || process.env.ACE_ALLOW_PLAN_SHORTCUTS === "1";
+  if (allowShortcuts) {
+    if (
+      shortcut === "dev" ||
+      shortcut === "dev_key" ||
+      shortcut === "admin" ||
+      shortcut === "team" ||
+      shortcut === "local"
+    ) {
+      return {
+        ...entitlementsForPlan("team"),
+        name: "Local Developer",
+        email: "dev@localhost",
+      };
+    }
+    if (shortcut === "max") return entitlementsForPlan("max");
+    if (shortcut === "pro") return entitlementsForPlan("pro");
+    if (shortcut === "free") return entitlementsForPlan("free");
   }
-  if (shortcut === "max") return entitlementsForPlan("max");
-  if (shortcut === "pro") return entitlementsForPlan("pro");
-  if (shortcut === "free") return entitlementsForPlan("free");
 
   // Demo / seeded users by email or key
   const byEmail = findUserByEmail(shortcut);

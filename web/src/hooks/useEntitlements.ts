@@ -9,88 +9,110 @@ const PLAN_STORAGE = "ace_seek_plan";
 
 export type PublicEnt = ReturnType<typeof publicEntitlements>;
 
-export function useEntitlements() {
-  const isDev =
-    typeof window !== "undefined" &&
-    (window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      process.env.NODE_ENV === "development");
+/**
+ * Always start as **guest** so SSR HTML matches the first client paint.
+ * Dev “team” default and localStorage keys apply only after mount (useEffect).
+ * That avoids PlanPill / gate hydration mismatches (Guest vs Team/Crown).
+ */
+function guestEnt(): PublicEnt {
+  return publicEntitlements(entitlementsForPlan("guest"));
+}
 
-  const [apiKey, setApiKey] = useState("");
-  const [ent, setEnt] = useState<PublicEnt>(() =>
-    publicEntitlements(entitlementsForPlan(isDev ? "team" : "guest"))
+function isLocalDevClient(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    process.env.NODE_ENV === "development" ||
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1"
   );
+}
+
+export function useEntitlements() {
+  const [apiKey, setApiKey] = useState("");
+  // SSR + first client paint: always guest (hydration-safe)
+  const [ent, setEnt] = useState<PublicEnt>(guestEnt);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  /** True after first client entitlement resolution (key or default) */
+  const [ready, setReady] = useState(false);
 
   const applyDefaultPlan = useCallback(() => {
-    setEnt(publicEntitlements(entitlementsForPlan(isDev ? "team" : "guest")));
+    // Dev convenience only after mount — never in useState initializer
+    const plan = isLocalDevClient() ? "team" : "guest";
+    setEnt(publicEntitlements(entitlementsForPlan(plan)));
     setApiKey("");
-  }, [isDev]);
+  }, []);
 
-  const refreshFromKey = useCallback(async (key: string) => {
-    const trimmed = key.trim();
-    if (!trimmed) {
-      applyDefaultPlan();
-      setLoading(false);
-      return false;
-    }
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/validate-key", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ apiKey: trimmed }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.valid) {
-        setError(data.error || "Invalid API key");
+  const refreshFromKey = useCallback(
+    async (key: string) => {
+      const trimmed = key.trim();
+      if (!trimmed) {
         applyDefaultPlan();
-        localStorage.removeItem(KEY_STORAGE);
-        localStorage.removeItem(PLAN_STORAGE);
         setLoading(false);
+        setReady(true);
         return false;
       }
-      setApiKey(trimmed);
-      localStorage.setItem(KEY_STORAGE, trimmed);
-      const plan = (data.plan || data.tier || "free") as Entitlements["tier"];
-      localStorage.setItem(PLAN_STORAGE, plan);
-      // Prefer plan field for matrix (avoids Guest matrix if server payload is stale).
-      // Merge server entitlements only when tier matches plan.
-      if (
-        data.entitlements &&
-        data.entitlements.tier &&
-        data.entitlements.tier !== "guest" &&
-        data.entitlements.tier === plan
-      ) {
-        setEnt(data.entitlements as PublicEnt);
-      } else {
-        const base = publicEntitlements(entitlementsForPlan(plan));
-        setEnt({
-          ...base,
-          email: data.email,
-          name: data.name,
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetch("/api/validate-key", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: trimmed }),
         });
+        const data = await res.json();
+        if (!res.ok || !data.valid) {
+          setError(data.error || "Invalid API key");
+          applyDefaultPlan();
+          localStorage.removeItem(KEY_STORAGE);
+          localStorage.removeItem(PLAN_STORAGE);
+          setLoading(false);
+          setReady(true);
+          return false;
+        }
+        setApiKey(trimmed);
+        localStorage.setItem(KEY_STORAGE, trimmed);
+        const plan = (data.plan || data.tier || "free") as Entitlements["tier"];
+        localStorage.setItem(PLAN_STORAGE, plan);
+        if (
+          data.entitlements &&
+          data.entitlements.tier &&
+          data.entitlements.tier !== "guest" &&
+          data.entitlements.tier === plan
+        ) {
+          setEnt(data.entitlements as PublicEnt);
+        } else {
+          const base = publicEntitlements(entitlementsForPlan(plan));
+          setEnt({
+            ...base,
+            email: data.email,
+            name: data.name,
+          });
+        }
+        setLoading(false);
+        setReady(true);
+        return true;
+      } catch {
+        setError("Could not validate API key");
+        applyDefaultPlan();
+        setLoading(false);
+        setReady(true);
+        return false;
       }
-      setLoading(false);
-      return true;
-    } catch {
-      setError("Could not validate API key");
-      applyDefaultPlan();
-      setLoading(false);
-      return false;
-    }
-  }, [applyDefaultPlan]);
+    },
+    [applyDefaultPlan]
+  );
 
   useEffect(() => {
     const handleKeyChange = () => {
-      const saved = localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
+      const saved =
+        localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
       if (saved) {
         void refreshFromKey(saved);
       } else {
         applyDefaultPlan();
         setLoading(false);
+        setReady(true);
       }
     };
     handleKeyChange();
@@ -108,12 +130,15 @@ export function useEntitlements() {
     localStorage.removeItem(PLAN_STORAGE);
     applyDefaultPlan();
     setError("");
+    setReady(true);
   }, [applyDefaultPlan]);
 
   return {
     apiKey,
     ent,
     loading,
+    /** Entitlements resolved on client (use for PlanPill to avoid flash/mismatch) */
+    ready,
     error,
     refreshFromKey,
     clearKey,

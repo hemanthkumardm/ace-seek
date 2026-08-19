@@ -1,11 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Large markdown uploads + long Docker/TeX compiles
+  // Large markdown uploads + OpenROAD ODB (10–100MB+) + Docker/TeX compiles
   experimental: {
     serverActions: {
-      bodySizeLimit: "32mb",
+      bodySizeLimit: "512mb",
     },
+    /**
+     * CRITICAL: default proxy body buffer is 10MB. Larger ODB uploads were
+     * silently truncated → OpenROAD ORD-0054 "odb file is invalid".
+     * (CTS/placement ODBs are often 12–80MB.)
+     */
+    proxyClientMaxBodySize: "512mb",
   },
   // Avoid bundling issues with child_process paths
   serverExternalPackages: [],

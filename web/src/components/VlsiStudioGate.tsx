@@ -41,7 +41,7 @@ export function VlsiStudioGate({
   featureTitle,
   featureRequires = "max",
 }: Props) {
-  const { ent, loading } = useEntitlements();
+  const { ent, loading, ready } = useEntitlements();
   const meta = STUDIO_META[studio];
   const studioOk = Boolean(ent.vlsi.access && ent.vlsi[meta.entKey]);
   const flagOk =
@@ -53,7 +53,7 @@ export function VlsiStudioGate({
     ? featureTitle || (requireFlag === "eco" ? "ECO engine" : "TCL export")
     : meta.title;
 
-  if (loading) {
+  if (loading || !ready) {
     return (
       <div className="flex min-h-[50vh] flex-1 items-center justify-center bg-[var(--background)] p-8">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-400 font-mono">
@@ -91,7 +91,7 @@ export function VlsiStudioGate({
           )}
         </div>
         <div className="mb-2 flex justify-center">
-          <PlanPill tier={ent.tier} />
+          <PlanPill tier={ent.tier} ready={ready && !loading} />
         </div>
         <h2 className="text-lg font-black uppercase text-slate-100 tracking-tight">
           {title}

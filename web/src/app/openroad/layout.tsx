@@ -29,7 +29,7 @@ export default async function OpenroadLayout({
   return (
     <div
       data-openroad-shell
-      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-slate-100 font-mono"
+      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-[var(--neu-bg)] text-[var(--neu-text)] font-mono"
     >
       <OpenroadHeaderNav
         homeHref={homeHref}
