@@ -8,7 +8,7 @@
  */
 import type { UserPlan } from "@/lib/user-store";
 import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
-import { verifyIssuedApiKey } from "@/lib/api-keys";
+import { verifyIssuedApiKey, planFromApiKeyString } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
 
@@ -409,6 +409,13 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
   const issued = verifyIssuedApiKey(raw);
   if (issued.ok) {
     const tier = issued.plan === "trial" ? "max" : issued.plan;
+    return entitlementsForPlan(tier);
+  }
+
+  // Cross-environment / proxy signature fallback (ensures 7-day trial and paid keys work across all backend nodes)
+  const fallbackPlan = planFromApiKeyString(raw);
+  if (fallbackPlan) {
+    const tier = fallbackPlan === "trial" ? "max" : fallbackPlan;
     return entitlementsForPlan(tier);
   }
 

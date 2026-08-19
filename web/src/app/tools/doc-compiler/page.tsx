@@ -286,8 +286,15 @@ export default function DocCompilerPage() {
       formData.append("filename", filename);
       formData.append("pdfDocxMode", pdfDocxMode);
       formData.append("exactDpi", String(exactDpi));
-      formData.append("useProEngine", String(useProEngine));
-      if (apiKey) formData.append("apiKey", apiKey);
+      const effectiveKey =
+        apiKey ||
+        apiKeyInput ||
+        (typeof window !== "undefined"
+          ? localStorage.getItem("ace_seek_api_key") ||
+            localStorage.getItem("ace_api_key")
+          : "") ||
+        "";
+      if (effectiveKey) formData.append("apiKey", effectiveKey.trim());
 
       const initRes = await fetch("/api/convert", { method: "POST", body: formData });
       const initData = await initRes.json();

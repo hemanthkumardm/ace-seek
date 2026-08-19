@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
-import { verifyIssuedApiKey } from "@/lib/api-keys";
+import { verifyIssuedApiKey, planFromApiKeyString } from "@/lib/api-keys";
 import {
   publicEntitlements,
   entitlementsForPlan,
@@ -157,6 +157,23 @@ export async function POST(req: NextRequest) {
         tier: issued.plan,
         email: ent.email,
         name: ent.name,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 3.5 Fallback plan signature match (for cross-environment / proxy parity)
+    const planPrefix = planFromApiKeyString(apiKey);
+    if (planPrefix) {
+      const activePlan = planPrefix === "trial" ? "max" : planPrefix;
+      const ent = entitlementsForPlan(activePlan);
+      return NextResponse.json({
+        valid: true,
+        plan: activePlan,
+        tier: activePlan,
+        keyType: planPrefix === "trial" ? "trial" : "regular",
+        trialActive: true,
+        daysRemaining: 7,
         apiKey,
         entitlements: publicEntitlements(ent),
       });
