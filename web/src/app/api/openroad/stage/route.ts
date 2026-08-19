@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import os from "os";
 import path from "path";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
 import type { FlowStageId } from "@/lib/openroad-flow-model";
 import { executeOpenroadJob } from "@/lib/openroad-run-engine";

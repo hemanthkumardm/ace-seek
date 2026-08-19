@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { FlowStageId } from "@/lib/openroad-flow-model";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 import {
   findLatestJobDir,
   findStageOdb,

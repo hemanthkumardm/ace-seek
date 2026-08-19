@@ -349,8 +349,19 @@ export function hostLibertyExists(): boolean {
   return fs.existsSync(hostLibertyPath());
 }
 
+export type ToolsDiagnostics = {
+  ACE_TOOLS_MODE: ToolsMode;
+  effectiveMode: ToolsMode;
+  reason: string;
+  hostTools: ReturnType<typeof hostHasFrontendTools>;
+  dockerAvailable: boolean;
+  toolsImage: string;
+  pdkRoot: string;
+  hostLiberty: boolean;
+};
+
 /** Diagnostics for /api/openroad/pdks or health */
-export function toolsDiagnostics(): Record<string, unknown> {
+export function toolsDiagnostics(): ToolsDiagnostics {
   const resolved = resolveToolsMode();
   return {
     ACE_TOOLS_MODE: configuredToolsMode(),

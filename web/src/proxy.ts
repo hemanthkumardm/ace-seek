@@ -97,7 +97,7 @@ function applyHostRouting(req: NextRequest): NextResponse {
   return NextResponse.next();
 }
 
-export default function middleware(req: NextRequest, event: any) {
+export default function proxy(req: NextRequest, event: any) {
   // Large ODB binary upload — never buffer/parse body in middleware
   if (req.nextUrl.pathname.includes("/api/openroad/odb/upload")) {
     return NextResponse.next();

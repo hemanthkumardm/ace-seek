@@ -3,6 +3,9 @@ import { pollOpenroadJob } from "@/lib/openroad-run-engine";
 import { readJobArtifact } from "@/lib/openroad-docker-runner";
 import { requireOpenroadOwner } from "@/lib/openroad-owner";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 type Ctx = { params: Promise<{ jobId: string }> };
 
 /** GET job status / log / artifact list — owner-scoped (Sprint A) */

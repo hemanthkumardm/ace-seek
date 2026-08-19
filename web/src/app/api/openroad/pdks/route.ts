@@ -4,6 +4,9 @@ import { OPENROAD_PDKS } from "@/lib/openroad-pdk-catalog";
 import { toolsDiagnostics } from "@/lib/openroad-docker-tools";
 import { getOpenroadJobsRoot, requireOpenroadOwner } from "@/lib/openroad-owner";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /** List PDK presets + host availability + ACE_TOOLS_MODE for Project / Studio UI */
 export async function GET(req: NextRequest) {
   try {

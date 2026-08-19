@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, ".."),
+  turbopack: {
+    root: path.join(__dirname, ".."),
+  },
   // Large markdown uploads + OpenROAD ODB (10–100MB+) + Docker/TeX compiles
   experimental: {
     serverActions: {

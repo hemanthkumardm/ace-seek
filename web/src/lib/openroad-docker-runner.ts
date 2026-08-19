@@ -42,6 +42,7 @@ import {
   ownerJobDir,
   ownerJobsDir,
   resolveOwnedJobDir,
+  safeOwnerId,
   writeOwnerMeta,
   type OpenroadOwner,
 } from "./openroad-owner";

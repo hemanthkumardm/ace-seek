@@ -4,6 +4,9 @@ import { runnerDiagnostics } from "@/lib/openroad-docker-runner";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
 import { requireOpenroadOwner } from "@/lib/openroad-owner";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
  * Max: POST OpenROAD job.
  * mode: dry_run | container

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveCheckpointInfo } from "@/lib/openroad-checkpoints";
 import { requireOpenroadOwner } from "@/lib/openroad-owner";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 /**
  * GET ?designName=&topModule=
  * Probe Ace-Seek flow checkpoint on disk (for Studio assertions UI).
