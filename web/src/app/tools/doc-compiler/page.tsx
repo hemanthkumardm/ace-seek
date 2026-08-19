@@ -774,11 +774,6 @@ export default function DocCompilerPage() {
                       Choose .{inMeta.ext} file
                     </button>
                   )}
-                  {inputFormat === "pdf" && mounted && !health?.capabilities?.pdftotext && (
-                    <p className="text-[10px] text-rose-600">
-                      Install poppler for PDF reverse: brew install poppler
-                    </p>
-                  )}
                 </div>
               </div>
             )}

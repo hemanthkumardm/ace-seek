@@ -18,6 +18,7 @@ RUN apk add --no-cache \
       fontconfig \
       ttf-freefont \
       docker-cli \
+      poppler-utils \
       tini \
     && fc-cache -f \
     && node --version \
