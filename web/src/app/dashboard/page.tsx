@@ -25,7 +25,7 @@ type UserProfile = {
   id: string;
   email: string;
   name: string;
-  plan: "free" | "pro" | "team";
+  plan: "free" | "pro" | "max" | "team";
   apiKey: string;
   freeKey?: string;
   trialKey?: string;
@@ -203,10 +203,14 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
-            {/* KEY 1: 7-DAY MAX TRIAL KEY */}
+            {/* KEY 1: PERMANENT MAX/PRO KEY or 7-DAY TRIAL KEY */}
             <div
               className={`rounded-xl border p-5 space-y-3 relative overflow-hidden transition-colors ${
-                isTrialExpired
+                user.plan === "max" || user.plan === "team"
+                  ? "border-[var(--accent-cyan)]/60 bg-cyan-950/20 shadow-lg shadow-cyan-950/30"
+                  : user.plan === "pro"
+                  ? "border-emerald-500/60 bg-emerald-950/20"
+                  : isTrialExpired
                   ? "border-slate-700/60 bg-slate-900/40 opacity-80"
                   : "border-yellow-500/40 bg-yellow-950/10"
               }`}
@@ -214,30 +218,38 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <span
                   className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
-                    isTrialExpired ? "text-slate-400" : "text-yellow-400"
+                    user.plan === "max" || user.plan === "team"
+                      ? "text-[var(--accent-cyan)]"
+                      : user.plan === "pro"
+                      ? "text-emerald-400"
+                      : isTrialExpired
+                      ? "text-slate-400"
+                      : "text-yellow-400"
                   }`}
                 >
-                  <Sparkles
-                    className={`w-3.5 h-3.5 ${
-                      isTrialExpired ? "text-slate-500" : "text-yellow-400"
-                    }`}
-                  />
-                  <span>1. 7-Day MAX Trial Key</span>
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>
+                    {user.plan === "max" || user.plan === "team" || user.plan === "pro"
+                      ? `1. Permanent ${user.plan.toUpperCase()} License Key`
+                      : "1. 7-Day MAX Trial Key"}
+                  </span>
                 </span>
                 <span
                   className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border font-mono flex items-center gap-1 ${
-                    isTrialExpired
+                    user.plan === "max" || user.plan === "team"
+                      ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
+                      : user.plan === "pro"
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                      : isTrialExpired
                       ? "bg-slate-800 text-slate-400 border-slate-700"
                       : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
                   }`}
                 >
-                  <Clock
-                    className={`w-3 h-3 ${
-                      isTrialExpired ? "text-slate-400" : "text-yellow-400"
-                    }`}
-                  />
+                  <Clock className="w-3 h-3" />
                   <span>
-                    {isTrialExpired
+                    {user.plan === "max" || user.plan === "team" || user.plan === "pro"
+                      ? "Never Expires (Active)"
+                      : isTrialExpired
                       ? "Expired (Fell back to Free)"
                       : countdownText || "7-Day Trial Active"}
                   </span>
@@ -247,17 +259,32 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <div className="flex items-center gap-2">
                 <div
                   className={`sk-lcd flex-1 py-2 px-3 font-mono text-xs truncate select-all ${
-                    isTrialExpired ? "text-slate-400" : "text-yellow-200"
+                    user.plan === "max" || user.plan === "team"
+                      ? "text-cyan-200"
+                      : user.plan === "pro"
+                      ? "text-emerald-200"
+                      : isTrialExpired
+                      ? "text-slate-400"
+                      : "text-yellow-200"
                   }`}
                 >
-                  {trialKey}
+                  {user.plan === "max" || user.plan === "team" || user.plan === "pro"
+                    ? user.apiKey
+                    : trialKey}
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleCopy(trialKey, "trial")}
+                  onClick={() =>
+                    handleCopy(
+                      user.plan === "max" || user.plan === "team" || user.plan === "pro"
+                        ? user.apiKey
+                        : trialKey,
+                      "primary"
+                    )
+                  }
                   className="sk-btn sk-btn-primary !text-xs !py-2 !px-3 shrink-0"
                 >
-                  {copiedKey === "trial" ? (
+                  {copiedKey === "primary" || copiedKey === "trial" ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
@@ -267,10 +294,20 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
 
               <p
                 className={`text-[11px] leading-relaxed font-mono ${
-                  isTrialExpired ? "text-slate-400" : "text-yellow-200/80"
+                  user.plan === "max" || user.plan === "team"
+                    ? "text-cyan-200/90 font-semibold"
+                    : user.plan === "pro"
+                    ? "text-emerald-200/90 font-semibold"
+                    : isTrialExpired
+                    ? "text-slate-400"
+                    : "text-yellow-200/80"
                 }`}
               >
-                {isTrialExpired
+                {user.plan === "max" || user.plan === "team"
+                  ? "⚡ Active MAX Tier: Full access to all VLSI EDA Studios, OpenROAD runs & unlimited capacity."
+                  : user.plan === "pro"
+                  ? "⚡ Active Pro Tier: Standard cell synthesis, floorplanning & priority pipelines."
+                  : isTrialExpired
                   ? "🔒 Trial expired. This key now operates under the Free tier. Upgrade for permanent MAX features."
                   : "⚡ Unlocks 100% MAX features across all Workstations."}
               </p>

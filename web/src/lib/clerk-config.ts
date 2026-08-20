@@ -14,8 +14,8 @@ export function isClerkConfigured(): boolean {
 /** Plan from Clerk publicMetadata.plan | privateMetadata.plan (default free) */
 export function planFromClerkMetadata(
   meta: Record<string, unknown> | null | undefined
-): "free" | "pro" | "team" {
-  const raw = meta?.plan;
-  if (raw === "pro" || raw === "team" || raw === "free") return raw;
+): "free" | "pro" | "max" | "team" {
+  const raw = meta?.plan || meta?.tier;
+  if (raw === "max" || raw === "team" || raw === "pro" || raw === "free") return raw;
   return "free";
 }
