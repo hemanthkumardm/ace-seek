@@ -277,14 +277,107 @@ export function listGuiSessions(): {
   }));
 }
 
+export interface ActiveGuiSession {
+  sessionId: string;
+  ownerId: string;
+  displayNum: number;
+  display: string;
+  vncPort: number;
+  novncPort: number;
+  token: string;
+  pid: number;
+  dockerContainerName: string;
+  odb: string;
+  logFile: string;
+  startedAt: string;
+  expiresAt: string;
+}
+
+const activeGuiSessions = new Map<string, ActiveGuiSession>();
+
+export function stopOpenroadOdbGui(sessionId: string): boolean {
+  const sess = activeGuiSessions.get(sessionId);
+  if (!sess) return false;
+
+  try {
+    if (sess.pid) {
+      process.kill(-sess.pid, "SIGTERM");
+    }
+  } catch {
+    try {
+      if (sess.pid) process.kill(sess.pid, "SIGKILL");
+    } catch {}
+  }
+
+  try {
+    if (sess.dockerContainerName) {
+      spawnSync("docker", ["rm", "-f", sess.dockerContainerName], { stdio: "ignore" });
+    }
+  } catch {}
+
+  try {
+    spawnSync("pkill", ["-f", `Xvfb :${sess.displayNum}`], { stdio: "ignore" });
+    spawnSync("pkill", ["-f", `x11vnc.*:${sess.displayNum}`], { stdio: "ignore" });
+    spawnSync("pkill", ["-f", `websockify.*${sess.novncPort}`], { stdio: "ignore" });
+    spawnSync("rm", ["-f", `/tmp/.X${sess.displayNum}-lock`, `/tmp/.X11-unix/X${sess.displayNum}`], { stdio: "ignore" });
+  } catch {}
+
+  activeGuiSessions.delete(sessionId);
+  return true;
+}
+
+// Auto-reap expired sessions (20 min lifetime)
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [id, sess] of activeGuiSessions.entries()) {
+      if (new Date(sess.expiresAt).getTime() <= now) {
+        stopOpenroadOdbGui(id);
+      }
+    }
+  }, 30000);
+}
+
+function allocateSlot(ownerId: string): {
+  displayNum: number;
+  display: string;
+  vncPort: number;
+  novncPort: number;
+} {
+  // Reclaim any existing session for this owner
+  for (const [sId, sess] of activeGuiSessions.entries()) {
+    if (sess.ownerId === ownerId) {
+      stopOpenroadOdbGui(sId);
+    }
+  }
+
+  const usedDisplays = new Set<number>();
+  for (const sess of activeGuiSessions.values()) {
+    usedDisplays.add(sess.displayNum);
+  }
+
+  let displayNum = 101;
+  for (let i = 101; i <= 120; i++) {
+    if (!usedDisplays.has(i)) {
+      displayNum = i;
+      break;
+    }
+  }
+
+  const offset = displayNum - 100;
+  const vncPort = 5900 + offset;
+  const novncPort = 6080 + offset; // 6081, 6082, ...
+  const display = `:${displayNum}`;
+
+  return { displayNum, display, vncPort, novncPort };
+}
+
 /**
- * Launch OpenROAD -gui in Docker on an ODB (background).
- * Requires DISPLAY / X11 for the GUI window.
- * Sprint A: ODB must live under the caller's owner tree (no cross-tenant /tmp open).
+ * Launch OpenROAD GUI inside Docker attached to a private dynamic display & noVNC port.
  */
 export function startOpenroadOdbGui(
   odbPath: string,
-  owner: OpenroadOwner,
+  owner?: OpenroadOwner | null,
   hostHint?: string
 ): {
   ok: boolean;
@@ -296,14 +389,15 @@ export function startOpenroadOdbGui(
   webUrl?: string;
 } {
   const abs = path.resolve(odbPath);
-  const display = process.env.ACE_VNC_DISPLAY || process.env.DISPLAY || ":99";
+  const ownerId = owner?.ownerId || "anon";
+
   if (!owner?.ownerId || !pathUnderOwner(abs, owner.ownerId)) {
     return {
       ok: false,
       message:
         "ODB path not allowed — must be under your owners/<id> job/upload tree",
       odb: abs,
-      display,
+      display: ":101",
     };
   }
   if (!fs.existsSync(abs)) {
@@ -311,7 +405,7 @@ export function startOpenroadOdbGui(
       ok: false,
       message: `ODB not found: ${abs}`,
       odb: abs,
-      display,
+      display: ":101",
     };
   }
 
@@ -326,28 +420,46 @@ export function startOpenroadOdbGui(
       ok: false,
       message: `Missing ${script}`,
       odb: abs,
-      display,
+      display: ":101",
     };
   }
 
-  const sessionId = `gui_${Date.now().toString(36)}`;
+  const slot = allocateSlot(ownerId);
+  const sessionId = `gui_${ownerId.slice(0, 8)}_${Date.now().toString(36)}`;
+  const token = Math.random().toString(36).slice(2, 10);
+  const containerName = `ace-openroad-gui-${slot.displayNum}-${Date.now().toString(36)}`;
   const logFile = path.join(os.tmpdir(), `ace-odb-gui-${sessionId}.log`);
+
   fs.writeFileSync(
     logFile,
-    `ACE-Seek OpenROAD GUI\nodb=${abs}\ndisplay=${display}\n`,
+    `ACE-Seek OpenROAD Dynamic GUI\nsession=${sessionId}\nodb=${abs}\ndisplay=${slot.display}\nnovnc_port=${slot.novncPort}\n`,
     "utf8"
   );
 
   const outFd = fs.openSync(logFile, "a");
-  const child: ChildProcess = spawn("bash", [script, abs, logFile], {
-    detached: true,
-    stdio: ["ignore", outFd, outFd],
-    env: {
-      ...process.env,
-      DISPLAY: display,
-      ACE_VNC_DISPLAY: display,
-    },
-  });
+  const child: ChildProcess = spawn(
+    "bash",
+    [
+      script,
+      abs,
+      logFile,
+      slot.display,
+      String(slot.vncPort),
+      String(slot.novncPort),
+      containerName,
+    ],
+    {
+      detached: true,
+      stdio: ["ignore", outFd, outFd],
+      env: {
+        ...process.env,
+        DISPLAY: slot.display,
+        ACE_VNC_DISPLAY: slot.display,
+        ACE_VNC_PORT: String(slot.vncPort),
+        ACE_NOVNC_PORT: String(slot.novncPort),
+      },
+    }
+  );
   fs.closeSync(outFd);
 
   if (!child.pid) {
@@ -355,31 +467,44 @@ export function startOpenroadOdbGui(
       ok: false,
       message: "Failed to spawn OpenROAD GUI process",
       odb: abs,
-      display,
+      display: slot.display,
       logFile,
     };
   }
   child.unref();
-  guiJobs.set(sessionId, {
+
+  const now = Date.now();
+  const sessionRecord: ActiveGuiSession = {
+    sessionId,
+    ownerId,
+    displayNum: slot.displayNum,
+    display: slot.display,
+    vncPort: slot.vncPort,
+    novncPort: slot.novncPort,
+    token,
     pid: child.pid,
+    dockerContainerName: containerName,
     odb: abs,
-    startedAt: new Date().toISOString(),
     logFile,
-  });
+    startedAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + 20 * 60 * 1000).toISOString(), // 20 min TTL
+  };
+  activeGuiSessions.set(sessionId, sessionRecord);
 
   const host =
     process.env.OPENROAD_PUBLIC_HOST ||
     process.env.EC2_PUBLIC_IP ||
     (hostHint ? hostHint.split(":")[0] : "") ||
     "3.90.62.206";
-  const webUrl = `http://${host}/vnc.html?autoconnect=true&resize=remote&path=websockify`;
+
+  const webUrl = `http://${host}:${slot.novncPort}/vnc.html?autoconnect=true&resize=remote&token=${token}`;
 
   return {
     ok: true,
     sessionId,
-    message: `OpenROAD GUI active for ${path.basename(abs)}. Stream available via Web VNC.`,
+    message: `OpenROAD GUI active for ${path.basename(abs)} on private display ${slot.display}.`,
     odb: abs,
-    display,
+    display: slot.display,
     logFile,
     webUrl,
   };

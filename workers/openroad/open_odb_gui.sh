@@ -5,6 +5,10 @@ set -euo pipefail
 
 ODB="${1:?odb path required}"
 LOG="${2:-}"
+VNC_DISPLAY="${3:-${ACE_VNC_DISPLAY:-:99}}"
+VNC_PORT="${4:-${ACE_VNC_PORT:-5900}}"
+NOVNC_PORT="${5:-${ACE_NOVNC_PORT:-6080}}"
+CONTAINER_NAME="${6:-ace-openroad-gui-$$-$(date +%s)}"
 ODB="$(cd "$(dirname "$ODB")" && pwd)/$(basename "$ODB")"
 
 if [[ ! -f "$ODB" ]]; then
@@ -13,9 +17,6 @@ if [[ ! -f "$ODB" ]]; then
 fi
 
 IMAGE="${OPENLANE_IMAGE:-efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a}"
-VNC_DISPLAY="${ACE_VNC_DISPLAY:-:99}"
-VNC_PORT="${ACE_VNC_PORT:-5900}"
-NOVNC_PORT="${ACE_NOVNC_PORT:-6080}"
 ODB_DIR="$(dirname "$ODB")"
 ODB_BN="$(basename "$ODB")"
 
@@ -102,7 +103,7 @@ log "  noVNC port=${NOVNC_PORT}"
 
 # Execute OpenROAD GUI attached to the virtual display
 exec docker run --rm \
-  --name "ace-openroad-gui-$$-$(date +%s)" \
+  --name "$CONTAINER_NAME" \
   -e DISPLAY="${VNC_DISPLAY}" \
   -e QT_X11_NO_MITSHM=1 \
   -v /tmp/.X11-unix:/tmp/.X11-unix:rw \

@@ -339,6 +339,7 @@ export function OpenroadStudioCenterView({
     const [vncModalOpen, setVncModalOpen] = useState(false);
     const [vncUrl, setVncUrl] = useState("");
     const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
+    const [vncSessionId, setVncSessionId] = useState("");
 
     const openStageOdb = async () => {
       setErr("");
@@ -366,6 +367,7 @@ export function OpenroadStudioCenterView({
         if (data.webUrl) {
           setVncUrl(data.webUrl);
           setVncOdbLabel(data.label || `${selectedStage} / top.odb`);
+          setVncSessionId(data.sessionId || "");
           setVncModalOpen(true);
         }
         setRunHint(
@@ -405,6 +407,7 @@ export function OpenroadStudioCenterView({
         if (data.webUrl) {
           setVncUrl(data.webUrl);
           setVncOdbLabel(file.name || "uploaded.odb");
+          setVncSessionId(data.sessionId || "");
           setVncModalOpen(true);
         }
         setRunHint(
@@ -425,6 +428,8 @@ export function OpenroadStudioCenterView({
           webUrl={vncUrl}
           stageName={stageMeta.label}
           odbLabel={vncOdbLabel}
+          sessionId={vncSessionId}
+          apiKey={apiKeyResolved()}
         />
         <div>
           <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">

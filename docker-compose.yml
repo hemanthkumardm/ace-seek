@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-      - "0.0.0.0:6080:6080"
+      - "0.0.0.0:6080-6100:6080-6100"
     environment:
       NODE_ENV: production
       AIC_ROOT: /app

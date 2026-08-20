@@ -18,6 +18,8 @@ export interface OpenroadVncModalProps {
   webUrl: string;
   stageName?: string;
   odbLabel?: string;
+  sessionId?: string;
+  apiKey?: string;
 }
 
 export function OpenroadVncModal({
@@ -26,11 +28,27 @@ export function OpenroadVncModal({
   webUrl,
   stageName = "Floorplan",
   odbLabel = "top.odb",
+  sessionId,
+  apiKey,
 }: OpenroadVncModalProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [iframeKey, setIframeKey] = useState(0);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = () => {
+    if (sessionId) {
+      fetch("/api/openroad/odb/close", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { "x-api-key": apiKey } : {}),
+        },
+        body: JSON.stringify({ sessionId }),
+      }).catch(() => {});
+    }
+    onClose();
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,13 +56,13 @@ export function OpenroadVncModal({
         if (isFullscreen) {
           setIsFullscreen(false);
         } else {
-          onClose();
+          handleClose();
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, isFullscreen, onClose]);
+  }, [isOpen, isFullscreen, handleClose]);
 
   if (!isOpen || !webUrl) return null;
 
@@ -121,7 +139,7 @@ export function OpenroadVncModal({
             </button>
 
             <button
-              onClick={onClose}
+              onClick={handleClose}
               title="Close GUI (Esc)"
               className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
             >
