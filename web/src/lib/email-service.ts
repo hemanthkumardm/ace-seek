@@ -289,3 +289,89 @@ export async function sendWelcomeTrialEmail(payload: WelcomeTrialEmailPayload): 
     return { success: false };
   }
 }
+
+export interface PortalQuoteEmailPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  category: string;
+  description: string;
+}
+
+/**
+ * Send portal quote lead notification to admin + auto-reply confirmation to client.
+ */
+export async function sendPortalQuoteNotificationEmail(payload: PortalQuoteEmailPayload): Promise<{ success: boolean }> {
+  try {
+    const apiKey = process.env.RESEND_API_KEY;
+    const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "dnhcmanthkumar7@gmail.com";
+    const fromEmail = process.env.RESEND_FROM_EMAIL || "Ace-Seek Portal <portal@ace-seek.com>";
+
+    logger.info("portal_quote.dispatch_attempt", {
+      from: payload.email,
+      name: payload.name,
+      category: payload.category,
+    });
+
+    const adminHtml = `
+      <div style="font-family: monospace, sans-serif; background: #090d16; color: #f8fafc; padding: 24px; border-radius: 12px; max-width: 600px;">
+        <h2 style="color: #38bdf8; margin-top: 0;">🚀 New Portal Quote Request Received</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; color: #cbd5e1; font-size: 13px;">
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Client Name:</td><td style="font-weight: bold; color: #ffffff;">${payload.name}</td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Email Address:</td><td style="font-weight: bold; color: #38bdf8;"><a href="mailto:${payload.email}" style="color: #38bdf8;">${payload.email}</a></td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Phone / WhatsApp:</td><td style="font-weight: bold; color: #10b981;"><a href="tel:${payload.phone || ""}" style="color: #10b981;">${payload.phone || "Not provided"}</a></td></tr>
+          <tr><td style="padding: 6px 0; color: #94a3b8;">Requested Category:</td><td style="font-weight: bold; color: #f59e0b;">${payload.category}</td></tr>
+        </table>
+        <div style="background: #020617; border: 1px solid #334155; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <strong style="color: #94a3b8; display: block; margin-bottom: 8px;">Project Scope / Description:</strong>
+          <p style="white-space: pre-wrap; margin: 0; color: #f1f5f9; line-height: 1.5;">${payload.description || "(No description provided)"}</p>
+        </div>
+        <p style="font-size: 11px; color: #64748b; margin-top: 20px;">Timestamp: ${new Date().toISOString()} · Ace-Seek Portal Lead Engine</p>
+      </div>
+    `;
+
+    if (apiKey) {
+      const resend = new Resend(apiKey);
+      await resend.emails.send({
+        from: fromEmail,
+        to: [adminEmail],
+        replyTo: payload.email,
+        subject: `🚀 [Ace-Seek Portal Quote] ${payload.name} - ${payload.category}`,
+        html: adminHtml,
+      });
+
+      // Auto-reply to client
+      if (payload.email) {
+        await resend.emails.send({
+          from: fromEmail,
+          to: [payload.email],
+          subject: `Quote Request Received · Ace-Seek Solutions (${payload.category})`,
+          html: `
+            <div style="font-family: sans-serif; background: #090d16; color: #f8fafc; padding: 24px; border-radius: 12px; max-width: 550px;">
+              <h2 style="color: #22d3ee; margin-top: 0;">We've Received Your Project Request!</h2>
+              <p style="color: #cbd5e1; font-size: 14px; line-height: 1.6;">
+                Hi <strong>${payload.name}</strong>,<br><br>
+                Thank you for reaching out to Ace-Seek regarding <strong>${payload.category}</strong>. Our engineering leads are reviewing your project requirements and will get in touch with you shortly.
+              </p>
+              <div style="background: #0f172a; border: 1px solid #1e293b; padding: 16px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-size: 13px; color: #94a3b8;">Want an instant response?</p>
+                <p style="margin: 8px 0 0 0; font-size: 14px; font-weight: bold;">
+                  <a href="https://wa.me/918431670673?text=${encodeURIComponent(`Hi Ace-Seek, I just submitted a quote request for ${payload.category}`)}" style="color: #10b981; text-decoration: none;">
+                    💬 Connect directly on WhatsApp (+91 84316 70673) &rarr;
+                  </a>
+                </p>
+              </div>
+              <p style="font-size: 11px; color: #64748b; margin-top: 24px;">Ace-Seek Inc. · www.ace-seek.com · portal.ace-seek.com</p>
+            </div>
+          `,
+        });
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    logger.error("portal_quote.dispatch_failed", { payload }, err);
+    return { success: false };
+  }
+}
+

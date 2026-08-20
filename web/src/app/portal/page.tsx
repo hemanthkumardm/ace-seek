@@ -139,14 +139,29 @@ export default function PortalLandingPage() {
   });
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/portal/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formState),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to submit quote request.");
+      }
       setFormSubmitted(true);
-    }, 800);
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please message us on WhatsApp.");
+      setFormSubmitted(true); // Still show WhatsApp fallback
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1049,11 +1064,15 @@ export default function PortalLandingPage() {
                     </p>
                     <div className="pt-4">
                       <a
-                        href={WHATSAPP_LINK}
-                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-zinc-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-md"
+                        href={`https://wa.me/918431670673?text=${encodeURIComponent(
+                          `Hi Ace-Seek, I just requested a quote for ${formState.category} (${formState.name}). My email: ${formState.email}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-zinc-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-md hover:scale-[1.02] transition-transform"
                       >
                         <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Chat With Us Directly on WhatsApp</span>
+                        <span>Chat With Us Directly on WhatsApp (+91 84316 70673)</span>
                       </a>
                     </div>
                   </div>
