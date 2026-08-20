@@ -4,6 +4,7 @@ import {
   BRAND,
   CONTENT_HUB,
   OPENROAD_URL,
+  PORTAL_URL,
   PRICING,
   PRODUCTS,
   TOOLS_URL,
@@ -31,6 +32,8 @@ import {
   LayoutDashboard,
   UserPlus,
   Key,
+  Building2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function CommandCenterHome() {
@@ -81,7 +84,7 @@ export default function CommandCenterHome() {
               </h1>
 
               <p className="text-base md:text-lg text-[var(--muted)] leading-relaxed">
-                <span className="text-[var(--accent-cyan)] font-mono font-semibold">ace-seek.com</span> is the central SaaS portal for user pricing, special team offers, advertising, and user dashboard. When you subscribe, your dashboard generates an API License Key to paste into subdomain websites (like <span className="font-mono text-[var(--accent-cyan)]">doc.ace-seek.com</span>) to unlock Pro features.
+                <span className="text-[var(--accent-cyan)] font-mono font-semibold">ace-seek.com</span> is the central SaaS portal for user pricing, special team offers, advertising, and user dashboard. When you subscribe, your dashboard generates an API License Key to paste into subdomain websites (like <span className="font-mono text-[var(--accent-cyan)]">openroad.ace-seek.com</span>) to unlock Pro features.
               </p>
             </div>
 
@@ -97,9 +100,9 @@ export default function CommandCenterHome() {
                 <span>Dashboard & API Keys</span>
               </a>
 
-              <a href="/offers" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
-                <Tag className="w-4 h-4 text-[var(--muted)]" />
-                <span>Special Offers</span>
+              <a href={PORTAL_URL} className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5 border-amber-500/40 text-amber-300 hover:bg-amber-950/30">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <span>Solutions Portal ↗</span>
               </a>
             </div>
           </div>
@@ -116,7 +119,7 @@ export default function CommandCenterHome() {
                 </span>
               </div>
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Standalone Hardware & Utility Subdomains
+                Standalone Hardware, Utility & Solutions Subdomains
               </h2>
               <p className="mt-2 text-xs md:text-sm text-[var(--muted)] max-w-xl leading-relaxed">
                 Launch directly into our specialized subdomains. Create your account here on ace-seek.com to authorize all workstations.
@@ -129,9 +132,9 @@ export default function CommandCenterHome() {
             </a>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Launch Card 1: VLSI / ASIC Automation Suite */}
-            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-[var(--accent-cyan)]/50 hover:border-[var(--accent-cyan)] transition-all">
+            <div className="sk-panel p-6 flex flex-col justify-between space-y-6 border-2 border-[var(--accent-cyan)]/50 hover:border-[var(--accent-cyan)] transition-all">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
@@ -139,7 +142,7 @@ export default function CommandCenterHome() {
                       <Cpu className="w-5 h-5 text-[var(--accent-cyan)]" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-bold text-white">VLSI / ASIC Suite</h3>
+                      <h3 className="text-base font-bold text-white">VLSI / ASIC Suite</h3>
                       <span className="font-mono text-xs text-[var(--accent-cyan)]">vlsi.ace-seek.com</span>
                     </div>
                   </div>
@@ -161,7 +164,7 @@ export default function CommandCenterHome() {
             </div>
 
             {/* Launch Card 2: OpenROAD PnR */}
-            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-emerald-400/50 hover:border-emerald-400 transition-all">
+            <div className="sk-panel p-6 flex flex-col justify-between space-y-6 border-2 border-emerald-400/50 hover:border-emerald-400 transition-all">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
@@ -169,7 +172,7 @@ export default function CommandCenterHome() {
                       <Boxes className="w-5 h-5 text-emerald-400" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-bold text-white">OpenROAD PnR</h3>
+                      <h3 className="text-base font-bold text-white">OpenROAD PnR</h3>
                       <span className="font-mono text-xs text-emerald-400">openroad.ace-seek.com</span>
                     </div>
                   </div>
@@ -191,7 +194,7 @@ export default function CommandCenterHome() {
             </div>
 
             {/* Launch Card 3: Developer & Utility Suite */}
-            <div className="sk-panel p-8 flex flex-col justify-between space-y-6 border-2 border-violet-500/50 hover:border-violet-500 transition-all">
+            <div className="sk-panel p-6 flex flex-col justify-between space-y-6 border-2 border-violet-500/50 hover:border-violet-500 transition-all">
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-3 min-w-0">
@@ -199,7 +202,7 @@ export default function CommandCenterHome() {
                       <Boxes className="w-5 h-5 text-violet-400" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="text-lg font-bold text-white">Tools Suite</h3>
+                      <h3 className="text-base font-bold text-white">Tools Suite</h3>
                       <span className="font-mono text-xs text-violet-400">tools.ace-seek.com</span>
                     </div>
                   </div>
@@ -216,6 +219,36 @@ export default function CommandCenterHome() {
                   className="sk-btn sk-btn-ghost !text-xs !py-2 !px-3 font-bold text-violet-300 border-violet-500/40 hover:bg-violet-950/30"
                 >
                   <span>tools →</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Launch Card 4: Solutions Portal */}
+            <div className="sk-panel p-6 flex flex-col justify-between space-y-6 border-2 border-amber-500/50 hover:border-amber-500 transition-all">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="sk-icon-well w-10 h-10 rounded-lg shrink-0">
+                      <Sparkles className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold text-white">Solutions Portal</h3>
+                      <span className="font-mono text-xs text-amber-400">portal.ace-seek.com</span>
+                    </div>
+                  </div>
+                  <span className="sk-badge sk-badge-live shrink-0 text-amber-400 border-amber-500/40">Custom</span>
+                </div>
+                <p className="text-xs text-[var(--muted)] leading-relaxed">
+                  Academic VLSI Capstones, Custom ASIC Design, and WhatsApp Business Portals.
+                </p>
+              </div>
+              <div className="pt-4 border-t border-[var(--bevel-shadow)] flex items-center justify-between gap-2">
+                <span className="text-xs font-mono text-slate-400">Launch</span>
+                <a
+                  href={PORTAL_URL}
+                  className="sk-btn sk-btn-ghost !text-xs !py-2 !px-3 font-bold text-amber-300 border-amber-500/40 hover:bg-amber-950/30"
+                >
+                  <span>portal →</span>
                 </a>
               </div>
             </div>

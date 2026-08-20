@@ -15,7 +15,9 @@ import {
   Shield,
   Activity,
   Boxes,
+  Sparkles,
 } from "lucide-react";
+import { PORTAL_URL } from "@/lib/site";
 
 type Props = {
   /** Highlight active nav key */
@@ -23,6 +25,7 @@ type Props = {
     | "home"
     | "products"
     | "pricing"
+    | "portal"
     | "offers"
     | "advertise"
     | "blog"
@@ -183,6 +186,7 @@ export function SiteHeader({ active }: Props) {
               </a>
             )}
             {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
+            {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
             {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
             {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
             {link("docs", "https://www.ace-seek.com/docs", "Docs", FileText)}
@@ -239,9 +243,10 @@ export function SiteFooter() {
             <Boxes className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>Subdomain Specs</span>
           </p>
-          <span className="block text-xs text-[var(--muted)]">vlsi.ace-seek.com (SDC · Timing · MMMC · Power)</span>
-          <span className="block text-xs text-[var(--muted)]">openroad.ace-seek.com (PnR packs · Max runs)</span>
-          <span className="block text-xs text-[var(--muted)]">tools.ace-seek.com (Doc · Diff · Convert)</span>
+          <a href="https://vlsi.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-[var(--accent-cyan)]">vlsi.ace-seek.com (SDC · Timing · MMMC)</a>
+          <a href="https://openroad.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-emerald-400">openroad.ace-seek.com (PnR Studio · Max)</a>
+          <a href="https://tools.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-violet-400">tools.ace-seek.com (Doc · Diff · Convert)</a>
+          <a href="https://portal.ace-seek.com" className="block text-xs text-amber-400 font-bold hover:underline">portal.ace-seek.com (Solutions & Automation)</a>
         </div>
 
         <div className="space-y-2.5">
