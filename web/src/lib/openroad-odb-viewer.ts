@@ -9,6 +9,7 @@ import path from "path";
 import { spawn, spawnSync, type ChildProcess } from "child_process";
 import type { FlowStageId } from "./openroad-flow-model";
 import {
+  getOpenroadJobsRoot,
   ownerJobsDir,
   ownerUploadsDir,
   pathUnderOwner,
@@ -206,7 +207,9 @@ export function validateOdbReadable(odbPath: string): {
     "efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a";
   const dir = path.dirname(abs);
   const bn = path.basename(abs);
-  const work = fs.mkdtempSync(path.join(os.tmpdir(), "ace-odb-validate-"));
+  const stageTmpBase = path.join(getOpenroadJobsRoot(), "tmp");
+  fs.mkdirSync(stageTmpBase, { recursive: true });
+  const work = fs.mkdtempSync(path.join(stageTmpBase, "ace-odb-validate-"));
   const tcl = path.join(work, "validate.tcl");
   fs.writeFileSync(
     tcl,

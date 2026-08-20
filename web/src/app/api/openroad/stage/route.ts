@@ -30,7 +30,7 @@ import {
 } from "@/lib/openroad-checkpoints";
 import type { StageInputValues } from "@/lib/openroad-stage-config";
 import { emptyStageInputValues } from "@/lib/openroad-stage-config";
-import { requireOpenroadOwner } from "@/lib/openroad-owner";
+import { getOpenroadJobsRoot, requireOpenroadOwner } from "@/lib/openroad-owner";
 
 function configuredHostMissingCritical(
   stage: string,
@@ -206,7 +206,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const work = fs.mkdtempSync(path.join(os.tmpdir(), "ace-stage-"));
+    const stageTmpBase = path.join(getOpenroadJobsRoot(), "tmp");
+    fs.mkdirSync(stageTmpBase, { recursive: true });
+    const work = fs.mkdtempSync(path.join(stageTmpBase, "ace-stage-"));
 
     try {
       const { rtlDir, tbDir } = writeProjectTree(work, project);
