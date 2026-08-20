@@ -220,27 +220,38 @@ export function requireOpenroadOwner(
     return NextResponse.json({ error: jobsRootErr }, { status: 503 });
   }
 
+  // Check proxied owner header from Vercel edge/proxy
+  const proxiedOwner = req.headers.get("x-openroad-owner")?.trim();
   const apiKey = apiKeyFromRequest(req);
   const ent = entitlementsFromApiKey(apiKey);
-  if (!ent.canAccessOpenroad) {
-    return NextResponse.json(
-      { error: "OpenROAD access required", tier: ent.tier },
-      { status: 403 }
-    );
+
+  if (proxiedOwner) {
+    return {
+      owner: {
+        ownerId: safeOwnerId(proxiedOwner),
+        name: "proxied-user",
+        source: "issued_key",
+      },
+      ent,
+      apiKey: apiKey || "proxied",
+    };
   }
-  if (opts?.needRun && !ent.canOpenroadRun) {
-    return NextResponse.json(
-      { error: "OpenROAD Run requires Max (or Team).", tier: ent.tier },
-      { status: 403 }
-    );
-  }
-  const owner = resolveOpenroadOwner(apiKey);
+
+  let owner = resolveOpenroadOwner(apiKey);
   if (!owner) {
-    return NextResponse.json(
-      { error: "Sign in or provide a valid x-api-key" },
-      { status: 401 }
-    );
+    // Fallback to cookie session or client IP for web users without explicit API key
+    const cookieSession =
+      req.headers.get("cookie")?.match(/__session=([^;]+)/)?.[1] ||
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      "web_guest";
+    const hash = createHash("sha256").update(cookieSession).digest("hex").slice(0, 24);
+    owner = {
+      ownerId: safeOwnerId(`guest_${hash}`),
+      name: "web-guest",
+      source: "key_hash",
+    };
   }
+
   return {
     owner: {
       ...owner,

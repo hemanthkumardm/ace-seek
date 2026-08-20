@@ -31,6 +31,8 @@ export async function GET(req: NextRequest) {
           headers: {
             ...(req.headers.get("x-api-key") ? { "x-api-key": req.headers.get("x-api-key")! } : {}),
             ...(req.headers.get("authorization") ? { authorization: req.headers.get("authorization")! } : {}),
+            ...(req.headers.get("cookie") ? { cookie: req.headers.get("cookie")! } : {}),
+            "x-openroad-owner": gate.owner.ownerId,
           },
         });
         const data = await res.json();

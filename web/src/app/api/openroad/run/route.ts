@@ -53,13 +53,24 @@ export async function POST(req: NextRequest) {
             "Content-Type": "application/json",
             ...(req.headers.get("x-api-key") ? { "x-api-key": req.headers.get("x-api-key")! } : {}),
             ...(req.headers.get("authorization") ? { authorization: req.headers.get("authorization")! } : {}),
+            ...(req.headers.get("cookie") ? { cookie: req.headers.get("cookie")! } : {}),
+            "x-openroad-owner": owner.ownerId,
           },
           body: JSON.stringify(body),
         });
         const data = await res.json();
         return NextResponse.json(data, { status: res.status });
       } catch (err) {
-        /* fallback to local evaluation */
+        if (isVercel) {
+          return NextResponse.json(
+            {
+              error: `OpenROAD EC2 runner (${externalOpenroadUrl}) unreachable: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            },
+            { status: 503 }
+          );
+        }
       }
     }
 
