@@ -931,7 +931,14 @@ export default function OpenroadPnRStudioPage() {
               );
               const through = completedStagesThrough(stop);
               setCompleted((prev) => {
-                const next = new Set([...prev, ...through]);
+                const next = new Set([...prev, ...through, launchedStage]);
+                if (stop === "floorplan" || launchedStage === "floorplan") {
+                  next.add("floorplan");
+                  next.add("powerplan");
+                }
+                if (stop === "placement" || launchedStage === "placement") {
+                  next.add("placement");
+                }
                 return FLOW_STAGES.map((s) => s.id).filter((id) =>
                   next.has(id)
                 );
@@ -1418,9 +1425,11 @@ export default function OpenroadPnRStudioPage() {
           return [...pre, ...post];
         });
         if (data.ok) {
-          setCompleted((prev) =>
-            prev.includes(stage) ? prev : [...prev, stage]
-          );
+          const extra = stage === "floorplan" ? ["floorplan", "powerplan"] : [stage];
+          setCompleted((prev) => {
+            const s = new Set([...prev, ...extra]);
+            return FLOW_STAGES.map((x) => x.id).filter((id) => s.has(id));
+          });
         } else {
           setErr(result.kind === "generic" ? result.summary : (result as { summary: string }).summary);
         }
@@ -1492,9 +1501,11 @@ export default function OpenroadPnRStudioPage() {
           setRunningStage(null);
           setRunHint("");
           if (r.status === "succeeded") {
-            setCompleted((prev) =>
-              prev.includes(stage) ? prev : [...prev, stage]
-            );
+            const extra = stage === "floorplan" ? ["floorplan", "powerplan"] : [stage];
+            setCompleted((prev) => {
+              const s = new Set([...prev, ...extra]);
+              return FLOW_STAGES.map((x) => x.id).filter((id) => s.has(id));
+            });
             if (stage === "gds") markOpenlaneChainDone();
             if (r.jobId && r.artifacts?.length) {
               addStageArtifacts(
