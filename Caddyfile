@@ -1,8 +1,20 @@
 :80 {
-	handle /vnc* {
+	handle /vnc.html* {
+		reverse_proxy aic-web:6080
+	}
+	handle /app/* {
+		reverse_proxy aic-web:6080
+	}
+	handle /core/* {
+		reverse_proxy aic-web:6080
+	}
+	handle /vendor/* {
 		reverse_proxy aic-web:6080
 	}
 	handle /websockify* {
+		reverse_proxy aic-web:6080
+	}
+	handle /vnc* {
 		reverse_proxy aic-web:6080
 	}
 	handle {

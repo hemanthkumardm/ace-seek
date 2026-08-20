@@ -372,8 +372,7 @@ export function startOpenroadOdbGui(
     process.env.EC2_PUBLIC_IP ||
     (hostHint ? hostHint.split(":")[0] : "") ||
     "3.90.62.206";
-  const novncPort = process.env.ACE_NOVNC_PORT || "6080";
-  const webUrl = `http://${host}:${novncPort}/vnc.html?autoconnect=true&resize=remote`;
+  const webUrl = `http://${host}/vnc.html?autoconnect=true&resize=remote&path=websockify`;
 
   return {
     ok: true,

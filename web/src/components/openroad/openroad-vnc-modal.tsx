@@ -133,12 +133,27 @@ export function OpenroadVncModal({
         {/* Viewport Area */}
         <div className="relative flex-1 w-full bg-black overflow-hidden">
           {isLoading && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm text-slate-300 space-y-3">
-              <RefreshCw className="w-8 h-8 animate-spin text-emerald-400" />
-              <div className="text-center">
-                <p className="text-sm font-medium">Connecting to OpenROAD X11 Framebuffer…</p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Loading native Qt layout viewer ({odbLabel})
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md text-slate-300 space-y-4 p-6 text-center">
+              <RefreshCw className="w-9 h-9 animate-spin text-emerald-400" />
+              <div className="max-w-md space-y-1">
+                <p className="text-base font-semibold text-white">Connecting to OpenROAD X11 Framebuffer…</p>
+                <p className="text-xs text-slate-400">
+                  Loading native Qt layout viewer for <code className="text-emerald-400 font-mono">{odbLabel}</code>
+                </p>
+              </div>
+
+              <div className="pt-2">
+                <a
+                  href={webUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-emerald-950/50 transition-colors"
+                >
+                  <span>Open GUI in Standalone Window</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <p className="text-[11px] text-slate-500 mt-2">
+                  (Recommended if your browser blocks embedded HTTP iframes on HTTPS pages)
                 </p>
               </div>
             </div>
