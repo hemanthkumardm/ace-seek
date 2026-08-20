@@ -284,7 +284,8 @@ export function listGuiSessions(): {
  */
 export function startOpenroadOdbGui(
   odbPath: string,
-  owner: OpenroadOwner
+  owner: OpenroadOwner,
+  hostHint?: string
 ): {
   ok: boolean;
   sessionId?: string;
@@ -292,15 +293,17 @@ export function startOpenroadOdbGui(
   odb: string;
   display: string;
   logFile?: string;
+  webUrl?: string;
 } {
   const abs = path.resolve(odbPath);
+  const display = process.env.ACE_VNC_DISPLAY || process.env.DISPLAY || ":99";
   if (!owner?.ownerId || !pathUnderOwner(abs, owner.ownerId)) {
     return {
       ok: false,
       message:
         "ODB path not allowed — must be under your owners/<id> job/upload tree",
       odb: abs,
-      display: process.env.DISPLAY || ":0",
+      display,
     };
   }
   if (!fs.existsSync(abs)) {
@@ -308,7 +311,7 @@ export function startOpenroadOdbGui(
       ok: false,
       message: `ODB not found: ${abs}`,
       odb: abs,
-      display: process.env.DISPLAY || ":0",
+      display,
     };
   }
 
@@ -323,13 +326,12 @@ export function startOpenroadOdbGui(
       ok: false,
       message: `Missing ${script}`,
       odb: abs,
-      display: process.env.DISPLAY || ":0",
+      display,
     };
   }
 
   const sessionId = `gui_${Date.now().toString(36)}`;
   const logFile = path.join(os.tmpdir(), `ace-odb-gui-${sessionId}.log`);
-  const display = process.env.DISPLAY || ":0";
   fs.writeFileSync(
     logFile,
     `ACE-Seek OpenROAD GUI\nodb=${abs}\ndisplay=${display}\n`,
@@ -340,7 +342,11 @@ export function startOpenroadOdbGui(
   const child: ChildProcess = spawn("bash", [script, abs, logFile], {
     detached: true,
     stdio: ["ignore", outFd, outFd],
-    env: { ...process.env, DISPLAY: display },
+    env: {
+      ...process.env,
+      DISPLAY: display,
+      ACE_VNC_DISPLAY: display,
+    },
   });
   fs.closeSync(outFd);
 
@@ -361,12 +367,21 @@ export function startOpenroadOdbGui(
     logFile,
   });
 
+  const host =
+    process.env.OPENROAD_PUBLIC_HOST ||
+    process.env.EC2_PUBLIC_IP ||
+    (hostHint ? hostHint.split(":")[0] : "") ||
+    "3.90.62.206";
+  const novncPort = process.env.ACE_NOVNC_PORT || "6080";
+  const webUrl = `http://${host}:${novncPort}/vnc.html?autoconnect=true&resize=remote`;
+
   return {
     ok: true,
     sessionId,
-    message: `OpenROAD GUI starting on ${path.basename(abs)} (DISPLAY=${display}). If no window appears, run: xhost +local:docker && ensure DISPLAY is set for the Node server.`,
+    message: `OpenROAD GUI active for ${path.basename(abs)}. Stream available via Web VNC.`,
     odb: abs,
     display,
     logFile,
+    webUrl,
   };
 }

@@ -8,7 +8,7 @@ FROM --platform=linux/amd64 pandoc/latex:latest
 
 USER root
 
-# Node (Next.js), Python (preprocess), fonts, docker client for OpenROAD
+# Node (Next.js), Python (preprocess), fonts, docker client for OpenROAD, VNC virtual display
 RUN apk add --no-cache \
       nodejs \
       npm \
@@ -20,6 +20,12 @@ RUN apk add --no-cache \
       docker-cli \
       poppler-utils \
       tini \
+      xvfb \
+      x11vnc \
+      novnc \
+      py3-websockify \
+      fluxbox \
+      procps \
     && fc-cache -f \
     && node --version \
     && npm --version \

@@ -1,5 +1,13 @@
 :80 {
-	reverse_proxy aic-web:3000
+	handle /vnc* {
+		reverse_proxy aic-web:6080
+	}
+	handle /websockify* {
+		reverse_proxy aic-web:6080
+	}
+	handle {
+		reverse_proxy aic-web:3000
+	}
 }
 
 ace-seek.com, www.ace-seek.com, main.ace-seek.com {

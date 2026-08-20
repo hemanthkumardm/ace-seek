@@ -14,6 +14,7 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
+      - "0.0.0.0:6080:6080"
     environment:
       NODE_ENV: production
       AIC_ROOT: /app
@@ -32,6 +33,8 @@ services:
       PDK: sky130A
       OPENLANE_IMAGE: efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a
       ACE_TOOLS_MODE: auto
+      ACE_NOVNC_PORT: "6080"
+      ACE_VNC_DISPLAY: ":99"
       # Keep job/temp files inside a volume (survives restarts, not lost in container overlay)
       TMPDIR: /tmp/aic
     volumes:
@@ -39,6 +42,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /data/ace-openroad-jobs:/data/ace-openroad-jobs
       - /data/volare:/data/volare
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
     # Free-tier friendly defaults (uncomment/adjust for Always Free VM shape)
     # mem_limit: 6g
     # cpus: 2.0

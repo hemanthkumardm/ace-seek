@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = startOpenroadOdbGui(odbAbs, owner);
+    const hostHeader = req.headers.get("host") || undefined;
+    const result = startOpenroadOdbGui(odbAbs, owner, hostHeader);
     if (!result.ok) {
       return NextResponse.json(
         { error: result.message, ...result },

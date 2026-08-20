@@ -4,10 +4,11 @@
  * Center stage panel for OpenROAD PnR Studio (lint / sim / io / synth / chip / report).
  */
 
-import React from "react";
+import React, { useState } from "react";
 import { Download, ExternalLink } from "lucide-react";
 import { OpenroadIoPlanner } from "@/components/OpenroadIoPlanner";
 import { DigitalWaveform } from "@/components/OpenroadCharts";
+import { OpenroadVncModal } from "@/components/openroad/openroad-vnc-modal";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import type { StageInputValues } from "@/lib/openroad-stage-config";
@@ -335,6 +336,10 @@ export function OpenroadStudioCenterView({
       {} as PlaceM
     );
 
+    const [vncModalOpen, setVncModalOpen] = useState(false);
+    const [vncUrl, setVncUrl] = useState("");
+    const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
+
     const openStageOdb = async () => {
       setErr("");
       setRunHint(`Opening ${selectedStage} ODB in OpenROAD GUI…`);
@@ -357,6 +362,11 @@ export function OpenroadStudioCenterView({
           setErr(data.error || data.message || "Failed to open ODB");
           setRunHint("");
           return;
+        }
+        if (data.webUrl) {
+          setVncUrl(data.webUrl);
+          setVncOdbLabel(data.label || `${selectedStage} / top.odb`);
+          setVncModalOpen(true);
         }
         setRunHint(
           data.message ||
@@ -392,6 +402,11 @@ export function OpenroadStudioCenterView({
           setRunHint("");
           return;
         }
+        if (data.webUrl) {
+          setVncUrl(data.webUrl);
+          setVncOdbLabel(file.name || "uploaded.odb");
+          setVncModalOpen(true);
+        }
         setRunHint(
           data.message ||
             `OpenROAD GUI opened uploaded ODB (${data.odb || file.name})`
@@ -404,16 +419,21 @@ export function OpenroadStudioCenterView({
 
     return (
       <div className="neu-panel p-4 h-full space-y-3 overflow-auto">
+        <OpenroadVncModal
+          isOpen={vncModalOpen}
+          onClose={() => setVncModalOpen(false)}
+          webUrl={vncUrl}
+          stageName={stageMeta.label}
+          odbLabel={vncOdbLabel}
+        />
         <div>
           <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
             Layout viewer · real OpenROAD
           </p>
           <h2 className="text-lg font-black uppercase">{stageMeta.label}</h2>
           <p className="text-[11px] font-bold text-[var(--neu-text-muted)] mt-1 max-w-2xl">
-            The in-browser DEF snapshot was removed — it cannot show real IO
-            ports, well taps, endcaps, or PDN rings/straps accurately. Use{" "}
-            <strong className="text-[var(--neu-text)]">OpenROAD GUI</strong>{" "}
-            on the stage <code className="text-sky-700">.odb</code> (Docker).
+            Stream the native <strong className="text-[var(--neu-text)]">OpenROAD Desktop GUI</strong>{" "}
+            in your browser to inspect exact IO ports, well taps, endcaps, and PDN rings/straps.
           </p>
         </div>
 
@@ -424,8 +444,17 @@ export function OpenroadStudioCenterView({
             onClick={() => void openStageOdb()}
             disabled={running}
           >
-            Open {stageMeta.short} ODB in OpenROAD
+            Open {stageMeta.short} in OpenROAD GUI
           </button>
+          {vncUrl && (
+            <button
+              type="button"
+              className="neu-btn !text-[11px] font-black text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10"
+              onClick={() => setVncModalOpen(true)}
+            >
+              Resume OpenROAD Stream
+            </button>
+          )}
           <label className="neu-btn !text-[11px] font-black cursor-pointer inline-flex items-center">
             Upload .odb → OpenROAD
             <input
