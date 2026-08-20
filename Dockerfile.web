@@ -13,6 +13,7 @@ RUN apk add --no-cache \
       nodejs \
       npm \
       python3 \
+      py3-pip \
       bash \
       font-dejavu \
       fontconfig \
@@ -22,10 +23,12 @@ RUN apk add --no-cache \
       tini \
       xvfb \
       x11vnc \
-      novnc \
-      py3-websockify \
       fluxbox \
       procps \
+      git \
+    && (pip install --no-cache-dir --break-system-packages websockify 2>/dev/null || pip install --no-cache-dir websockify) \
+    && git clone --depth 1 https://github.com/novnc/noVNC.git /usr/share/novnc \
+    && ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html 2>/dev/null || true \
     && fc-cache -f \
     && node --version \
     && npm --version \
