@@ -94,6 +94,7 @@ export async function GET(req: NextRequest) {
           apiKey: activeKey,
           freeKey: dualKeys.freeKey,
           trialKey: dualKeys.trialKey,
+          createdAt: user.createdAt,
         },
       });
     } catch {

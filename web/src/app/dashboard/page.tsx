@@ -29,6 +29,7 @@ type UserProfile = {
   apiKey: string;
   freeKey?: string;
   trialKey?: string;
+  createdAt?: string | Date;
 };
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -46,6 +47,17 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
   const freeKey = user.freeKey || user.apiKey;
   const trialKey = user.trialKey || user.apiKey.replace("ace_free_", "ace_trial_");
 
+  const isAccountOlderThan7Days = Boolean(
+    user.createdAt &&
+      Date.now() - new Date(user.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000
+  );
+
+  const isTrialExpired = Boolean(
+    trialStatus.expired ||
+      (user.plan === "free" && isAccountOlderThan7Days) ||
+      (countdownText && countdownText.includes("Expired"))
+  );
+
   useEffect(() => {
     if (!trialKey) return;
     fetch("/api/validate-key", {
@@ -60,7 +72,13 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
             activated: true,
             expiresAt: data.expiresAt,
             daysRemaining: data.daysRemaining,
-            expired: Boolean(data.trialExpired),
+            expired: Boolean(data.trialExpired || data.daysRemaining <= 0),
+          });
+        } else if (data.trialExpired || data.plan === "free") {
+          setTrialStatus({
+            activated: true,
+            expired: true,
+            daysRemaining: 0,
           });
         }
       })
@@ -74,7 +92,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
     const updateTimer = () => {
       const diff = targetTime - Date.now();
       if (diff <= 0) {
-        setCountdownText("Trial Expired (Reverted to Free)");
+        setCountdownText("Trial Expired");
         return;
       }
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -83,7 +101,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
       const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
       setCountdownText(
-        `${days}d ${hours}h ${mins}m ${secs}s remaining`
+        `${days}d ${hours}h ${mins}m remaining`
       );
     };
 
@@ -118,34 +136,47 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               Welcome back, {user.name}
             </h1>
             <p className="text-xs md:text-sm text-[var(--muted)] font-mono">
-              Account: {user.email} · ID: {user.id}
+              Account: {user.email} &bull; ID: {user.id}
             </p>
           </div>
 
-          <div className="sk-recessed p-4 flex flex-col gap-2 min-w-[240px]">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--muted)] font-mono">CURRENT TIER:</span>
-              <span className="sk-badge sk-badge-live uppercase">{user.plan} PLAN</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="text-right space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-[var(--muted)] font-mono">
+                  CURRENT TIER:
+                </span>
+                <span
+                  className={`sk-badge ${
+                    user.plan === "team"
+                      ? "border-purple-500 text-purple-400 bg-purple-950/30"
+                      : user.plan === "pro"
+                      ? "border-emerald-500 text-emerald-400 bg-emerald-950/30"
+                      : "border-slate-700 text-slate-300 bg-slate-800"
+                  }`}
+                >
+                  {user.plan.toUpperCase()} PLAN
+                </span>
+              </div>
+              <p className="text-[10px] text-[var(--muted)] font-mono">
+                AUTH: <span className="text-[#10b981] font-bold">&bull; SECURE</span>
+              </p>
             </div>
-            <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--bevel-shadow)]">
-              <span className="text-[var(--muted)] font-mono">AUTH:</span>
-              <span className="flex items-center gap-1.5 text-[#10b981] font-mono text-[11px] font-bold">
-                <span className="sk-led sk-led-green" />{" "}
-                {clerkPk?.trim() ? "SECURE" : "SESSION"}
-              </span>
-            </div>
-            <div className="flex gap-2 mt-1">
-              <a
-                href="https://www.ace-seek.com/pricing"
-                className="sk-btn sk-btn-primary !text-xs !py-1 flex-1 justify-center"
-              >
-                <Zap className="w-3 h-3 fill-white" />
-                <span>Upgrade Plan</span>
-              </a>
+
+            <div className="flex items-center gap-2">
+              {user.plan === "free" && (
+                <a
+                  href="/pricing"
+                  className="sk-btn sk-btn-primary !text-xs !py-2.5 flex items-center gap-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Upgrade Plan</span>
+                </a>
+              )}
               <button
                 type="button"
                 onClick={onLogout}
-                className="sk-btn sk-btn-ghost !text-xs !py-1 px-2.5"
+                className="sk-btn sk-btn-ghost !text-xs !py-2.5"
                 title="Log out"
               >
                 <LogOut className="w-3 h-3 text-red-400" />
@@ -173,26 +204,52 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* KEY 1: 7-DAY MAX TRIAL KEY */}
-            <div className="rounded-xl border border-yellow-500/40 bg-yellow-950/10 p-5 space-y-3 relative overflow-hidden">
+            <div
+              className={`rounded-xl border p-5 space-y-3 relative overflow-hidden transition-colors ${
+                isTrialExpired
+                  ? "border-slate-700/60 bg-slate-900/40 opacity-80"
+                  : "border-yellow-500/40 bg-yellow-950/10"
+              }`}
+            >
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-yellow-400 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                    isTrialExpired ? "text-slate-400" : "text-yellow-400"
+                  }`}
+                >
+                  <Sparkles
+                    className={`w-3.5 h-3.5 ${
+                      isTrialExpired ? "text-slate-500" : "text-yellow-400"
+                    }`}
+                  />
                   <span>1. 7-Day MAX Trial Key</span>
                 </span>
-                <span className="rounded-full bg-yellow-500/20 px-2.5 py-0.5 text-[10px] font-bold text-yellow-300 border border-yellow-500/30 font-mono flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-yellow-400" />
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border font-mono flex items-center gap-1 ${
+                    isTrialExpired
+                      ? "bg-slate-800 text-slate-400 border-slate-700"
+                      : "bg-yellow-500/20 text-yellow-300 border-yellow-500/30"
+                  }`}
+                >
+                  <Clock
+                    className={`w-3 h-3 ${
+                      isTrialExpired ? "text-slate-400" : "text-yellow-400"
+                    }`}
+                  />
                   <span>
-                    {trialStatus.expired
+                    {isTrialExpired
                       ? "Expired (Fell back to Free)"
-                      : countdownText
-                      ? countdownText
-                      : "7-Day Trial Active"}
+                      : countdownText || "7-Day Trial Active"}
                   </span>
                 </span>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="sk-lcd flex-1 py-2 px-3 font-mono text-xs text-yellow-200 truncate select-all">
+                <div
+                  className={`sk-lcd flex-1 py-2 px-3 font-mono text-xs truncate select-all ${
+                    isTrialExpired ? "text-slate-400" : "text-yellow-200"
+                  }`}
+                >
                   {trialKey}
                 </div>
                 <button
@@ -208,8 +265,14 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                 </button>
               </div>
 
-              <p className="text-[11px] text-yellow-200/80 leading-relaxed font-mono">
-                ⚡ Unlocks 100% MAX features across all Workstations.
+              <p
+                className={`text-[11px] leading-relaxed font-mono ${
+                  isTrialExpired ? "text-slate-400" : "text-yellow-200/80"
+                }`}
+              >
+                {isTrialExpired
+                  ? "🔒 Trial expired. This key now operates under the Free tier. Upgrade for permanent MAX features."
+                  : "⚡ Unlocks 100% MAX features across all Workstations."}
               </p>
             </div>
 
