@@ -5,6 +5,7 @@ import {
   getOwnerStorageUsage,
   checkOwnerStorageQuota,
 } from "@/lib/openroad-gc";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +19,12 @@ export async function GET(req: NextRequest) {
     const gate = requireOpenroadOwner(req);
     if (gate instanceof NextResponse) return gate;
     const { owner, ent } = gate;
+
+    const proxied = await proxyOpenroadRequest(req, "/api/openroad/gc", {
+      ownerId: owner.ownerId,
+      method: "GET",
+    });
+    if (proxied) return proxied;
 
     // Quotas: Max/Team: 25GB, Pro: 10GB, Free/Trial: 2GB
     const quotaBytes =

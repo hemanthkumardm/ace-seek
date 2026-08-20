@@ -50,6 +50,34 @@ export function resolveOpenlanePdkName(
       /* */
     }
   }
+
+  // Also check nested volare versions directory if symlink is relative
+  try {
+    if (fs.existsSync(root)) {
+      const volareDirs = [
+        path.join(root, "volare", def.id, "versions"),
+        path.join(root, def.id, "versions"),
+        path.join(root, "volare", "sky130", "versions"),
+        path.join(root, "sky130", "versions"),
+      ];
+      for (const vDir of volareDirs) {
+        if (fs.existsSync(vDir)) {
+          const versions = fs.readdirSync(vDir);
+          for (const ver of versions) {
+            for (const name of candidates) {
+              const p = path.join(vDir, ver, name);
+              if (fs.existsSync(p)) {
+                return { pdkName: name, path: p };
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    /* */
+  }
+
   return {
     pdkName: def.openlanePdk,
     path: null,

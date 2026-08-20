@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveCheckpointInfo } from "@/lib/openroad-checkpoints";
 import { requireOpenroadOwner } from "@/lib/openroad-owner";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,12 @@ export async function GET(req: NextRequest) {
   const gate = requireOpenroadOwner(req);
   if (gate instanceof NextResponse) return gate;
   const { owner } = gate;
+
+  const proxied = await proxyOpenroadRequest(req, "/api/openroad/checkpoint", {
+    ownerId: owner.ownerId,
+    method: "GET",
+  });
+  if (proxied) return proxied;
 
   const sp = req.nextUrl.searchParams;
   const designName = sp.get("designName") || "design";

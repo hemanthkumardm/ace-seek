@@ -3,6 +3,7 @@ import { probePdkAvailability, defaultOrfsRoot, defaultPdkRoot } from "@/lib/ope
 import { OPENROAD_PDKS } from "@/lib/openroad-pdk-catalog";
 import { toolsDiagnostics } from "@/lib/openroad-docker-tools";
 import { getOpenroadJobsRoot, requireOpenroadOwner } from "@/lib/openroad-owner";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,34 +14,11 @@ export async function GET(req: NextRequest) {
     const gate = requireOpenroadOwner(req);
     if (gate instanceof NextResponse) return gate;
 
-    const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
-    const externalOpenroadUrl = (
-      process.env.OPENROAD_API_URL ||
-      process.env.DOC_COMPILER_API_URL ||
-      process.env.BACKEND_API_URL ||
-      process.env.EC2_BACKEND_URL ||
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL
-    )?.replace(/\/$/, "");
-
-    if (externalOpenroadUrl && (!process.env.AIC_FORCE_LOCAL || isVercel)) {
-      try {
-        const targetUrl = new URL(`${externalOpenroadUrl}/api/openroad/pdks`);
-        req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
-        const res = await fetch(targetUrl.toString(), {
-          headers: {
-            ...(req.headers.get("x-api-key") ? { "x-api-key": req.headers.get("x-api-key")! } : {}),
-            ...(req.headers.get("authorization") ? { authorization: req.headers.get("authorization")! } : {}),
-            ...(req.headers.get("cookie") ? { cookie: req.headers.get("cookie")! } : {}),
-            "x-openroad-owner": gate.owner.ownerId,
-          },
-        });
-        const data = await res.json();
-        return NextResponse.json(data, { status: res.status });
-      } catch (err) {
-        /* fallback to local evaluation */
-      }
-    }
+    const proxied = await proxyOpenroadRequest(req, "/api/openroad/pdks", {
+      ownerId: gate.owner.ownerId,
+      method: "GET",
+    });
+    if (proxied) return proxied;
 
     let jobsRoot: string | null = null;
     let jobsRootError: string | null = null;

@@ -31,6 +31,7 @@ import {
 import type { StageInputValues } from "@/lib/openroad-stage-config";
 import { emptyStageInputValues } from "@/lib/openroad-stage-config";
 import { getOpenroadJobsRoot, requireOpenroadOwner } from "@/lib/openroad-owner";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 function configuredHostMissingCritical(
   stage: string,
@@ -102,46 +103,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
-    const externalOpenroadUrl = (
-      process.env.OPENROAD_API_URL ||
-      process.env.DOC_COMPILER_API_URL ||
-      process.env.BACKEND_API_URL ||
-      process.env.EC2_BACKEND_URL ||
-      process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL
-    )?.replace(/\/$/, "");
-
-    if (externalOpenroadUrl && (!process.env.AIC_FORCE_LOCAL || isVercel)) {
-      try {
-        const targetUrl = new URL(`${externalOpenroadUrl}/api/openroad/stage`);
-        req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
-        const res = await fetch(targetUrl.toString(), {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(req.headers.get("x-api-key") ? { "x-api-key": req.headers.get("x-api-key")! } : {}),
-            ...(req.headers.get("authorization") ? { authorization: req.headers.get("authorization")! } : {}),
-            ...(req.headers.get("cookie") ? { cookie: req.headers.get("cookie")! } : {}),
-            "x-openroad-owner": owner.ownerId,
-          },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
-        return NextResponse.json(data, { status: res.status });
-      } catch (err) {
-        if (isVercel) {
-          return NextResponse.json(
-            {
-              error: `OpenROAD EC2 runner (${externalOpenroadUrl}) unreachable: ${
-                err instanceof Error ? err.message : String(err)
-              }`,
-            },
-            { status: 503 }
-          );
-        }
-      }
-    }
+    const proxied = await proxyOpenroadRequest(req, "/api/openroad/stage", {
+      ownerId: owner.ownerId,
+      body,
+      method: "POST",
+    });
+    if (proxied) return proxied;
 
     const toolsMode = resolveToolsMode();
     const stage = body.stage;

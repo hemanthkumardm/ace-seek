@@ -44,9 +44,15 @@ if [[ ! -d "$JOB_DIR/designs/$DESIGN_SLUG" ]]; then
 fi
 
 if [[ ! -d "$PDK_ROOT/$PDK" && ! -L "$PDK_ROOT/$PDK" ]]; then
-  log "ERROR: PDK not found at $PDK_ROOT/$PDK"
-  write_status failed "PDK missing: $PDK_ROOT/$PDK"
-  exit 3
+  FOUND_PDK=$(find "$PDK_ROOT" -maxdepth 5 -type d -name "$PDK" 2>/dev/null | head -1 || true)
+  if [[ -n "$FOUND_PDK" && -d "$FOUND_PDK" ]]; then
+    PDK_ROOT="$(dirname "$FOUND_PDK")"
+    log "Resolved nested PDK at $FOUND_PDK (PDK_ROOT=$PDK_ROOT)"
+  else
+    log "ERROR: PDK not found at $PDK_ROOT/$PDK"
+    write_status failed "PDK missing: $PDK_ROOT/$PDK"
+    exit 3
+  fi
 fi
 
 # Stage stop target: synthesis | floorplan | placement | cts | routing | gds | all

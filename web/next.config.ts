@@ -30,13 +30,15 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
+    const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
     const externalBackendUrl = (
       process.env.OPENROAD_API_URL ||
       process.env.DOC_COMPILER_API_URL ||
       process.env.BACKEND_API_URL ||
       process.env.EC2_BACKEND_URL ||
       process.env.BACKEND_URL ||
-      process.env.NEXT_PUBLIC_BACKEND_URL
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      (isVercel ? "http://3.90.62.206" : "")
     )?.replace(/\/$/, "");
     if (externalBackendUrl && !process.env.AIC_FORCE_LOCAL) {
       return {

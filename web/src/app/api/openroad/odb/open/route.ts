@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { FlowStageId } from "@/lib/openroad-flow-model";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,6 +34,13 @@ export async function POST(req: NextRequest) {
       odbPath?: string;
       designHint?: string;
     };
+
+    const proxied = await proxyOpenroadRequest(req, "/api/openroad/odb/open", {
+      ownerId: owner.ownerId,
+      body,
+      method: "POST",
+    });
+    if (proxied) return proxied;
 
     let odbAbs: string | null = null;
     let label = "";

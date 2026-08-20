@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOpenroadOwner } from "@/lib/openroad-owner";
 import { purgeOwnerStorage, getOwnerStorageUsage } from "@/lib/openroad-gc";
+import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,6 +15,12 @@ export async function POST(req: NextRequest) {
     const gate = requireOpenroadOwner(req);
     if (gate instanceof NextResponse) return gate;
     const { owner } = gate;
+
+    const proxied = await proxyOpenroadRequest(req, "/api/openroad/clear", {
+      ownerId: owner.ownerId,
+      method: "POST",
+    });
+    if (proxied) return proxied;
 
     const result = purgeOwnerStorage(owner.ownerId);
     const usage = getOwnerStorageUsage(owner.ownerId);
