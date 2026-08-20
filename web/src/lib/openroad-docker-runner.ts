@@ -1005,6 +1005,14 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
   if (children.has(childKey)) return;
 
   const wd = workerDir();
+  if (!fs.existsSync(wd)) {
+    const msg = `Worker directory missing at ${wd}`;
+    rec.status = "failed";
+    rec.message = msg;
+    writeStatusJson(jobDir, "failed", msg);
+    return;
+  }
+
   const prepareOl = path.join(wd, "prepare_design.sh");
   const runOl = path.join(wd, "run_openlane.sh");
   const prepareOrfs = path.join(wd, "prepare_orfs_design.sh");
@@ -1058,10 +1066,26 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
       : `Preparing OpenLane until ${meta.until} (${meta.openlanePdk})…`;
   writeStatusJson(jobDir, "preparing", rec.message);
 
-  const shell = spawn("bash", ["-lc", cmd], {
-    cwd: wd,
-    env,
-    detached: false,
+  let shell: ChildProcess;
+  try {
+    shell = spawn("bash", ["-lc", cmd], {
+      cwd: wd,
+      env,
+      detached: false,
+    });
+  } catch (err) {
+    const msg = `Failed to spawn OpenLane worker: ${err instanceof Error ? err.message : String(err)}`;
+    rec.status = "failed";
+    rec.message = msg;
+    writeStatusJson(jobDir, "failed", msg);
+    return;
+  }
+
+  shell.on("error", (err) => {
+    const msg = `OpenLane process error: ${err.message}`;
+    rec.status = "failed";
+    rec.message = msg;
+    writeStatusJson(jobDir, "failed", msg);
   });
 
   rec.pid = shell.pid;

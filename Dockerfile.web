@@ -28,11 +28,12 @@ RUN apk add --no-cache \
 # TeX Live from base image is already on PATH via pandoc/latex
 WORKDIR /app
 
-# CLI + scripts
+# CLI + scripts + workers
 COPY bin/ ./bin/
 COPY scripts/ ./scripts/
+COPY workers/ ./workers/
 RUN mkdir -p ./templates
-RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess || true
+RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh ./workers/openroad/*.sh ./workers/openroad/*.py 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess || true
 
 # Web app deps first (better layer cache)
 COPY web/package.json web/package-lock.json* ./web/
