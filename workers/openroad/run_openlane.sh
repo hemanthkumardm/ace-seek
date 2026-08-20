@@ -70,7 +70,9 @@ run_local_docker() {
   log "Mode: local docker (OpenLane stage-limited interactive)"
   # OpenLane docker image (nix): flow.tcl is on PATH; run *from design dir*
   # that contains config.json + src/
-  # Mount Ace-Seek run_until.tcl to stop after the requested stage.
+  # Place ace_run_until.tcl inside the shared /designs folder to avoid host path mount issues
+  cp -f "${UNTIL_TCL}" "${JOB_DIR}/designs/ace_run_until.tcl" 2>/dev/null || true
+
   timeout "$OPENLANE_TIMEOUT" docker run --rm \
     --name "ace-openlane-${DESIGN_SLUG}-$$" \
     --entrypoint bash \
@@ -83,7 +85,6 @@ run_local_docker() {
     -v "${PDK_ROOT}:/pdk:ro" \
     -v "${JOB_DIR}/designs:/openlane/designs" \
     -v "${JOB_DIR}/results:/openlane/results_out" \
-    -v "${UNTIL_TCL}:/openlane/ace_run_until.tcl:ro" \
     "$OPENLANE_IMAGE" \
     -lc "
       set -e
@@ -94,7 +95,7 @@ run_local_docker() {
       ls -la /openlane/designs/${DESIGN_SLUG}/src/
       cd /openlane/designs/${DESIGN_SLUG}
       # Stage-limited: synthesis only stops after Yosys; does not run floorplan/place/...
-      flow.tcl -interactive -file /openlane/ace_run_until.tcl 2>&1
+      flow.tcl -interactive -file /openlane/designs/ace_run_until.tcl 2>&1
       RUN_DIR=\$(ls -dt runs/* 2>/dev/null | head -1 || true)
       echo RUN_DIR=\$RUN_DIR
       mkdir -p /openlane/results_out
