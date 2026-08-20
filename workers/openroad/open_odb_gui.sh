@@ -54,16 +54,25 @@ if ! pgrep -f "websockify.*${NOVNC_PORT}" >/dev/null 2>&1; then
   if [[ ! -d "$NOVNC_DIR" && -d "/usr/share/novnc-core" ]]; then
     NOVNC_DIR="/usr/share/novnc-core"
   fi
+  WEBSOCKIFY_BIN=""
   if command -v websockify >/dev/null 2>&1; then
-    log "Starting websockify noVNC bridge on port ${NOVNC_PORT}..."
+    WEBSOCKIFY_BIN="websockify"
+  elif python3 -m websockify --help >/dev/null 2>&1; then
+    WEBSOCKIFY_BIN="python3 -m websockify"
+  fi
+
+  if [[ -n "$WEBSOCKIFY_BIN" ]]; then
+    log "Starting websockify noVNC bridge on 0.0.0.0:${NOVNC_PORT}..."
     if [[ -d "$NOVNC_DIR" ]]; then
-      websockify --web "$NOVNC_DIR" "${NOVNC_PORT}" "localhost:${VNC_PORT}" &
+      $WEBSOCKIFY_BIN --web "$NOVNC_DIR" "0.0.0.0:${NOVNC_PORT}" "localhost:${VNC_PORT}" &
     else
-      websockify "${NOVNC_PORT}" "localhost:${VNC_PORT}" &
+      $WEBSOCKIFY_BIN "0.0.0.0:${NOVNC_PORT}" "localhost:${VNC_PORT}" &
     fi
   elif command -v novnc_proxy >/dev/null 2>&1; then
     log "Starting novnc_proxy on port ${NOVNC_PORT}..."
     novnc_proxy --vnc "localhost:${VNC_PORT}" --listen "${NOVNC_PORT}" &
+  else
+    log "WARNING: websockify not found"
   fi
 fi
 
