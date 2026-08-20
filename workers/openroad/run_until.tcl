@@ -6,6 +6,10 @@
 # - Existing ace_run tag: do NOT call prep (OpenLane errors "already exists").
 #   Instead source runs/<tag>/config.tcl and continue remaining steps.
 
+# Allow minor PDK version differences (e.g. newer Volare build)
+set ::env(MISMATCHES_OK) 1
+set ::env(PDK_MISMATCHES_OK) 1
+
 # Inherit module path from parent if missing
 if { ![info exists ::env(OPENLANE_ROOT)] || $::env(OPENLANE_ROOT) eq "" } {
     foreach cand {

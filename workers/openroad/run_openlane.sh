@@ -78,6 +78,8 @@ run_local_docker() {
     --entrypoint bash \
     -e PDK_ROOT="/pdk" \
     -e PDK="$PDK" \
+    -e MISMATCHES_OK=1 \
+    -e PDK_MISMATCHES_OK=1 \
     -e DESIGN_SLUG="${DESIGN_SLUG}" \
     -e OPENLANE_TAG="${OPENLANE_TAG}" \
     -e ACE_OPENLANE_UNTIL="${ACE_OPENLANE_UNTIL}" \
