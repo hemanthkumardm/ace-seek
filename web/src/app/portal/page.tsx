@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 
 // WhatsApp Quick-Connect URL
-const WHATSAPP_NUMBER = "919000000000"; // configurable
+const WHATSAPP_NUMBER = "918431670673";
 const WHATSAPP_DEFAULT_MSG = encodeURIComponent(
   "Hi Ace-Seek, I would like to request a quote for Engineering / Academic / Business Automation solutions."
 );
