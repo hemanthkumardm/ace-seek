@@ -1,0 +1,89 @@
+# Example: Ace-Seek OpenLane queue worker on Kubernetes (Sprint 3)
+# Prerequisites:
+#   - PVC mounted at /data/ace-openroad-jobs (shared with Next.js API pods)
+#   - PDK volume at /data/volare
+#   - Docker socket OR privileged DinD (prefer node Docker via hostPath)
+#   - Next.js set OPENROAD_QUEUE_EXTERNAL=1 so API only enqueues
+#
+# Apply (edit image/PVC names first):
+#   kubectl apply -f workers/openroad/k8s/deployment.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ace-openroad-jobs
+spec:
+  accessModes: ["ReadWriteOnce"]  # use RWX (NFS/EFS) for multi-node
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ace-openroad-worker
+  labels:
+    app: ace-openroad-worker
+spec:
+  replicas: 1  # single dispatcher; scale only with RWX + flock redesign
+  selector:
+    matchLabels:
+      app: ace-openroad-worker
+  template:
+    metadata:
+      labels:
+        app: ace-openroad-worker
+    spec:
+      containers:
+        - name: queue-worker
+          image: node:20-bookworm
+          workingDir: /app/workers/openroad
+          command: ["node", "queue_worker.mjs"]
+          env:
+            - name: OPENROAD_JOBS_DIR
+              value: /data/ace-openroad-jobs
+            - name: PDK_ROOT
+              value: /data/volare
+            - name: PDK
+              value: sky130A
+            - name: OPENROAD_MAX_CONCURRENT_JOBS
+              value: "1"
+            - name: OPENROAD_MAX_CONCURRENT_PER_OWNER
+              value: "1"
+            - name: OPENROAD_QUEUE_DISPATCH_MS
+              value: "2000"
+            - name: OPENLANE_IMAGE
+              value: efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a
+          volumeMounts:
+            - name: jobs
+              mountPath: /data/ace-openroad-jobs
+            - name: pdk
+              mountPath: /data/volare
+              readOnly: true
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+            - name: repo
+              mountPath: /app
+          resources:
+            requests:
+              cpu: "500m"
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: jobs
+          persistentVolumeClaim:
+            claimName: ace-openroad-jobs
+        - name: pdk
+          persistentVolumeClaim:
+            claimName: ace-volare-pdk  # provision separately
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+        - name: repo
+          # Prefer baking workers/ into the image; hostPath shown for lab clusters
+          hostPath:
+            path: /opt/ace-seek
+            type: Directory

@@ -9,6 +9,8 @@ Full **RTL → synth → floorplan → place → CTS → route → GDS** via **O
 - **pack_checkpoint.sh**: snapshots OpenLane job results into the owner checkpoint tree (reads `owner.json`)
 - Assertions surface in Studio **Sanity** + stage panel
 - **Sprint A:** job dirs are `owners/<ownerId>/jobs/…` — see `docs/OPENROAD_EC2.md`
+- **Sprint 3 dual-synth:** if Ace-Seek Yosys checkpoint `synth_netlist.v` exists, OpenLane skips `run_synthesis`
+- **Sprint 3 queue worker:** `queue_worker.mjs` + `OPENROAD_QUEUE_EXTERNAL=1` — see `docs/OPENROAD_K8S.md`
 
 ## Server / AWS EC2 — tools mode
 

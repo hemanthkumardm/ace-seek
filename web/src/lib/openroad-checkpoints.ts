@@ -275,3 +275,43 @@ export function clearCheckpoint(designSlug: string, ownerId: string): void {
     /* */
   }
 }
+
+/**
+ * Read Ace-Seek Yosys synth netlist from owner checkpoint (Sprint 3 dual-synth).
+ * Prefers synth_netlist.v; falls back to any *.v under the checkpoint root.
+ */
+export function readCheckpointNetlist(
+  designName: string,
+  topModule: string,
+  ownerId: string
+): { path: string; content: Buffer } | null {
+  const info = resolveCheckpointInfo(designName, topModule, ownerId);
+  if (!info.exists || !info.path) return null;
+  const candidates = [
+    path.join(info.path, "synth_netlist.v"),
+    path.join(info.path, "results", "synth_netlist.v"),
+  ];
+  for (const p of candidates) {
+    try {
+      if (fs.existsSync(p) && fs.statSync(p).isFile() && fs.statSync(p).size > 40) {
+        return { path: p, content: fs.readFileSync(p) };
+      }
+    } catch {
+      /* */
+    }
+  }
+  // Manifest-listed .v
+  try {
+    const man = readCheckpointManifest(info.slug, ownerId);
+    for (const f of man?.files || []) {
+      if (!/\.v$/i.test(f) || /tb_|testbench/i.test(f)) continue;
+      const abs = path.join(info.path, f);
+      if (fs.existsSync(abs) && fs.statSync(abs).size > 40) {
+        return { path: abs, content: fs.readFileSync(abs) };
+      }
+    }
+  } catch {
+    /* */
+  }
+  return null;
+}

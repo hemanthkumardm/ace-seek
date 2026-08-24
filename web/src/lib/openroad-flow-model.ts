@@ -973,6 +973,141 @@ export function loadLastVcd(): { vcd: string; filename: string } | null {
   }
 }
 
+/** Time-binned toggle activity from VCD (educational activity / power proxy). */
+export type VcdActivityBin = {
+  /** Bin center time (VCD timescale units) */
+  t: number;
+  t0: number;
+  t1: number;
+  /** 0→1 / 1→0 edges across sampled signals */
+  toggles: number;
+  /** toggles / (t1-t0), 0 if empty width */
+  toggleRate: number;
+};
+
+/**
+ * Scan VCD for scalar signal transitions and bin them over time.
+ * Caps signals + events for Studio responsiveness (not a full power engine).
+ */
+export function parseVcdActivityTimeline(
+  vcd: string,
+  opts?: { bins?: number; maxSignals?: number; maxEvents?: number }
+): {
+  bins: VcdActivityBin[];
+  signalCount: number;
+  totalToggles: number;
+  timescaleHint: string;
+} {
+  const binsN = opts?.bins ?? 32;
+  const maxSignals = opts?.maxSignals ?? 64;
+  const maxEvents = opts?.maxEvents ?? 50_000;
+  const empty = {
+    bins: [] as VcdActivityBin[],
+    signalCount: 0,
+    totalToggles: 0,
+    timescaleHint: "",
+  };
+  if (!vcd || (!vcd.includes("$timescale") && !vcd.includes("#"))) return empty;
+
+  const ts = vcd.match(/\$timescale\s+([^\n$]+)/i);
+  const timescaleHint = (ts?.[1] || "").trim().replace(/\s+/g, " ");
+
+  const ids = new Set<string>();
+  for (const line of vcd.split(/\r?\n/)) {
+    const vm = line.match(/\$var\s+(\w+)\s+(\d+)\s+(\S+)\s+(\S+)/);
+    if (!vm) continue;
+    const width = parseInt(vm[2], 10) || 1;
+    if (width !== 1) continue; // scalars only for toggle rate
+    ids.add(vm[3]);
+    if (ids.size >= maxSignals) break;
+  }
+  if (!ids.size) return empty;
+
+  const last: Record<string, number> = {};
+  const events: { t: number }[] = [];
+  let t = 0;
+  let tMin = Number.POSITIVE_INFINITY;
+  let tMax = 0;
+
+  for (const line of vcd.split(/\r?\n/)) {
+    const tm = line.match(/^#(\d+)/);
+    if (tm) {
+      t = parseInt(tm[1], 10);
+      if (t < tMin) tMin = t;
+      if (t > tMax) tMax = t;
+      continue;
+    }
+    const ch = line.match(/^([01])(.+)$/);
+    if (ch && ids.has(ch[2])) {
+      const nv = ch[1] === "1" ? 1 : 0;
+      const id = ch[2];
+      if (id in last && last[id] !== nv) {
+        events.push({ t });
+        if (events.length >= maxEvents) break;
+      }
+      last[id] = nv;
+    }
+  }
+  if (!events.length || !Number.isFinite(tMin) || tMax <= tMin) {
+    return {
+      bins: [],
+      signalCount: ids.size,
+      totalToggles: 0,
+      timescaleHint,
+    };
+  }
+
+  const width = tMax - tMin || 1;
+  const counts = new Array(binsN).fill(0) as number[];
+  for (const e of events) {
+    let i = Math.floor(((e.t - tMin) / width) * binsN);
+    if (i < 0) i = 0;
+    if (i >= binsN) i = binsN - 1;
+    counts[i] += 1;
+  }
+  const binW = width / binsN;
+  const bins: VcdActivityBin[] = counts.map((toggles, i) => {
+    const t0 = tMin + i * binW;
+    const t1 = t0 + binW;
+    return {
+      t: (t0 + t1) / 2,
+      t0,
+      t1,
+      toggles,
+      toggleRate: binW > 0 ? toggles / binW : 0,
+    };
+  });
+  return {
+    bins,
+    signalCount: ids.size,
+    totalToggles: events.length,
+    timescaleHint,
+  };
+}
+
+/**
+ * Educational dynamic-power envelope: scale report dynamic mW by relative toggle rate.
+ * P(t) ≈ leakage + dynamic * (rate(t) / meanRate)
+ */
+export function estimateActivityPowerSeries(
+  activity: VcdActivityBin[],
+  power: { dynamicMw?: number; leakageMw?: number; powerMw?: number }
+): { t: number; powerMw: number }[] {
+  if (!activity.length) return [];
+  const dyn =
+    power.dynamicMw ??
+    (power.powerMw != null && power.leakageMw != null
+      ? Math.max(0, power.powerMw - power.leakageMw)
+      : power.powerMw ?? 0);
+  const leak = power.leakageMw ?? 0;
+  const mean =
+    activity.reduce((s, b) => s + b.toggleRate, 0) / activity.length || 1;
+  return activity.map((b) => ({
+    t: b.t,
+    powerMw: leak + dyn * (b.toggleRate / mean),
+  }));
+}
+
 export function downloadVcdText(vcd: string, filename = "tb_top.vcd"): void {
   if (typeof window === "undefined" || !vcd) return;
   const blob = new Blob([vcd], { type: "text/plain" });

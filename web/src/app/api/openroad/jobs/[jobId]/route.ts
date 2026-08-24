@@ -26,23 +26,36 @@ export async function GET(req: NextRequest, ctx: Ctx) {
 
   if (download) {
     const art = readJobArtifact(jobId, download, owner.ownerId);
-    if (!art) {
-      return NextResponse.json({ error: "Artifact not found" }, { status: 404 });
+    if (art) {
+      const isBinary = /\.(gds|gz|lef|mag|oas)$/i.test(download);
+      const isDef = /\.def$/i.test(download);
+      return new NextResponse(new Uint8Array(art.data), {
+        status: 200,
+        headers: {
+          "Content-Type": isBinary
+            ? "application/octet-stream"
+            : isDef
+              ? "text/plain; charset=utf-8"
+              : "text/plain; charset=utf-8",
+          "Content-Disposition": `attachment; filename="${download.replace(/"/g, "")}"`,
+        },
+      });
     }
-    // DEF is text (Studio Result chip parses DIEAREA); GDS/LEF binaries stay opaque
-    const isBinary = /\.(gds|gz|lef|mag|oas)$/i.test(download);
-    const isDef = /\.def$/i.test(download);
-    return new NextResponse(new Uint8Array(art.data), {
-      status: 200,
-      headers: {
-        "Content-Type": isBinary
-          ? "application/octet-stream"
-          : isDef
-            ? "text/plain; charset=utf-8"
-            : "text/plain; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${download.replace(/"/g, "")}"`,
-      },
-    });
+    // Sprint 3: fall back to signed S3/R2 URL when local file gone
+    try {
+      const { getDockerJob } = await import("@/lib/openroad-docker-runner");
+      const { signedArtifactUrl } = await import("@/lib/openroad-artifact-store");
+      const j = getDockerJob(jobId, owner.ownerId);
+      if (j?.jobDir) {
+        const url = await signedArtifactUrl(j.jobDir, download);
+        if (url) {
+          return NextResponse.redirect(url, 302);
+        }
+      }
+    } catch {
+      /* */
+    }
+    return NextResponse.json({ error: "Artifact not found" }, { status: 404 });
   }
 
   const result = pollOpenroadJob(jobId, owner.ownerId);

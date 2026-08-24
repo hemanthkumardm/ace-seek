@@ -183,13 +183,67 @@ proc ace_until_rank {u} {
 }
 set until_rank [ace_until_rank $until]
 
-set skip_synth [expr { $resumed && [ace_has_synth] && $until_rank > 1 }]
+# Sprint 3: Ace-Seek Yosys checkpoint → plant into OpenLane synthesis results and skip run_synthesis
+proc ace_install_external_netlist {} {
+    if { ![info exists ::env(ACE_EXTERNAL_NETLIST)] || $::env(ACE_EXTERNAL_NETLIST) ne "1" } {
+        return 0
+    }
+    set src ""
+    if { [info exists ::env(ACE_EXTERNAL_NETLIST_FILE)] && $::env(ACE_EXTERNAL_NETLIST_FILE) ne "" } {
+        set src $::env(ACE_EXTERNAL_NETLIST_FILE)
+    }
+    if { $src eq "" || ![file exists $src] } {
+        # Fallbacks inside design dir
+        if { [info exists ::env(DESIGN_DIR)] } {
+            set src [file normalize "$::env(DESIGN_DIR)/ace_synth_netlist.v"]
+        }
+    }
+    if { $src eq "" || ![file exists $src] } {
+        puts "ACE-Seek: ACE_EXTERNAL_NETLIST=1 but netlist file missing — will run OpenLane synthesis"
+        return 0
+    }
+    set design ""
+    if { [info exists ::env(DESIGN_NAME)] } { set design $::env(DESIGN_NAME) }
+    if { $design eq "" } { set design "top" }
+
+    # Ensure run dirs exist (after prep)
+    if { ![info exists ::env(RUN_DIR)] || ![file isdirectory $::env(RUN_DIR)] } {
+        puts "ACE-Seek: external netlist: RUN_DIR missing after prep"
+        return 0
+    }
+    set synth_dir "$::env(RUN_DIR)/results/synthesis"
+    file mkdir $synth_dir
+    set dest "$synth_dir/${design}.v"
+    file copy -force $src $dest
+    # Also write .nl.v alias some OpenLane paths expect
+    catch { file copy -force $src "$synth_dir/${design}.nl.v" }
+    set ::env(CURRENT_NETLIST) $dest
+    if { [info exists ::env(synthesis_results)] } {
+        # keep env pointer consistent
+    } else {
+        set ::env(synthesis_results) $synth_dir
+    }
+    if { ![info exists ::env(CURRENT_INDEX)] || $::env(CURRENT_INDEX) eq "" || $::env(CURRENT_INDEX) < 1 } {
+        set ::env(CURRENT_INDEX) 2
+    }
+    puts "ACE-Seek: installed external Ace-Seek Yosys netlist → $dest ([file size $dest] bytes)"
+    return 1
+}
+
+set external_synth [ace_install_external_netlist]
+
+# External Ace-Seek netlist always skips OpenLane Yosys (any until=).
+# Resume skip only when advancing past synthesis.
+set skip_synth [expr {
+    $external_synth ||
+    ($resumed && [ace_has_synth] && $until_rank > 1)
+}]
 set skip_fp    [expr { $resumed && [ace_has_floorplan] && $until_rank > 2 }]
 set skip_place [expr { $resumed && [ace_has_placement] && $until_rank > 3 }]
 set skip_cts   [expr { $resumed && [ace_has_cts] && $until_rank > 4 }]
 set skip_route [expr { $resumed && [ace_has_routing] && $until_rank > 5 }]
 
-puts "ACE-Seek: until=$until rank=$until_rank skip_synth=$skip_synth skip_fp=$skip_fp skip_place=$skip_place skip_cts=$skip_cts skip_route=$skip_route"
+puts "ACE-Seek: until=$until rank=$until_rank skip_synth=$skip_synth external_synth=$external_synth skip_fp=$skip_fp skip_place=$skip_place skip_cts=$skip_cts skip_route=$skip_route"
 
 # Resume sources runs/*/config.tcl which often LACKS FP_PIN_ORDER_CFG even when
 # designs/.../pin_order.cfg + config.json have it. Without the env var, OpenLane
@@ -368,7 +422,11 @@ proc ace_prune_after_floorplan {} {
 if { !$skip_synth } {
     ace_run_step synthesis { run_synthesis }
 } else {
-    puts "ACE-Seek: skip synthesis (resume — netlist present)"
+    if { $external_synth } {
+        puts "ACE-Seek: skip synthesis (external Ace-Seek Yosys netlist)"
+    } else {
+        puts "ACE-Seek: skip synthesis (resume — netlist present)"
+    }
 }
 
 if { $until eq "synthesis" } {

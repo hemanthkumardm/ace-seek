@@ -84,6 +84,8 @@ run_local_docker() {
     -e OPENLANE_TAG="${OPENLANE_TAG}" \
     -e ACE_OPENLANE_UNTIL="${ACE_OPENLANE_UNTIL}" \
     -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE}" \
+    -e ACE_EXTERNAL_NETLIST="${ACE_EXTERNAL_NETLIST:-0}" \
+    -e ACE_EXTERNAL_NETLIST_FILE="/openlane/designs/${DESIGN_SLUG}/ace_synth_netlist.v" \
     -v "${PDK_ROOT}:/pdk:ro" \
     -v "${JOB_DIR}/designs:/openlane/designs" \
     -v "${JOB_DIR}/results:/openlane/results_out" \

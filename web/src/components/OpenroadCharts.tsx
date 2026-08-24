@@ -1,8 +1,80 @@
 "use client";
 
 import React from "react";
-import type { FlowMetrics } from "@/lib/openroad-flow-model";
+import type { FlowMetrics, VcdActivityBin } from "@/lib/openroad-flow-model";
 import { buildClockWaveSamples } from "@/lib/openroad-flow-model";
+
+/** VCD toggle-rate / estimated activity power timeline */
+export function ActivityTimeline({
+  bins,
+  powerSeries,
+  timescaleHint,
+  signalCount,
+  totalToggles,
+}: {
+  bins: VcdActivityBin[];
+  powerSeries?: { t: number; powerMw: number }[];
+  timescaleHint?: string;
+  signalCount?: number;
+  totalToggles?: number;
+}) {
+  if (!bins.length) {
+    return (
+      <p className="text-[10px] font-bold text-slate-500">
+        Activity timeline: run Simulation (VCD) to see toggle-rate over time.
+      </p>
+    );
+  }
+  const maxT = Math.max(1, ...bins.map((b) => b.toggles));
+  const maxP = Math.max(
+    1e-9,
+    ...(powerSeries || []).map((p) => p.powerMw),
+    0
+  );
+  return (
+    <div className="space-y-2">
+      <p className="text-[10px] font-black uppercase text-slate-500">
+        Activity / power (VCD)
+      </p>
+      <p className="text-[9px] font-bold text-slate-500">
+        {signalCount != null ? `${signalCount} scalars · ` : ""}
+        {totalToggles != null ? `${totalToggles} toggles` : ""}
+        {timescaleHint ? ` · ${timescaleHint}` : ""}
+      </p>
+      <div className="flex items-end gap-px h-16 neu-inset p-1">
+        {bins.map((b, i) => (
+          <div
+            key={i}
+            className="flex-1 bg-amber-500/80 min-w-0 rounded-sm"
+            style={{ height: `${(b.toggles / maxT) * 100}%` }}
+            title={`t=${b.t0}–${b.t1}: ${b.toggles} toggles`}
+          />
+        ))}
+      </div>
+      {powerSeries && powerSeries.length > 0 && (
+        <>
+          <p className="text-[9px] font-black uppercase text-slate-500">
+            Est. power envelope (mW)
+          </p>
+          <div className="flex items-end gap-px h-12 neu-inset p-1">
+            {powerSeries.map((p, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-rose-500/70 min-w-0 rounded-sm"
+                style={{ height: `${(p.powerMw / maxP) * 100}%` }}
+                title={`~${p.powerMw.toFixed(3)} mW`}
+              />
+            ))}
+          </div>
+          <p className="text-[8px] font-bold text-slate-400">
+            Educational: leakage + dynamic×(toggle rate / mean). Not signoff
+            vector power — use SAIF + liberty for production.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
 
 /** Horizontal bar histogram for path slack bins */
 export function SlackHistogram({

@@ -8,21 +8,12 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Play,
-  Square,
-  RefreshCw,
-  Loader2,
-  Activity,
-  AlertTriangle,
-  ShieldCheck,
-  RotateCcw,
-  Trash2,
-  Eraser,
-  Lock,
-} from "lucide-react";
+import { Lock, RotateCcw } from "lucide-react";
 import { OpenroadStatusIcon } from "@/components/OpenroadStatusIcon";
 import { OpenroadStudioBottomTabs } from "@/components/OpenroadStudioBottomTabs";
+import { OpenroadStudioToolbar } from "@/components/OpenroadStudioToolbar";
+import { OpenroadStudioStageRail } from "@/components/OpenroadStudioStageRail";
+import { OpenroadStudioPpaSidebar } from "@/components/OpenroadStudioPpaSidebar";
 import {
   type ArtifactKindTab,
   type StudioBottomTab,
@@ -55,6 +46,9 @@ import {
   parsePlacementTimingReport,
   parseMetricsCsv,
   storeLastVcd,
+  loadLastVcd,
+  parseVcdActivityTimeline,
+  estimateActivityPowerSeries,
   canRunStage,
   nextRunnableStage,
   type FlowStageId,
@@ -63,12 +57,6 @@ import {
 } from "@/lib/openroad-flow-model";
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import { OpenroadStudioCenterView } from "@/components/OpenroadStudioCenterView";
-import {
-  ClockWaveform,
-  MetricTiles,
-  SlackHistogram,
-  StackedBars,
-} from "@/components/OpenroadCharts";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import {
   STAGE_CONFIG_SCHEMAS,
@@ -170,6 +158,7 @@ export default function OpenroadPnRStudioPage() {
   const [defText, setDefText] = useState<string | null>(null);
   const [defName, setDefName] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sseRef = useRef<EventSource | null>(null);
   const runTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
   const syncingFromFile = useRef(false);
@@ -587,6 +576,14 @@ export default function OpenroadPnRStudioPage() {
       clearInterval(pollRef.current);
       pollRef.current = null;
     }
+    if (sseRef.current) {
+      try {
+        sseRef.current.close();
+      } catch {
+        /* */
+      }
+      sseRef.current = null;
+    }
   };
 
   /** Load DEF text for Result chip mode (checkpoint/job truth → canvas) */
@@ -849,240 +846,266 @@ export default function OpenroadPnRStudioPage() {
   const startPoll = (jobId: string, launchedStage: FlowStageId) => {
     stopPoll();
     userPinnedStageRef.current = launchedStage;
-    /** Skip React updates when poll payload is unchanged (major render win) */
     let lastSig = "";
-    pollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/openroad/jobs/${jobId}`, {
-          headers: jobAuthHeaders(),
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data.result) return;
-        const r = data.result as OpenroadJobResult;
-        const sig = `${r.status}|${r.message}|${r.log?.length || 0}|${r.artifacts?.length || 0}|${r.gdsFiles?.length || 0}`;
-        const terminal =
-          r.status === "succeeded" ||
-          r.status === "failed" ||
-          r.status === "rejected";
-        if (sig === lastSig && !terminal) return;
-        lastSig = sig;
 
-        setJob(r);
-        if (r.log) {
-          // Append-only style: replace global log with server tail (bounded)
-          // Do NOT scrape metrics from log while running — inaccurate.
-          setLog(r.log);
-          setStageResults((prev) => {
-            const prevLog =
-              prev[launchedStage] && "log" in prev[launchedStage]!
-                ? (prev[launchedStage] as { log?: string }).log || ""
-                : "";
-            if (prevLog === r.log && !terminal) return prev;
-            return {
-              ...prev,
-              [launchedStage]: {
-                kind: "generic",
-                summary:
-                  r.status === "running" || r.status === "preparing"
-                    ? `OpenLane ${launchedStage} running…`
-                    : prev[launchedStage] && "summary" in prev[launchedStage]!
-                      ? (prev[launchedStage] as { summary: string }).summary
-                      : `OpenLane ${launchedStage}`,
-                log: r.log,
-              },
-            };
+    const applyPollPayload = (r: OpenroadJobResult) => {
+      const sig = `${r.status}|${r.message}|${r.log?.length || 0}|${r.artifacts?.length || 0}|${r.gdsFiles?.length || 0}`;
+      const terminal =
+        r.status === "succeeded" ||
+        r.status === "failed" ||
+        r.status === "rejected";
+      if (sig === lastSig && !terminal) return;
+      lastSig = sig;
+
+      setJob(r);
+      if (r.log) {
+        setLog(r.log);
+        setStageResults((prev) => {
+          const prevLog =
+            prev[launchedStage] && "log" in prev[launchedStage]!
+              ? (prev[launchedStage] as { log?: string }).log || ""
+              : "";
+          if (prevLog === r.log && !terminal) return prev;
+          return {
+            ...prev,
+            [launchedStage]: {
+              kind: "generic",
+              summary:
+                r.status === "running" ||
+                r.status === "preparing" ||
+                r.status === "queued"
+                  ? `OpenLane ${launchedStage} ${r.status}…`
+                  : prev[launchedStage] && "summary" in prev[launchedStage]!
+                    ? (prev[launchedStage] as { summary: string }).summary
+                    : `OpenLane ${launchedStage}`,
+              log: r.log,
+            },
+          };
+        });
+      }
+      if (r.metrics && Object.keys(r.metrics).length > 0) {
+        setLiveMetricsExtra((prev) => ({ ...prev, ...r.metrics }));
+      }
+      if (r.message) setRunHint(r.message);
+
+      const m = r.artifacts?.find((a) => /metrics\.csv$/i.test(a.name));
+      if (m && terminal) void fetchArtifactText(jobId, m.name);
+      if (!terminal) return;
+
+      stopPoll();
+      setBusy(false);
+      setRunningStage(null);
+      setRunHint("");
+      if (r.status === "succeeded") {
+        const logText = r.log || "";
+        const fullGds =
+          (r.gdsFiles && r.gdsFiles.length > 0) ||
+          /Flow complete|stopped after gds|synth→GDS complete/i.test(
+            r.message + logText
+          );
+        if (fullGds || /until=all|until gds/i.test(r.message + logText)) {
+          markOpenlaneChainDone();
+        } else {
+          const untilM =
+            logText.match(/stopped after ([a-z_/]+)/i) ||
+            r.message.match(/stopped after ['"]?([a-z_/]+)/i) ||
+            logText.match(/until=(\w+)/i);
+          const stop = resolveUntilStage(
+            untilM?.[1] || launchedStage,
+            launchedStage
+          );
+          const through = completedStagesThrough(stop);
+          setCompleted((prev) => {
+            const next = new Set([...prev, ...through, launchedStage]);
+            if (stop === "floorplan" || launchedStage === "floorplan") {
+              next.add("floorplan");
+              next.add("powerplan");
+            }
+            if (stop === "placement" || launchedStage === "placement") {
+              next.add("placement");
+            }
+            return FLOW_STAGES.map((s) => s.id).filter((id) => next.has(id));
           });
         }
-        // Apply authoritative server-extracted PPA metrics
-        if (r.metrics && Object.keys(r.metrics).length > 0) {
-          setLiveMetricsExtra((prev) => ({ ...prev, ...r.metrics }));
+        const doneStage = launchedStage;
+        let stageLog = logText;
+        const untilKey = doneStage === "route" ? "routing" : doneStage;
+        const idxUntil = logText.lastIndexOf(`ACE_OPENLANE_UNTIL=${untilKey}`);
+        const idxStep = logText.lastIndexOf("ACE-Seek: === step ");
+        if (idxUntil > 0) stageLog = logText.slice(idxUntil);
+        else if (idxStep > 0) stageLog = logText.slice(Math.max(0, idxStep - 200));
+
+        const cellM = stageLog.match(/Number of cells:\s*(\d+)/i);
+        const wireM = stageLog.match(/Number of wires:\s*(\d+)/i);
+        const summary = fullGds
+          ? "OpenLane full flow finished (GDS)"
+          : `OpenLane ${doneStage} finished: ${r.message}`;
+
+        if (doneStage === "synthesis") {
+          const synthDone: StageResultPayload = {
+            kind: "synth",
+            summary,
+            cellCount: cellM ? parseInt(cellM[1], 10) : undefined,
+            wireCount: wireM ? parseInt(wireM[1], 10) : undefined,
+            log: stageLog,
+            statsLines: stageLog
+              .split("\n")
+              .filter((l) => /Number of (cells|wires|wire bits)/i.test(l))
+              .slice(0, 20),
+          };
+          setStageResults((prev) => ({ ...prev, synthesis: synthDone }));
+          addStageArtifacts(artifactsFromStageResult("synthesis", synthDone));
+        } else {
+          const genericDone: StageResultPayload = {
+            kind: "generic",
+            summary,
+            log: stageLog,
+          };
+          setStageResults((prev) => ({ ...prev, [doneStage]: genericDone }));
+          addStageArtifacts(artifactsFromStageResult(doneStage, genericDone));
         }
-
-        // metrics.csv fallback if present
-        const m = r.artifacts?.find((a) => /metrics\.csv$/i.test(a.name));
-        if (m && terminal) void fetchArtifactText(jobId, m.name);
-        if (
-          r.status === "succeeded" ||
-          r.status === "failed" ||
-          r.status === "rejected"
-        ) {
-          stopPoll();
-          setBusy(false);
-          setRunningStage(null);
-          setRunHint("");
-          if (r.status === "succeeded") {
-            const logText = r.log || "";
-            const fullGds =
-              (r.gdsFiles && r.gdsFiles.length > 0) ||
-              /Flow complete|stopped after gds|synth→GDS complete/i.test(
-                r.message + logText
-              );
-            if (fullGds || /until=all|until gds/i.test(r.message + logText)) {
-              markOpenlaneChainDone();
-            } else {
-              const untilM =
-                logText.match(/stopped after ([a-z_/]+)/i) ||
-                r.message.match(/stopped after ['"]?([a-z_/]+)/i) ||
-                logText.match(/until=(\w+)/i);
-              const stop = resolveUntilStage(
-                untilM?.[1] || launchedStage,
-                launchedStage
-              );
-              const through = completedStagesThrough(stop);
-              setCompleted((prev) => {
-                const next = new Set([...prev, ...through, launchedStage]);
-                if (stop === "floorplan" || launchedStage === "floorplan") {
-                  next.add("floorplan");
-                  next.add("powerplan");
-                }
-                if (stop === "placement" || launchedStage === "placement") {
-                  next.add("placement");
-                }
-                return FLOW_STAGES.map((s) => s.id).filter((id) =>
-                  next.has(id)
-                );
-              });
-            }
-            const doneStage = launchedStage;
-            let stageLog = logText;
-            const untilKey =
-              doneStage === "route" ? "routing" : doneStage;
-            const idxUntil = logText.lastIndexOf(
-              `ACE_OPENLANE_UNTIL=${untilKey}`
-            );
-            const idxStep = logText.lastIndexOf("ACE-Seek: === step ");
-            if (idxUntil > 0) stageLog = logText.slice(idxUntil);
-            else if (idxStep > 0)
-              stageLog = logText.slice(Math.max(0, idxStep - 200));
-
-            const cellM = stageLog.match(/Number of cells:\s*(\d+)/i);
-            const wireM = stageLog.match(/Number of wires:\s*(\d+)/i);
-            const summary = fullGds
-              ? "OpenLane full flow finished (GDS)"
-              : `OpenLane ${doneStage} finished: ${r.message}`;
-
-            if (doneStage === "synthesis") {
-              const synthDone: StageResultPayload = {
-                kind: "synth",
-                summary,
-                cellCount: cellM ? parseInt(cellM[1], 10) : undefined,
-                wireCount: wireM ? parseInt(wireM[1], 10) : undefined,
-                log: stageLog,
-                statsLines: stageLog
-                  .split("\n")
-                  .filter((l) =>
-                    /Number of (cells|wires|wire bits)/i.test(l)
-                  )
-                  .slice(0, 20),
-              };
-              setStageResults((prev) => ({ ...prev, synthesis: synthDone }));
-              addStageArtifacts(
-                artifactsFromStageResult("synthesis", synthDone)
-              );
-            } else {
-              const genericDone: StageResultPayload = {
-                kind: "generic",
-                summary,
-                log: stageLog,
-              };
-              setStageResults((prev) => ({
-                ...prev,
-                [doneStage]: genericDone,
-              }));
-              addStageArtifacts(
-                artifactsFromStageResult(doneStage, genericDone)
-              );
-            }
-            if (r.artifacts?.length) {
-              addStageArtifacts(
-                artifactsFromJobFiles(
-                  jobId,
-                  r.artifacts.map((a) => ({
-                    name: a.name,
-                    size: a.size,
-                    content: a.content,
-                  })),
-                  doneStage
-                )
-              );
-              const defArt = findDefInJobArtifacts(r.artifacts);
-              if (defArt) {
-                void loadDefFromJob(jobId, defArt.name, doneStage);
-              }
-              // Authoritative PPA from curated placement reports
-              if (doneStage === "placement") {
-                loadPlacementReports(
-                  jobId,
-                  r.artifacts?.map((a) => a.name)
-                );
-              }
-              // Refresh checkpoint pointer after OpenLane pack/snapshot
-              if (project) {
-                const q = new URLSearchParams({
-                  designName: project.designName || "design",
-                  topModule: project.topModule || "top",
-                });
-                void fetch(`/api/openroad/checkpoint?${q}`, {
-                  headers: jobAuthHeaders(),
-                })
-                  .then((res) => res.json())
-                  .then((d) => {
-                    if (d?.exists && d.path) setLastCheckpoint(String(d.path));
-                  })
-                  .catch(() => {
-                    /* */
-                  });
-              }
-            }
-          } else if (r.status === "failed" && r.log) {
-            const failStage = launchedStage;
-            setErr(r.message || `${failStage} failed`);
-            addStageArtifacts(
-              artifactsFromStageResult(failStage, {
-                kind: "generic",
-                summary: `OpenLane ${failStage} failed — see log`,
-                log: r.log,
-              })
-            );
-            setStageResults((prev) => ({
-              ...prev,
-              [failStage]: {
-                kind: "generic",
-                summary: r.message || `OpenLane ${failStage} failed`,
-                log: r.log || "",
-              },
-            }));
-            // Placement may still have DEF + timing reports (e.g. SDF soft-fail)
-            if (failStage === "placement") {
-              if (r.artifacts?.length) {
-                addStageArtifacts(
-                  artifactsFromJobFiles(
-                    jobId,
-                    r.artifacts.map((a) => ({
-                      name: a.name,
-                      size: a.size,
-                      content: a.content,
-                    })),
-                    "placement"
-                  )
-                );
-              }
-              loadPlacementReports(
-                jobId,
-                r.artifacts?.map((a) => a.name)
-              );
-            }
+        if (r.artifacts?.length) {
+          addStageArtifacts(
+            artifactsFromJobFiles(
+              jobId,
+              r.artifacts.map((a) => ({
+                name: a.name,
+                size: a.size,
+                content: a.content,
+              })),
+              doneStage
+            )
+          );
+          const defArt = findDefInJobArtifacts(r.artifacts);
+          if (defArt) void loadDefFromJob(jobId, defArt.name, doneStage);
+          if (doneStage === "placement") {
+            loadPlacementReports(jobId, r.artifacts?.map((a) => a.name));
           }
-          r.artifacts
-            ?.filter((a) => /metrics|csv/i.test(a.name))
-            .slice(0, 3)
-            .forEach((a) => void fetchArtifactText(jobId, a.name));
+          if (project) {
+            const q = new URLSearchParams({
+              designName: project.designName || "design",
+              topModule: project.topModule || "top",
+            });
+            void fetch(`/api/openroad/checkpoint?${q}`, {
+              headers: jobAuthHeaders(),
+            })
+              .then((res) => res.json())
+              .then((d) => {
+                if (d?.exists && d.path) setLastCheckpoint(String(d.path));
+              })
+              .catch(() => {
+                /* */
+              });
+          }
         }
-      } catch {
-        /* */
+      } else if (r.status === "failed" && r.log) {
+        const failStage = launchedStage;
+        setErr(r.message || `${failStage} failed`);
+        addStageArtifacts(
+          artifactsFromStageResult(failStage, {
+            kind: "generic",
+            summary: `OpenLane ${failStage} failed — see log`,
+            log: r.log,
+          })
+        );
+        setStageResults((prev) => ({
+          ...prev,
+          [failStage]: {
+            kind: "generic",
+            summary: r.message || `OpenLane ${failStage} failed`,
+            log: r.log || "",
+          },
+        }));
+        if (failStage === "placement") {
+          if (r.artifacts?.length) {
+            addStageArtifacts(
+              artifactsFromJobFiles(
+                jobId,
+                r.artifacts.map((a) => ({
+                  name: a.name,
+                  size: a.size,
+                  content: a.content,
+                })),
+                "placement"
+              )
+            );
+          }
+          loadPlacementReports(jobId, r.artifacts?.map((a) => a.name));
+        }
       }
-    }, 2500);
+      r.artifacts
+        ?.filter((a) => /metrics|csv/i.test(a.name))
+        .slice(0, 3)
+        .forEach((a) => void fetchArtifactText(jobId, a.name));
+    };
+
+    const startIntervalFallback = () => {
+      if (pollRef.current) return;
+      pollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/openroad/jobs/${jobId}`, {
+            headers: jobAuthHeaders(),
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (!data.result) return;
+          applyPollPayload(data.result as OpenroadJobResult);
+        } catch {
+          /* keep polling */
+        }
+      }, 2500);
+    };
+
+    // Prefer SSE (1s updates); fall back to interval poll if EventSource fails
+    try {
+      const key =
+        (typeof window !== "undefined"
+          ? localStorage.getItem("ace_seek_api_key") || ""
+          : "") || "";
+      const q = new URLSearchParams();
+      if (key) q.set("apiKey", key);
+      const url = `/api/openroad/jobs/${jobId}/stream?${q.toString()}`;
+      const es = new EventSource(url);
+      sseRef.current = es;
+      let opened = false;
+      es.addEventListener("open", () => {
+        opened = true;
+      });
+      es.addEventListener("job", (ev) => {
+        try {
+          const data = JSON.parse((ev as MessageEvent).data) as {
+            result?: OpenroadJobResult;
+          };
+          if (data.result) applyPollPayload(data.result);
+        } catch {
+          /* */
+        }
+      });
+      es.addEventListener("done", () => {
+        try {
+          es.close();
+        } catch {
+          /* */
+        }
+        sseRef.current = null;
+      });
+      es.onerror = () => {
+        try {
+          es.close();
+        } catch {
+          /* */
+        }
+        sseRef.current = null;
+        if (!opened) startIntervalFallback();
+        else startIntervalFallback();
+      };
+      // Safety: if SSE never opens, fall back after 3s
+      window.setTimeout(() => {
+        if (!opened && !pollRef.current) startIntervalFallback();
+      }, 3000);
+    } catch {
+      startIntervalFallback();
+    }
   };
 
   useEffect(() => () => stopPoll(), []);
@@ -1717,6 +1740,32 @@ export default function OpenroadPnRStudioPage() {
     parsed.metrics.powerMw != null ||
     parsed.metrics.cellCount != null;
 
+  /** VCD toggle-rate timeline + educational activity power envelope */
+  const activityView = useMemo(() => {
+    const fromSim =
+      stageResults.simulation &&
+      "vcd" in stageResults.simulation &&
+      typeof (stageResults.simulation as { vcd?: string }).vcd === "string"
+        ? (stageResults.simulation as { vcd?: string }).vcd
+        : "";
+    const vcd = fromSim || loadLastVcd()?.vcd || "";
+    if (!vcd) return null;
+    const act = parseVcdActivityTimeline(vcd, { bins: 32 });
+    if (!act.bins.length) return null;
+    const powerSeries = estimateActivityPowerSeries(act.bins, {
+      dynamicMw: parsed.metrics.dynamicMw,
+      leakageMw: parsed.metrics.leakageMw,
+      powerMw: parsed.metrics.powerMw,
+    });
+    return {
+      bins: act.bins,
+      powerSeries,
+      signalCount: act.signalCount,
+      totalToggles: act.totalToggles,
+      timescaleHint: act.timescaleHint,
+    };
+  }, [stageResults.simulation, parsed.metrics.dynamicMw, parsed.metrics.leakageMw, parsed.metrics.powerMw]);
+
   const canRunSelected = canRunStage(selectedStage, completed);
   /**
    * Stay on lint (or any stage) tab → Run stays enabled for re-run after design edits.
@@ -1781,251 +1830,59 @@ export default function OpenroadPnRStudioPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-[var(--neu-bg)] text-[var(--neu-text)] font-mono">
-      {/* Toolbar */}
-      <div className="shrink-0 px-4 py-3 flex flex-wrap items-center gap-3 justify-between border-b border-slate-200/80 bg-[var(--neu-bg)]">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="neu-panel-sm px-3 py-1.5 flex items-center gap-2">
-            <Activity className="w-4 h-4 text-sky-600" />
-            <span className="text-xs font-black uppercase tracking-wide">
-              PnR Studio
-            </span>
-          </div>
-          {cloudReady ? (
-            <span
-              className="text-[9px] font-black uppercase text-emerald-700 neu-inset px-2 py-0.5"
-              title={
-                cloudProjectId
-                  ? `Supabase project ${cloudProjectId}`
-                  : "Supabase ready — will sync on save"
-              }
-            >
-              Cloud
-            </span>
-          ) : (
-            <span
-              className="text-[9px] font-black uppercase text-slate-500 neu-inset px-2 py-0.5"
-              title="Local storage only — configure Supabase for multi-device"
-            >
-              Local
-            </span>
-          )}
-          <span className="text-[11px] font-bold text-[var(--neu-text-muted)] truncate">
-            {project.designName} · {project.topModule} · {project.pdk}
-          </span>
-          <span className="neu-inset px-2 py-0.5 text-[10px] font-black uppercase">
-            {parsed.overall} · {parsed.percent}%
-          </span>
-          {sum.errors > 0 ? (
-            <span className="text-[10px] font-black text-rose-600">
-              {sum.errors} sanity err
-            </span>
-          ) : sum.warns > 0 ? (
-            <span className="text-[10px] font-black text-amber-600">
-              {sum.warns} warn
-            </span>
-          ) : (
-            <span className="text-[10px] font-black text-emerald-600 flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> inputs ok
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="neu-inset w-28 h-2 overflow-hidden">
-            <div
-              className="h-full bg-sky-500 transition-all"
-              style={{ width: `${parsed.percent}%` }}
-            />
-          </div>
-          <button
-            type="button"
-            disabled={running || !nextStage}
-            onClick={() => onRunNext()}
-            className="neu-btn neu-btn-primary !text-[11px] !py-2 !px-4 font-black flex items-center gap-1.5 disabled:opacity-50"
-            title={
-              nextStage
-                ? `Run next: ${nextStage}`
-                : "All stages done"
-            }
-          >
-            {running ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Play className="w-3.5 h-3.5" />
-            )}
-            {running
-              ? `Running ${runningStage || "…"}…`
-              : nextStage
-                ? `Run ${nextStage}`
-                : "Flow complete"}
-          </button>
-          <button
-            type="button"
-            disabled={running || !canReRunSelected}
-            onClick={() => void onRunStage(selectedStage)}
-            className="neu-btn !text-[11px] !py-2 !px-3 font-black disabled:opacity-50"
-            title={
-              canReRunSelected
-                ? completed.includes(selectedStage)
-                  ? `Re-run ${selectedStage} (invalidates later stages)`
-                  : `Run ${selectedStage}`
-                : canRunSelected.reason || "Stage locked"
-            }
-          >
-            {completed.includes(selectedStage)
-              ? `Re-run ${stageMeta.short}`
-              : selectedStage === "lint"
-                ? "Run lint"
-                : selectedStage === "simulation"
-                  ? "Run sim"
-                  : `Run ${stageMeta.short}`}
-          </button>
-          {job?.jobId && (
-            <button
-              type="button"
-              className="neu-btn !text-[11px] !py-2 !px-2"
-              onClick={() =>
-                startPoll(
-                  job.jobId,
-                  runningStage || selectedStage || "placement"
-                )
-              }
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            disabled={running}
-            className="neu-btn !text-[10px] !py-2 !px-2 font-black text-amber-700 disabled:opacity-40"
-            title={`Clear ${stageMeta.label} + later stages`}
-            onClick={() => clearStageFlow(selectedStage)}
-          >
-            <Eraser className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline ml-1">Clear stage</span>
-          </button>
-          <button
-            type="button"
-            disabled={running}
-            className="neu-btn !text-[10px] !py-2 !px-2 font-black text-rose-700 disabled:opacity-40"
-            title="Clear entire flow (all stages)"
-            onClick={() => clearWholeFlow()}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="hidden xl:inline ml-1">Clear all</span>
-          </button>
-          <button
-            type="button"
-            className="neu-btn !text-[11px] !py-2 !px-2"
-            onClick={() => {
-              stopPoll();
-              setBusy(false);
-              setRunningStage(null);
-              setRunHint("");
-            }}
-          >
-            <Square className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-      {err && (
-        <div className="shrink-0 mx-4 mt-2 neu-inset px-3 py-2 text-[11px] font-bold text-rose-700 flex items-center gap-2">
-          <AlertTriangle className="w-3.5 h-3.5" /> {err}
-        </div>
-      )}
-
-      {/* In-flight progress — stage API is request/response so no true stream yet */}
-      {(busy || runningStage) && (
-        <div className="shrink-0 mx-4 mt-2 neu-panel px-4 py-3 flex flex-wrap items-center gap-3 border border-sky-300/60 bg-sky-50/80">
-          <Loader2 className="w-5 h-5 text-sky-600 animate-spin shrink-0" />
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-black uppercase text-sky-800">
-              Running {runningStage || stageMeta.short}
-              <span className="ml-2 font-mono text-sky-600 normal-case">
-                {Math.floor(runElapsedSec / 60)}:
-                {String(runElapsedSec % 60).padStart(2, "0")}
-              </span>
-            </p>
-            <p className="text-[11px] font-bold text-sky-900/80 truncate">
-              {runHint || "Working…"}
-            </p>
-            <div className="mt-2 h-1.5 w-full max-w-md neu-inset overflow-hidden rounded-full">
-              <div
-                className="h-full bg-sky-500 rounded-full animate-pulse"
-                style={{
-                  width: `${Math.min(92, 12 + runElapsedSec * 2)}%`,
-                }}
-              />
-            </div>
-            <p className="text-[9px] font-bold text-slate-500 mt-1">
-              Live tool output appears when the stage finishes (or via OpenLane
-              poll). Stay on this tab — progress is normal.
-            </p>
-          </div>
-        </div>
-      )}
+      <OpenroadStudioToolbar
+        designName={project.designName}
+        topModule={project.topModule}
+        pdk={project.pdk}
+        cloudReady={cloudReady}
+        cloudProjectId={cloudProjectId}
+        overall={String(parsed.overall)}
+        percent={parsed.percent}
+        sanityErrors={sum.errors}
+        sanityWarns={sum.warns}
+        running={running}
+        runningStage={runningStage}
+        nextStage={nextStage}
+        selectedStage={selectedStage}
+        stageShort={stageMeta.short}
+        stageLabel={stageMeta.label}
+        canReRunSelected={canReRunSelected}
+        canReRunReason={canRunSelected.reason}
+        completedIncludesSelected={completed.includes(selectedStage)}
+        jobId={job?.jobId}
+        err={err}
+        busy={busy}
+        runElapsedSec={runElapsedSec}
+        runHint={runHint}
+        onRunNext={() => onRunNext()}
+        onRunSelected={() => void onRunStage(selectedStage)}
+        onPoll={() =>
+          startPoll(
+            job!.jobId,
+            runningStage || selectedStage || "placement"
+          )
+        }
+        onClearStage={() => clearStageFlow(selectedStage)}
+        onClearAll={() => clearWholeFlow()}
+        onStop={() => {
+          stopPoll();
+          setBusy(false);
+          setRunningStage(null);
+          setRunHint("");
+        }}
+      />
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[12rem_1fr_15rem] gap-3 p-3">
-        {/* Stage rail — full order including lint, sim, gds */}
-        <aside className="neu-panel overflow-y-auto p-2 space-y-1">
-          <p className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[var(--neu-text-muted)]">
-            Stages · order only
-          </p>
-          {FLOW_STAGES.map((s, idx) => {
-            const st = parsed.stages[idx];
-            const active = selectedStage === s.id;
-            const sc = sanity.filter(
-              (i) => i.stage === s.id && i.level === "error"
-            ).length;
-            const locked = st.status === "locked";
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => {
-                  // Don't leave a running stage by accident via log parser — allow
-                  // manual navigation, but clear pin only when user picks another stage
-                  userPinnedStageRef.current = s.id;
-                  setSelectedStage(s.id);
-                  setBottomTab("inputs");
-                }}
-                className={`w-full text-left px-2 py-2 rounded-xl flex gap-2 items-start transition-all ${
-                  active
-                    ? "neu-btn-active text-sky-700"
-                    : locked
-                      ? "opacity-60 hover:bg-white/30"
-                      : "hover:bg-white/40"
-                }`}
-              >
-                <OpenroadStatusIcon s={st.status} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex justify-between gap-1">
-                    <span className="text-[11px] font-black uppercase">
-                      {idx + 1}. {s.short}
-                    </span>
-                    {sc > 0 && (
-                      <span className="text-[9px] text-rose-500 font-black">
-                        !
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[9px] text-[var(--neu-text-muted)] font-bold">
-                    {s.label}
-                    {locked ? " · locked" : ""}
-                  </p>
-                  {st.status === "running" && (
-                    <div className="mt-1 h-1 neu-inset overflow-hidden">
-                      <div
-                        className="h-full bg-sky-500"
-                        style={{ width: `${st.progress}%` }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </aside>
+        <OpenroadStudioStageRail
+          selectedStage={selectedStage}
+          stages={parsed.stages}
+          sanity={sanity}
+          onSelect={(id) => {
+            userPinnedStageRef.current = id;
+            setSelectedStage(id);
+            setBottomTab("inputs");
+          }}
+        />
 
         {/* Center */}
         <main className="min-h-0 overflow-y-auto space-y-3">
@@ -2278,81 +2135,29 @@ export default function OpenroadPnRStudioPage() {
           />
         </main>
 
-        {/* Right PPA */}
-        <aside className="neu-panel overflow-y-auto p-3 space-y-4">
-          <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
-            Stage metrics (reports only)
-          </p>
-          {!hasRealMetrics && (
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold text-[var(--neu-text-muted)]">
-                Empty until curated reports arrive (placement_timing.rpt /
-                power / area / metrics.csv). No mid-run log guessing.
-              </p>
-              {job?.jobId && (
-                <button
-                  type="button"
-                  className="neu-btn neu-btn-primary !text-[9px] font-black w-full"
-                  onClick={() =>
-                    loadPlacementReports(
-                      job.jobId!,
-                      job.artifacts?.map((a) => a.name)
-                    )
-                  }
-                >
-                  Load PPA from placement reports
-                </button>
-              )}
-            </div>
-          )}
-          {hasRealMetrics && (
-            <p className="text-[9px] font-bold text-emerald-700">
-              From finalized reports
-              {metricsCsv ? " + metrics.csv" : ""}
-              {parsed.metrics.wnsNs === 0 && parsed.metrics.tnsNs === 0
-                ? " · WNS/TNS 0 = no violations"
-                : ""}
-            </p>
-          )}
-          <MetricTiles metrics={parsed.metrics} />
-          {parsed.metrics.areaBreakdown.length > 0 && (
-            <StackedBars
-              title="Area (from metrics)"
-              items={parsed.metrics.areaBreakdown}
-            />
-          )}
-          {parsed.metrics.powerBreakdown.length > 0 && (
-            <StackedBars
-              title="Power (from metrics)"
-              items={parsed.metrics.powerBreakdown}
-            />
-          )}
-          {parsed.metrics.slackHistogram.length > 0 && (
-            <SlackHistogram data={parsed.metrics.slackHistogram} />
-          )}
-          <ClockWaveform
-            periodNs={clockView?.periodNs}
-            riseNs={clockView?.riseNs}
-            fallNs={clockView?.fallNs}
-            clockName={clockView?.name}
-            source={clockView?.source ?? null}
-          />
-          <div className="text-[9px] font-bold text-[var(--neu-text-muted)] leading-relaxed border-t border-slate-200 pt-2 space-y-1">
-            <p>
-              <strong>Views:</strong> Lint = summary · Sim = VCD wave · Synth =
-              netlist stats · IO Planner = port sides · Floorplan+ = die · GDS = signoff
-            </p>
-            <p>
-              Order only — complete prior stages before Run. Config dual-writes
-              to {FLOW_CONFIG_NAME}.
-            </p>
-            {!health.hasRtl && (
-              <p className="text-amber-600">
-                Project missing RTL — download template on Project page.
-              </p>
-            )}
-          </div>
-        </aside>
+        <OpenroadStudioPpaSidebar
+          hasRealMetrics={hasRealMetrics}
+          metricsCsv={!!metricsCsv}
+          metrics={parsed.metrics}
+          jobId={job?.jobId}
+          artifactNames={job?.artifacts?.map((a) => a.name)}
+          onLoadPlacementReports={(jid, names) =>
+            loadPlacementReports(jid, names)
+          }
+          clockView={clockView}
+          hasRtl={health.hasRtl}
+          activityBins={activityView?.bins}
+          activityPower={activityView?.powerSeries}
+          activityMeta={
+            activityView
+              ? {
+                  signalCount: activityView.signalCount,
+                  totalToggles: activityView.totalToggles,
+                  timescaleHint: activityView.timescaleHint,
+                }
+              : undefined
+          }
+        />
       </div>
     </div>
   );

@@ -126,6 +126,12 @@ print(f"Installed sanitized pin_order.cfg ({n} pins) for OpenLane io_place")
 PY
 fi
 
+# Sprint 3 dual-synth: Ace-Seek Yosys checkpoint netlist (skip OpenLane run_synthesis)
+if [[ -f "$JOB_DIR/input/ace_synth_netlist.v" ]]; then
+  cp -f "$JOB_DIR/input/ace_synth_netlist.v" "$JOB_DIR/designs/$SLUG/ace_synth_netlist.v"
+  echo "Installed ace_synth_netlist.v for OpenLane external-synth skip"
+fi
+
 # Infer clock period from SDC if present
 PERIOD="10.0"
 SDC_FILE=$(ls "$JOB_DIR/designs/$SLUG/src"/*.sdc 2>/dev/null | head -1 || true)

@@ -26,6 +26,7 @@ import {
 import {
   snapshotOpenlaneJobToCheckpoint,
   safeDesignSlug,
+  readCheckpointNetlist,
 } from "./openroad-checkpoints";
 import {
   STAGE_TO_OPENLANE_UNTIL,
@@ -104,6 +105,8 @@ export type OpenroadSpawnMeta = {
   overwrite: "0" | "1";
   ckptSlug: string;
   enqueuedAt: string;
+  /** Sprint 3 — Ace-Seek Yosys netlist present at input/ace_synth_netlist.v */
+  externalNetlist?: boolean;
 };
 
 const jobs = new Map<string, DockerJobRecord>();
@@ -944,6 +947,22 @@ export function startOpenroadDockerJob(
   const ckptSlug = safeDesignSlug(designName, top);
   const enqueuedAt = new Date().toISOString();
 
+  // Sprint 3 dual-synth: plant Ace-Seek Yosys checkpoint netlist for OpenLane skip
+  let externalNetlist = false;
+  if (until !== "synthesis") {
+    try {
+      const nl = readCheckpointNetlist(designName, top, oid);
+      if (nl) {
+        const dest = path.join(jobDir, "input", "ace_synth_netlist.v");
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        fs.writeFileSync(dest, nl.content);
+        externalNetlist = true;
+      }
+    } catch {
+      /* */
+    }
+  }
+
   const spawnMeta: OpenroadSpawnMeta = {
     version: 1,
     jobId,
@@ -963,6 +982,7 @@ export function startOpenroadDockerJob(
     overwrite,
     ckptSlug,
     enqueuedAt,
+    externalNetlist,
   };
   writeSpawnMeta(jobDir, spawnMeta);
 
@@ -1043,6 +1063,7 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     OPENLANE_TAG: "ace_run",
     ACE_OPENLANE_UNTIL: meta.until,
     ACE_OPENLANE_OVERWRITE: meta.overwrite,
+    ACE_EXTERNAL_NETLIST: meta.externalNetlist ? "1" : "0",
     OPENROAD_SSH_HOST: process.env.OPENROAD_SSH_HOST || "",
     OPENROAD_SSH_USER: process.env.OPENROAD_SSH_USER || "root",
     OPENROAD_SSH_KEY: process.env.OPENROAD_SSH_KEY || "",
@@ -1199,6 +1220,28 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
         `OpenLane failed (exit ${code ?? "?"}). See log. Ensure PDK_ROOT and Docker image.`;
     }
     writeStatusJson(jobDir, rec.status, rec.message, { exitCode: code });
+    // Sprint 3: optional S3/R2 offload (never fails the job)
+    if (rec.status === "succeeded") {
+      void import("./openroad-artifact-store")
+        .then(({ uploadJobArtifacts }) =>
+          uploadJobArtifacts({
+            jobDir,
+            ownerId: oid,
+            jobId: meta.jobId,
+          })
+        )
+        .then((man) => {
+          if (man?.files?.length) {
+            rec.logTail = (
+              rec.logTail +
+              `\nACE-Seek: uploaded ${man.files.length} artifact(s) to S3\n`
+            ).slice(-12000);
+          }
+        })
+        .catch(() => {
+          /* */
+        });
+    }
     finishChild();
   });
 
@@ -1216,6 +1259,13 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
  * Safe to call frequently (close handler + interval).
  */
 export function tryDispatchOpenroadQueue(): void {
+  // Sprint 3: K8s/external worker owns spawn when set
+  if (
+    process.env.OPENROAD_QUEUE_EXTERNAL === "1" ||
+    process.env.OPENROAD_QUEUE_EXTERNAL === "true"
+  ) {
+    return;
+  }
   if (dispatchRunning) return;
   dispatchRunning = true;
   try {

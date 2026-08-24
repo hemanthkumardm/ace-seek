@@ -105,12 +105,40 @@ Expect `jobsRoot` = `/data/ace-openroad-jobs` and `jobsRootError` = null.
 
 ODB GUI needs `DISPLAY` / X11 on the **interactive** workstation path; headless EC2 API runs do not need GUI.
 
-## Later (not Sprint 2)
+## EC2 smoke checklist
 
-- Kubernetes / multi-node workers (API enqueue + worker pull)
+On the host (after Docker + PDK + env):
+
+```bash
+cd /path/to/ace-seek
+export OPENROAD_JOBS_DIR=/data/ace-openroad-jobs
+export PDK_ROOT=/data/volare
+export PDK=sky130A
+# optional API ping:
+export ACE_KEY='your_issued_key'
+export BASE_URL=http://127.0.0.1:3000
+
+bash scripts/ec2-smoke-openroad.sh
+```
+
+Expect `FAIL=0`. Then run one Studio stage (lint → synth → floorplan) and confirm
+`owners/<id>/jobs/` appears under `$OPENROAD_JOBS_DIR`.
+
+Live job logs: Studio uses **SSE** at `/api/openroad/jobs/:id/stream` (falls back
+to 2.5s poll). Pass `?apiKey=` for EventSource auth.
+
+## Sprint 3 add-ons
+
+| Feature | Env / doc |
+|---------|-----------|
+| Dual-synth skip | Automatic when owner checkpoint has `synth_netlist.v` |
+| S3/R2 artifact offload | `OPENROAD_ARTIFACT_S3_BUCKET` (+ optional endpoint/keys) |
+| External queue worker | `OPENROAD_QUEUE_EXTERNAL=1` + `workers/openroad/queue_worker.mjs` — see `docs/OPENROAD_K8S.md` |
+
+## Later
+
 - Redis/Postgres job table
-- Object storage offload for large GDS
-- Cross-instance shared NFS
+- Multi-dispatcher RWX flock redesign
 - Admin “impersonate owner” tooling
 
 ## Related
