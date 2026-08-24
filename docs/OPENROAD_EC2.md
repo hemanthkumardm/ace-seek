@@ -127,6 +127,25 @@ Expect `FAIL=0`. Then run one Studio stage (lint → synth → floorplan) and co
 Live job logs: Studio uses **SSE** at `/api/openroad/jobs/:id/stream` (falls back
 to 2.5s poll). Pass `?apiKey=` for EventSource auth.
 
+## Storage retention (soft limits + TTL)
+
+Runs stay on **EC2 disk** under `owners/<id>/` (not in Supabase by default).
+
+| Policy | Default | Env |
+|--------|---------|-----|
+| Auto-delete **finished** jobs | **72 hours** | `OPENROAD_JOB_RETENTION_HOURS` |
+| Auto-delete ODB uploads | **24 hours** | `OPENROAD_UPLOAD_RETENTION_HOURS` |
+| Soft quota Free/guest | **2 GB** | or `OPENROAD_OWNER_QUOTA_GB` |
+| Soft quota Pro | **10 GB** | |
+| Soft quota Max/Team | **25 GB** | |
+
+- **Not** “one project only” — users can keep multiple designs until quota/TTL.
+- Active jobs (`queued`/`running`) are **never** GC’d.
+- Project RTL/SDC metadata can live in **Supabase**; GDS/DEF/ODB are too large for DB rows — use disk or S3/R2 (`OPENROAD_ARTIFACT_S3_BUCKET`).
+- Manual wipe: `POST /api/openroad/clear` (owner) or Studio clear-all.
+
+GC runs automatically when a user starts a new OpenLane job.
+
 ## Sprint 3 add-ons
 
 | Feature | Env / doc |

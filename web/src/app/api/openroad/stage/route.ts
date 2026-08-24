@@ -636,12 +636,14 @@ echo "SYNTH_DONE exit=$?"
           openlaneConfig: body.openlaneConfig,
           untilStage: stage,
           owner,
+          tier: ent.tier,
         });
         if (result.status === "rejected") {
           const queueFull = /queue full/i.test(result.message || "");
           const busy = /already (queued|preparing|running|active)/i.test(
             result.message || ""
           );
+          const quota = /quota exceeded/i.test(result.message || "");
           return NextResponse.json(
             {
               ok: false,
@@ -649,7 +651,7 @@ echo "SYNTH_DONE exit=$?"
               error: result.message,
               openlaneJob: result,
             },
-            { status: queueFull ? 429 : busy ? 409 : 400 }
+            { status: queueFull ? 429 : busy ? 409 : quota ? 507 : 400 }
           );
         }
         return NextResponse.json({

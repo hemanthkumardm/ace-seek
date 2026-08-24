@@ -47,6 +47,11 @@ import {
   writeOwnerMeta,
   type OpenroadOwner,
 } from "./openroad-owner";
+import {
+  checkOwnerStorageQuota,
+  quotaBytesForTier,
+  runOpenroadGarbageCollection,
+} from "./openroad-gc";
 
 export type DockerJobPhase =
   | "queued"
@@ -734,7 +739,14 @@ export function openlaneUntilForStage(stage?: string): string | null {
 export function startOpenroadDockerJob(
   project: OpenroadProjectState,
   openlaneConfig?: Record<string, string | number | boolean>,
-  opts?: { untilStage?: string; owner: OpenroadOwner }
+  opts?: {
+    untilStage?: string;
+    owner: OpenroadOwner;
+    /** Soft disk quota for this tenant (bytes). */
+    quotaBytes?: number;
+    /** Plan tier for default quota mapping when quotaBytes omitted. */
+    tier?: string;
+  }
 ): DockerJobRecord {
   const owner = opts?.owner;
   if (!owner?.ownerId) {
@@ -797,6 +809,24 @@ export function startOpenroadDockerJob(
     return failRec(
       "OPENROAD_RUNNER_ENABLED is off or Docker not found. Set OPENROAD_RUNNER_ENABLED=1 and install Docker."
     );
+  }
+
+  // Soft retention: prune this owner's finished jobs/uploads older than TTL
+  // (default 72h jobs / 24h uploads). Does NOT force 1-project-only.
+  try {
+    runOpenroadGarbageCollection({ targetOwnerId: oid });
+    const quotaBytes = opts?.quotaBytes ?? quotaBytesForTier(opts?.tier);
+    const q = checkOwnerStorageQuota(oid, quotaBytes);
+    if (!q.allowed) {
+      return failRec(
+        `Storage quota exceeded (${q.usage.totalFormatted} / ${q.quotaFormatted}). ` +
+          `Old finished runs auto-delete after OPENROAD_JOB_RETENTION_HOURS (default 72h), ` +
+          `or clear storage / upgrade plan for more space.`,
+        { exitCode: 507, queueRejected: false }
+      );
+    }
+  } catch {
+    /* GC errors must not brick enqueue */
   }
 
   const designName = project.designName || "design";

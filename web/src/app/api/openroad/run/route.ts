@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
       async: true,
       openlaneConfig: body.openlaneConfig,
       owner,
+      tier: gate.ent.tier,
     });
 
     if (result.status === "rejected") {
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
       const busy = /already (queued|preparing|running|active)/i.test(
         result.message || ""
       );
+      const quota = /quota exceeded/i.test(result.message || "");
       return NextResponse.json(
         {
           ok: false,
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
           result,
           runner: runnerDiagnostics(),
         },
-        { status: queueFull ? 429 : busy ? 409 : 400 }
+        { status: queueFull ? 429 : busy ? 409 : quota ? 507 : 400 }
       );
     }
 

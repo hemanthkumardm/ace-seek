@@ -131,6 +131,25 @@ export function getOwnerStorageUsage(ownerId: string): StorageUsage {
  * Checks if tenant is within quota before creating large allocations.
  * Defaults: Free (500MB), Pro (5GB), Max/Team (25GB).
  */
+/** Soft quotas by plan — pay more = keep more silicon on disk. */
+export function quotaBytesForTier(tier?: string): number {
+  const envOverride = Number(process.env.OPENROAD_OWNER_QUOTA_GB);
+  if (Number.isFinite(envOverride) && envOverride > 0) {
+    return Math.floor(envOverride * 1024 * 1024 * 1024);
+  }
+  switch ((tier || "").toLowerCase()) {
+    case "team":
+    case "max":
+      return 25 * 1024 * 1024 * 1024;
+    case "pro":
+      return 10 * 1024 * 1024 * 1024;
+    case "free":
+    case "guest":
+    default:
+      return 2 * 1024 * 1024 * 1024;
+  }
+}
+
 export function checkOwnerStorageQuota(
   ownerId: string,
   quotaBytes: number = 5 * 1024 * 1024 * 1024

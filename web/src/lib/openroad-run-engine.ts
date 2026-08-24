@@ -35,6 +35,9 @@ export interface OpenroadJobRequest {
   untilStage?: string;
   /** Sprint A — tenant owner (required for container mode) */
   owner?: import("./openroad-owner").OpenroadOwner;
+  /** Soft disk quota (bytes); optional tier used if omitted */
+  quotaBytes?: number;
+  tier?: string;
 }
 
 export interface OpenroadJobResult {
@@ -149,6 +152,8 @@ export function executeOpenroadJob(req: OpenroadJobRequest): OpenroadJobResult {
     const rec = startOpenroadDockerJob(req.project, req.openlaneConfig, {
       untilStage: req.untilStage,
       owner: req.owner,
+      quotaBytes: req.quotaBytes,
+      tier: req.tier,
     });
     return dockerToResult(rec);
   }
