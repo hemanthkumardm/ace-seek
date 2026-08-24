@@ -241,7 +241,7 @@ export function OpenroadStudioCenterView({
         <h2 className="text-lg font-black uppercase">Gate-level netlist</h2>
         <p className="text-[11px] font-bold text-[var(--neu-text-muted)]">
           Runs <strong className="text-[var(--neu-text)]">Yosys</strong> via{" "}
-          <code className="text-sky-700">ACE_TOOLS_MODE</code> (host or Docker).
+          the platform toolchain.
           RTL → netlist + cell stats only — no die view. Next:{" "}
           <strong className="text-[var(--neu-text)]">IO Planner</strong>{" "}
           (port sides), then Floorplan (OpenLane Docker, Max).

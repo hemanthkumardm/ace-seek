@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { probePdkAvailability, defaultOrfsRoot, defaultPdkRoot } from "@/lib/openroad-pdk";
+import { probePdkAvailability } from "@/lib/openroad-pdk";
 import { OPENROAD_PDKS } from "@/lib/openroad-pdk-catalog";
 import { toolsDiagnostics } from "@/lib/openroad-docker-tools";
-import { getOpenroadJobsRoot, requireOpenroadOwner } from "@/lib/openroad-owner";
+import { requireOpenroadOwner } from "@/lib/openroad-owner";
 import { proxyOpenroadRequest } from "@/lib/openroad-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** List PDK presets + host availability + ACE_TOOLS_MODE for Project / Studio UI */
+/** List PDK presets + availability for Project / Studio UI (no host paths). */
 export async function GET(req: NextRequest) {
   try {
     const gate = requireOpenroadOwner(req);
@@ -20,38 +20,27 @@ export async function GET(req: NextRequest) {
     });
     if (proxied) return proxied;
 
-    let jobsRoot: string | null = null;
-    let jobsRootError: string | null = null;
-    try {
-      jobsRoot = getOpenroadJobsRoot();
-    } catch (e) {
-      jobsRootError = e instanceof Error ? e.message : "OPENROAD_JOBS_DIR invalid";
-    }
-
-    const availability = probePdkAvailability();
-    const isPrivileged = gate.ent.tier === "team" || gate.ent.tier === "max";
+    const availability = probePdkAvailability().map((a) => ({
+      id: a.id,
+      label: a.label,
+      short: a.short,
+      runner: a.runner,
+      available: a.available,
+      detail: a.detail, // already user-facing (no paths)
+    }));
 
     const diag = toolsDiagnostics();
+    // User-facing tools status only — no ACE_TOOLS_MODE / docker-sock details
+    const toolsReady = Boolean(diag.dockerAvailable || diag.hostTools?.ok);
+
     return NextResponse.json({
-      pdkRoot: isPrivileged ? defaultPdkRoot() : "[configured]",
-      orfsRoot: isPrivileged ? (defaultOrfsRoot() || null) : null,
-      jobsRoot: isPrivileged ? jobsRoot : (jobsRoot ? "[active]" : null),
-      jobsRootError,
-      tools: {
-        mode: diag.effectiveMode,
-        reason: diag.reason,
-        docker: diag.dockerAvailable,
-        hostOk: diag.hostTools.ok,
-      },
+      toolsReady,
       catalog: OPENROAD_PDKS.map((p) => ({
         id: p.id,
         label: p.label,
         short: p.short,
         description: p.description,
         runner: p.runner,
-        openlanePdk: p.openlanePdk,
-        orfsPlatform: p.orfsPlatform,
-        installHint: p.installHint,
       })),
       availability,
     });

@@ -51,7 +51,6 @@ type PdkAvail = {
   available: boolean;
   detail: string;
   runner: string;
-  installHint?: string;
 };
 
 export default function OpenroadProjectPage() {
@@ -62,17 +61,7 @@ export default function OpenroadProjectPage() {
   const [flash, setFlash] = useState("");
   const [cloudReady, setCloudReady] = useState(false);
   const [pdkAvail, setPdkAvail] = useState<PdkAvail[]>([]);
-  const [pdkMeta, setPdkMeta] = useState<{
-    pdkRoot?: string;
-    orfsRoot?: string | null;
-    tools?: {
-      ACE_TOOLS_MODE?: string;
-      effectiveMode?: string;
-      reason?: string;
-      hostTools?: { ok?: boolean; verilator?: string | null; yosys?: string | null };
-      dockerAvailable?: boolean;
-    };
-  }>({});
+  const [toolsReady, setToolsReady] = useState<boolean | null>(null);
 
   const reload = useCallback(() => {
     setProject(loadOpenroadProject());
@@ -118,11 +107,7 @@ export default function OpenroadProjectPage() {
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d.availability)) setPdkAvail(d.availability);
-        setPdkMeta({
-          pdkRoot: d.pdkRoot,
-          orfsRoot: d.orfsRoot,
-          tools: d.tools,
-        });
+        if (typeof d.toolsReady === "boolean") setToolsReady(d.toolsReady);
       })
       .catch(() => {
         /* offline */
@@ -420,11 +405,7 @@ export default function OpenroadProjectPage() {
                     const av = pdkAvail.find((a) => a.id === project.pdk);
                     return (
                       <span className="block text-[10px] font-bold normal-case text-[var(--neu-text-muted)] mt-1 space-y-1">
-                        <span className="block">
-                          {def.description}. Saved to{" "}
-                          <code className="text-sky-700">{FLOW_CONFIG_NAME}</code>
-                          . Max runs the selected PDK (no silent sky130 remap).
-                        </span>
+                        <span className="block">{def.description}</span>
                         {av && (
                           <span
                             className={`block ${
@@ -433,37 +414,13 @@ export default function OpenroadProjectPage() {
                                 : "text-amber-700"
                             }`}
                           >
-                            {av.available ? "Ready on this host: " : "Not ready: "}
+                            {av.available ? "Available — " : "Unavailable — "}
                             {av.detail}
                           </span>
                         )}
-                        {!av?.available && (
-                          <span className="block text-slate-500">
-                            Install: {def.installHint}
-                          </span>
-                        )}
-                        {pdkMeta.pdkRoot && (
-                          <span className="block text-slate-500">
-                            PDK_ROOT={pdkMeta.pdkRoot}
-                            {pdkMeta.orfsRoot
-                              ? ` · OPENROAD_FLOW_ROOT=${pdkMeta.orfsRoot}`
-                              : " · OPENROAD_FLOW_ROOT unset (needed for asap7/nangate45)"}
-                          </span>
-                        )}
-                        {pdkMeta.tools && (
-                          <span className="block text-slate-500 mt-1">
-                            Tools:{" "}
-                            <strong className="text-[var(--neu-text)]">
-                              {pdkMeta.tools.effectiveMode || "?"}
-                            </strong>
-                            {" · "}
-                            ACE_TOOLS_MODE={pdkMeta.tools.ACE_TOOLS_MODE || "auto"}
-                            {pdkMeta.tools.hostTools?.ok
-                              ? " · host verilator/yosys OK"
-                              : " · host incomplete"}
-                            {pdkMeta.tools.dockerAvailable
-                              ? " · Docker OK"
-                              : " · no Docker"}
+                        {toolsReady === false && (
+                          <span className="block text-amber-700">
+                            Run tools are warming up — try again in a moment.
                           </span>
                         )}
                       </span>

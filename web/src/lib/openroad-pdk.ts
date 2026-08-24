@@ -130,6 +130,25 @@ export interface PdkAvailability {
   installHint: string;
 }
 
+/** User-facing status — never include host paths or install commands. */
+export function userFacingPdkDetail(
+  def: (typeof OPENROAD_PDKS)[number],
+  available: boolean
+): string {
+  if (def.runner === "scripts_only") {
+    return "Script packs only — no container silicon run on this option.";
+  }
+  if (available) {
+    return def.runner === "orfs"
+      ? "Ready for advanced flow runs."
+      : "Ready for OpenLane runs on this platform.";
+  }
+  if (def.runner === "orfs") {
+    return "This process node isn’t enabled on the platform yet. Choose SkyWater 130nm, or contact support.";
+  }
+  return "This process node isn’t enabled on the platform yet. Choose SkyWater 130nm for now, or contact support to enable it.";
+}
+
 export function probePdkAvailability(): PdkAvailability[] {
   const pdkRoot = defaultPdkRoot();
   const orfsRoot = defaultOrfsRoot();
@@ -141,7 +160,7 @@ export function probePdkAvailability(): PdkAvailability[] {
         short: def.short,
         runner: def.runner,
         available: true,
-        detail: "Scripts only — always selectable",
+        detail: userFacingPdkDetail(def, true),
         openlanePdk: null,
         orfsPlatform: null,
         installHint: def.installHint,
@@ -149,28 +168,28 @@ export function probePdkAvailability(): PdkAvailability[] {
     }
     if (def.runner === "openlane") {
       const r = resolveOpenlanePdkName(def.id, pdkRoot);
+      const available = !!r.path;
       return {
         id: def.id,
         label: def.label,
         short: def.short,
         runner: def.runner,
-        available: !!r.path,
-        detail: r.path ? `Installed: ${r.path}` : r.reason || "Not installed",
+        available,
+        detail: userFacingPdkDetail(def, available),
         openlanePdk: def.openlanePdk,
         orfsPlatform: def.orfsPlatform,
         installHint: def.installHint,
       };
     }
     const r = resolveOrfsPlatform(def.id, orfsRoot);
+    const available = !!r.path;
     return {
       id: def.id,
       label: def.label,
       short: def.short,
       runner: def.runner,
-      available: !!r.path,
-      detail: r.path
-        ? `ORFS platform: ${r.path}`
-        : r.reason || "ORFS not configured",
+      available,
+      detail: userFacingPdkDetail(def, available),
       openlanePdk: null,
       orfsPlatform: def.orfsPlatform,
       installHint: def.installHint,
