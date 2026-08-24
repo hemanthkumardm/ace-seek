@@ -15,7 +15,6 @@ import {
   hostLibertyExists,
   hostLibertyPath,
   containerLibertyPath,
-  pdkRoot,
   resolveToolsMode,
 } from "@/lib/openroad-docker-tools";
 import {
@@ -450,7 +449,7 @@ echo "SYNTH_DONE exit=$?"
             : `Yosys synthesis failed (${modeLabel}, exit ${r.status})`,
           cellCount,
           wireCount,
-          log: `PDK_ROOT=${pdkRoot()}\n${log}`,
+          log,
           statsLines,
           netlist,
         };

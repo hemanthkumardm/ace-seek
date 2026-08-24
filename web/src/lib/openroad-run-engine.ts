@@ -10,6 +10,10 @@ import {
   getDockerJob,
   type DockerJobRecord,
 } from "./openroad-docker-runner";
+import {
+  friendlyOpenroadProgress,
+  sanitizeOpenroadLogText,
+} from "./openroad-user-log";
 
 export type OpenroadJobStatus =
   | "queued"
@@ -93,17 +97,23 @@ function dockerToResult(d: DockerJobRecord): OpenroadJobResult {
       : d.exitCode === 409
         ? "rejected"
         : (d.status as OpenroadJobStatus);
+  const cleanLog = sanitizeOpenroadLogText(d.logTail || "");
+  const friendly = friendlyOpenroadProgress({
+    status,
+    message: d.message,
+    log: d.logTail,
+  });
   return {
     jobId: d.jobId,
     status,
     mode: "container",
-    message: d.message,
+    message: friendly,
     startedAt: d.startedAt,
     finishedAt: d.finishedAt,
-    log: d.logTail,
+    log: cleanLog,
     artifacts: d.artifacts.map((a) => ({
       name: a.name,
-      path: a.path,
+      // never expose host paths to the browser
       size: a.size,
     })),
     metrics: d.metrics,

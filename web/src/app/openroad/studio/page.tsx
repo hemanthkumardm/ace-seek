@@ -56,6 +56,7 @@ import {
   type FlowMetrics,
 } from "@/lib/openroad-flow-model";
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
+import { sanitizeOpenroadLogLine } from "@/lib/openroad-user-log";
 import { OpenroadStudioCenterView } from "@/components/OpenroadStudioCenterView";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import {
@@ -1623,24 +1624,34 @@ export default function OpenroadPnRStudioPage() {
       text
         .split(/\r?\n/)
         .filter((line) => line.trim())
-        .map((line) => ({
-          t: line,
-          stage: selectedStage,
-          level: levelOf(line),
-        }));
+        .map((line) => {
+          const t = sanitizeOpenroadLogLine(line);
+          return {
+            t,
+            stage: selectedStage,
+            level: levelOf(t),
+          };
+        })
+        .filter((l) => l.t.trim());
 
-    const fromParsed = parsed.logLines.filter(
-      (l) => l.stage === selectedStage
-    );
+    const fromParsed = parsed.logLines
+      .filter((l) => l.stage === selectedStage)
+      .map((l) => ({
+        ...l,
+        t: sanitizeOpenroadLogLine(l.t),
+      }));
     const res = stageResults[selectedStage];
     const fromResult =
       res && "log" in res && res.log ? toLines(res.log) : [];
     const rt = parsed.stages.find((s) => s.id === selectedStage);
-    const fromRt = (rt?.logLines || []).map((line) => ({
-      t: line,
-      stage: selectedStage as FlowStageId | null,
-      level: levelOf(line),
-    }));
+    const fromRt = (rt?.logLines || []).map((line) => {
+      const t = sanitizeOpenroadLogLine(line);
+      return {
+        t,
+        stage: selectedStage as FlowStageId | null,
+        level: levelOf(t),
+      };
+    });
 
     // Prefer the stored stage result log (authoritative for Docker lint/sim/yosys).
     // Merge tagged live lines that aren't already present.

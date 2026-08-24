@@ -406,8 +406,7 @@ export function OpenroadStudioBottomTabs({
               (busy || runningStage) &&
               runningStage === selectedStage && (
                 <p className="text-[#94a3b8]">
-                  Waiting for tool output… (host/Docker run is blocking
-                  until the stage completes)
+                  {runHint || "This stage is running… progress updates will appear here."}
                 </p>
               )}
             {filteredLog.map((l, i) => (
