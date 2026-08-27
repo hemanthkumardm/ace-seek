@@ -21,6 +21,8 @@ import {
   Activity,
   Package,
   X,
+  ExternalLink,
+  MapPin,
 } from "lucide-react";
 
 const WHATSAPP_NUMBER = "918431670673";
@@ -72,46 +74,41 @@ function SpatialCard({
   );
 }
 
-/** Exploded stack — layers pull apart on hover */
-function ExplodedStack({
+/** Spatial stack — fixed layered cards (no explode) */
+function SpatialLayerStack({
   layers,
 }: {
   layers: { title: string; subtitle: string; accent: string }[];
 }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div
-      className="relative h-[280px] sm:h-[320px] w-full max-w-md mx-auto cursor-pointer select-none"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onClick={() => setOpen((v) => !v)}
-      style={{ perspective: 1400 }}
-    >
-      {layers.map((layer, i) => {
-        const z = open ? (layers.length - 1 - i) * 42 : (layers.length - 1 - i) * 10;
-        const y = open ? i * -28 : i * -8;
-        const rot = open ? -12 + i * 4 : -6 + i * 2;
-        return (
+    <div className="relative mx-auto w-full max-w-md space-y-3" style={{ perspective: 1200 }}>
+      {layers.map((layer, i) => (
+        <SpatialCard
+          key={layer.title}
+          depth={6}
+          className="p-5"
+        >
           <div
-            key={layer.title}
-            className="absolute inset-x-4 top-10 rounded-2xl border border-white/15 p-5 shadow-2xl transition-all duration-500 ease-out"
+            className="pointer-events-none absolute inset-0 rounded-2xl opacity-40"
             style={{
-              transform: `translateZ(${z}px) translateY(${y}px) rotateX(${rot}deg)`,
-              background: `linear-gradient(145deg, ${layer.accent}22, #09090b 55%)`,
-              zIndex: layers.length - i,
+              background: `linear-gradient(135deg, ${layer.accent}33, transparent 55%)`,
             }}
-          >
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-              Layer {i + 1}
-            </p>
-            <h3 className="mt-1 text-lg font-semibold text-white">{layer.title}</h3>
-            <p className="mt-1 text-sm text-zinc-400">{layer.subtitle}</p>
+          />
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-500">
+                Step {i + 1}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-white">{layer.title}</h3>
+              <p className="mt-1 text-sm text-zinc-400">{layer.subtitle}</p>
+            </div>
+            <span
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: layer.accent, boxShadow: `0 0 12px ${layer.accent}` }}
+            />
           </div>
-        );
-      })}
-      <p className="absolute bottom-2 left-0 right-0 text-center text-[11px] text-zinc-500">
-        {open ? "Exploded view" : "Hover to explode layers"}
-      </p>
+        </SpatialCard>
+      ))}
     </div>
   );
 }
@@ -308,6 +305,9 @@ export default function PortalLandingPage() {
             <a href="#packages" className="hover:text-white">
               Packages
             </a>
+            <a href="#customers" className="hover:text-white">
+              Customers
+            </a>
             <a href="#demos" className="hover:text-white">
               Live demos
             </a>
@@ -341,6 +341,7 @@ export default function PortalLandingPage() {
           <div className="border-t border-white/10 px-4 py-3 md:hidden space-y-2 text-sm">
             {[
               ["#packages", "Packages"],
+              ["#customers", "Customers"],
               ["#demos", "Live demos"],
               ["#care", "Care plan"],
               ["#quote", "Get quote"],
@@ -380,13 +381,14 @@ export default function PortalLandingPage() {
           <div className="flex flex-wrap gap-3">
             <a
               href="#packages"
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-zinc-200"
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-2.5 text-sm font-bold hover:bg-cyan-300"
+              style={{ color: "#061018" }}
             >
               See packages <ArrowRight className="h-4 w-4" />
             </a>
             <a
               href="#demos"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-zinc-200 hover:bg-white/5"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-500 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-zinc-100 hover:border-zinc-400 hover:bg-zinc-800"
             >
               Watch demos
             </a>
@@ -401,26 +403,26 @@ export default function PortalLandingPage() {
           </div>
         </div>
 
-        <ExplodedStack
+        <SpatialLayerStack
           layers={[
             {
-              title: "Care plan",
-              subtitle: "Storage · fixes · small site changes",
-              accent: "#a78bfa",
-            },
-            {
-              title: "Automation",
-              subtitle: "WhatsApp · booking · live progress",
-              accent: "#34d399",
+              title: "Website",
+              subtitle: "Your public face online",
+              accent: "#22d3ee",
             },
             {
               title: "Billing",
               subtitle: "UPI · cards · receipts",
-              accent: "#22d3ee",
+              accent: "#34d399",
             },
             {
-              title: "Website",
-              subtitle: "Your public face online",
+              title: "Automation",
+              subtitle: "WhatsApp · booking · live progress",
+              accent: "#a78bfa",
+            },
+            {
+              title: "Care plan",
+              subtitle: "Storage · fixes · small site changes",
               accent: "#fbbf24",
             },
           ]}
@@ -509,7 +511,8 @@ export default function PortalLandingPage() {
                   onClick={() =>
                     setForm((f) => ({ ...f, category: pkg.name }))
                   }
-                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-white/95 py-2.5 text-sm font-semibold text-zinc-950 hover:bg-white"
+                  className="mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 py-2.5 text-sm font-bold hover:bg-emerald-300"
+                  style={{ color: "#04140c" }}
                 >
                   Request this package <ChevronRight className="h-4 w-4" />
                 </a>
@@ -567,6 +570,133 @@ export default function PortalLandingPage() {
         </div>
       </section>
 
+      {/* Live customer */}
+      <section id="customers" className="relative z-10 border-t border-white/5 py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="mb-10 max-w-2xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-rose-300">
+              Already live
+            </p>
+            <h2 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">
+              Customers we’ve built for
+            </h2>
+            <p className="mt-3 text-zinc-400">
+              Real deployments you can open in a new tab during a sales call — not mockups.
+            </p>
+          </div>
+
+          <SpatialCard className="overflow-hidden p-0 lg:grid lg:grid-cols-[1.15fr_0.85fr]">
+            {/* Preview pane */}
+            <div className="relative min-h-[280px] border-b border-white/10 bg-gradient-to-br from-rose-500/20 via-zinc-950 to-zinc-950 p-6 lg:border-b-0 lg:border-r">
+              <div className="absolute inset-0 opacity-30 spatial-grid-pattern" />
+              <div className="relative space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-rose-400/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-200 border border-rose-400/40">
+                    Salon
+                  </span>
+                  <span className="rounded-full bg-emerald-400/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-200 border border-emerald-400/30">
+                    Website
+                  </span>
+                  <span className="rounded-full bg-cyan-400/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cyan-200 border border-cyan-400/30">
+                    Billing-ready
+                  </span>
+                </div>
+                <h3 className="text-2xl font-semibold text-white sm:text-3xl">
+                  S M Glamz Unisex Salon
+                </h3>
+                <p className="max-w-md text-sm leading-relaxed text-zinc-300">
+                  Premium grooming storefront — services, gallery, and contact flows for a
+                  unisex salon brand. Built as a live customer site you can demo today.
+                </p>
+                <div className="flex flex-wrap gap-3 text-xs text-zinc-400">
+                  <span className="inline-flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-rose-300" /> Customer site live
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Globe2 className="h-3.5 w-3.5 text-cyan-300" /> Mobile-first layout
+                  </span>
+                </div>
+                {/* Mini browser chrome mock */}
+                <div className="mt-4 overflow-hidden rounded-xl border border-white/15 bg-zinc-900/90 shadow-2xl">
+                  <div className="flex items-center gap-1.5 border-b border-white/10 bg-zinc-950 px-3 py-2">
+                    <span className="h-2 w-2 rounded-full bg-rose-400/80" />
+                    <span className="h-2 w-2 rounded-full bg-amber-400/80" />
+                    <span className="h-2 w-2 rounded-full bg-emerald-400/80" />
+                    <span className="ml-2 truncate font-mono text-[10px] text-zinc-500">
+                      smglamz.netlify.app
+                    </span>
+                  </div>
+                  <div className="space-y-3 p-4">
+                    <div className="h-3 w-1/3 rounded bg-rose-400/40" />
+                    <div className="h-2 w-2/3 rounded bg-zinc-700" />
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div className="aspect-[4/3] rounded-lg bg-gradient-to-br from-rose-500/40 to-zinc-800" />
+                      <div className="aspect-[4/3] rounded-lg bg-gradient-to-br from-fuchsia-500/30 to-zinc-800" />
+                      <div className="aspect-[4/3] rounded-lg bg-gradient-to-br from-amber-500/30 to-zinc-800" />
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <div className="h-7 flex-1 rounded-full bg-rose-400/50" />
+                      <div className="h-7 w-20 rounded-full bg-zinc-700" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="flex flex-col justify-between gap-6 p-6 sm:p-8">
+              <div className="space-y-4">
+                <p className="text-sm font-semibold text-white">What we delivered</p>
+                <ul className="space-y-2.5 text-sm text-zinc-300">
+                  {[
+                    "Salon brand website (services & presence)",
+                    "Mobile-ready booking / enquiry path",
+                    "Clear calls-to-action for walk-ins & appointments",
+                    "Hosted live for client demos",
+                  ].map((t) => (
+                    <li key={t} className="flex gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-zinc-500">
+                  Package fit: <span className="text-zinc-300">Website</span>
+                  {" · "}
+                  upgrade path: <span className="text-zinc-300">Website + Billing</span> / Care{" "}
+                  {formatINR(1500)}/mo
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://smglamz.netlify.app/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full bg-rose-400 px-5 py-2.5 text-sm font-bold hover:bg-rose-300"
+                  style={{ color: "#1a0508" }}
+                >
+                  Visit live site <ExternalLink className="h-4 w-4" />
+                </a>
+                <a
+                  href="#quote"
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      category: "Salon demo",
+                      description:
+                        "Similar to SM Glamz salon site — want Website / Website+Billing for my salon.",
+                    }))
+                  }
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-500 bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-zinc-100 hover:border-zinc-400"
+                >
+                  Get one like this
+                </a>
+              </div>
+            </div>
+          </SpatialCard>
+        </div>
+      </section>
+
       {/* Demos */}
       <section id="demos" className="relative z-10 border-t border-white/5 py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -585,11 +715,12 @@ export default function PortalLandingPage() {
                   key={id}
                   type="button"
                   onClick={() => setDemo(id)}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
                     demo === id
-                      ? "bg-white text-zinc-950"
-                      : "border border-white/15 text-zinc-400 hover:text-white"
+                      ? "bg-cyan-400"
+                      : "border border-zinc-600 bg-zinc-900 text-zinc-300 hover:border-zinc-400 hover:text-white"
                   }`}
+                  style={demo === id ? { color: "#061018" } : undefined}
                 >
                   {DEMOS[id].icon}
                   {DEMOS[id].title}
@@ -780,7 +911,8 @@ export default function PortalLandingPage() {
                 <button
                   type="submit"
                   disabled={busy}
-                  className="w-full rounded-full bg-white py-2.5 text-sm font-semibold text-zinc-950 disabled:opacity-60"
+                  className="w-full rounded-full bg-cyan-400 py-2.5 text-sm font-bold hover:bg-cyan-300 disabled:opacity-60"
+                  style={{ color: "#061018" }}
                 >
                   {busy ? "Sending…" : "Send quote request"}
                 </button>
