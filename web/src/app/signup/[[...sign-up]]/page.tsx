@@ -15,7 +15,11 @@ export default function SignupPage() {
           </div>
           <h1 className="text-2xl font-black tracking-tight">Create account</h1>
           <p className="text-xs text-[var(--muted)]">
-            Free Hobby Clerk auth — works across devices.
+            New accounts start on Free. Max is a 7-day trial —{" "}
+            <a href="/trial" className="text-[var(--accent-cyan)] hover:underline">
+              request access
+            </a>
+            , we verify, then email your API key.
           </p>
         </div>
         <div className="w-full max-w-md flex justify-center">

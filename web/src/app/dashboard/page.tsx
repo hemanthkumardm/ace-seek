@@ -23,7 +23,7 @@ type UserProfile = {
   id: string;
   email: string;
   name: string;
-  plan: "free" | "pro" | "team";
+  plan: "free" | "pro" | "max" | "team";
   apiKey: string;
 };
 
@@ -68,10 +68,10 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <span className="sk-badge sk-badge-live uppercase">{user.plan} PLAN</span>
             </div>
             <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--bevel-shadow)]">
-              <span className="text-[var(--muted)] font-mono">AUTH:</span>
+              <span className="text-[var(--muted)] font-mono">STATUS:</span>
               <span className="flex items-center gap-1.5 text-[#10b981] font-mono text-[11px] font-bold">
-                <span className="sk-led sk-led-green" />{" "}
-                {clerkPk?.trim() ? "CLERK" : "LOCAL"}
+                <span className="sk-led sk-led-green" />
+                SIGNED IN
               </span>
             </div>
             <div className="flex gap-2 mt-1">
@@ -80,7 +80,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                 className="sk-btn sk-btn-primary !text-xs !py-1 flex-1 justify-center"
               >
                 <Zap className="w-3 h-3 fill-white" />
-                <span>Upgrade Plan</span>
+                <span>Upgrade plan</span>
               </a>
               <button
                 type="button"
@@ -162,7 +162,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               {user.plan.toUpperCase()} capabilities.
             </p>
             <p className="pt-1 text-[var(--accent-cyan)]">
-              Multi-device: sign in with the same Clerk account — this key stays identical.
+              Multi-device: sign in with the same account — this key stays identical.
             </p>
           </div>
         </div>

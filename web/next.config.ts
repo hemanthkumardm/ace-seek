@@ -1,6 +1,19 @@
+import os from "os";
 import type { NextConfig } from "next";
 
+function lanDevOrigins(): string[] {
+  const hosts = new Set(["localhost", "127.0.0.1"]);
+  for (const addrs of Object.values(os.networkInterfaces())) {
+    for (const a of addrs || []) {
+      if (a.family === "IPv4" && !a.internal) hosts.add(a.address);
+    }
+  }
+  return [...hosts];
+}
+
 const nextConfig: NextConfig = {
+  // Let phones / other LAN devices load /_next chunks in `next dev -H 0.0.0.0`
+  allowedDevOrigins: lanDevOrigins(),
   // Large markdown uploads + long Docker/TeX compiles
   experimental: {
     serverActions: {

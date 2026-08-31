@@ -8,7 +8,7 @@
  */
 import type { UserPlan } from "@/lib/user-store";
 import { findUserByApiKey } from "@/lib/user-store";
-import { verifyIssuedApiKey } from "@/lib/api-keys";
+import { verifyIssuedApiKey, verifyTrialApiKey } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
 
@@ -30,6 +30,7 @@ export type Entitlements = {
   email?: string;
   name?: string;
   label: string;
+  trialExpiresAt?: number;
 
   // --- platform ---
   maxConvertsPerDay: number;
@@ -325,6 +326,14 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
     };
   }
 
+  const trial = verifyTrialApiKey(key);
+  if (trial.ok) {
+    return {
+      ...entitlementsForPlan("max"),
+      trialExpiresAt: trial.expiresAt,
+    };
+  }
+
   const issued = verifyIssuedApiKey(key);
   if (issued.ok) {
     return entitlementsForPlan(issued.plan);
@@ -397,6 +406,7 @@ export function publicEntitlements(e: Entitlements) {
     label: e.label,
     email: e.email,
     name: e.name,
+    trialExpiresAt: e.trialExpiresAt || null,
     maxConvertsPerDay: e.maxConvertsPerDay === INF ? null : e.maxConvertsPerDay,
     maxInputBytes: e.maxInputBytes === INF ? null : e.maxInputBytes,
     hasApiAccess: e.hasApiAccess,

@@ -223,6 +223,9 @@ export function SiteFooter() {
           <a href="/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Pricing & Plans
           </a>
+          <a href="/trial" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Request 7-day Max trial
+          </a>
           <a href="/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             User Dashboard & API Keys
           </a>
@@ -270,7 +273,7 @@ export function SiteFooter() {
           <div className="flex items-center gap-4 font-mono text-[11px]">
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-[var(--led-green)]" />
-              <span>v2.7.0-CLERK-AUTH</span>
+              <span>ace-seek.com</span>
             </span>
             <span className="text-[var(--accent-cyan)]">ace-seek.com</span>
           </div>

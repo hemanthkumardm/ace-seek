@@ -38,6 +38,7 @@ export default function PricingPage() {
 
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
             Billing and license seat management live exclusively on <span className="font-mono text-[var(--accent-cyan)]">ace-seek.com</span>. Subdomains verify your entitlements automatically without duplicate charges or extra checkouts.
+            Max is not auto-activated — <a href="/trial" className="text-[var(--accent-cyan)] underline-offset-2 hover:underline">request a 7-day trial</a>, we verify, then email the API key.
           </p>
         </div>
 
@@ -112,9 +113,7 @@ export default function PricingPage() {
         <section className="space-y-4">
           <h2 className="text-lg font-bold tracking-tight">What each plan unlocks</h2>
           <p className="text-xs text-[var(--muted)] max-w-2xl">
-            Subdomain tools read your API key and enable or lock features server-side.
-            Demo keys (dev): free@ / pro@ / max@ / team@ace-seek.com — password{" "}
-            <code className="font-mono">password123</code>.
+            Subdomain tools read your API key and enable or lock features for that plan.
           </p>
           <PlanFeatureTable />
         </section>

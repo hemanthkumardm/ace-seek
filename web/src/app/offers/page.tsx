@@ -9,6 +9,15 @@ export const metadata: Metadata = {
 
 const OFFERS = [
   {
+    title: "7-day Max trial (manual review)",
+    badge: "TRIAL",
+    blurb: "Students and engineers can request Max for 7 days. Submit name, college/company email, qualification, and why you need it. We verify, then email your API key — nothing is unlocked automatically.",
+    discount: "7 DAYS MAX",
+    code: "REQUEST_TRIAL",
+    cta: "Request Max trial",
+    href: "/trial",
+  },
+  {
     title: "Annual Billing — 20% Discount",
     badge: "SAVINGS",
     blurb: "Switch any Pro or Team subscription from monthly to annual billing and instantly lock in 20% off your total seat cost.",
@@ -64,7 +73,7 @@ export default function OffersPage() {
         </div>
 
         {/* Offers Cards Grid */}
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {OFFERS.map((offer) => (
             <div key={offer.title} className="sk-panel p-6 flex flex-col justify-between space-y-6">
               <div className="space-y-4">

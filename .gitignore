@@ -16,6 +16,10 @@
 # Keep examples source
 !examples/*.md
 
+# Local trial request cache (when Supabase table is missing)
+web/.data/
+.data/
+
 # Editor / OS
 .DS_Store
 *~

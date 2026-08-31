@@ -284,8 +284,8 @@ export const PRICING: PricingTier[] = [
     price: "$29",
     period: "/ month",
     blurb: "Unlock everything for one power user — no soft limits.",
-    cta: "Go Max",
-    ctaHref: "/signup?plan=max",
+    cta: "Request 7-day trial",
+    ctaHref: "/trial",
     features: [
       "Everything in Pro",
       "Unlimited converts & max file size",
@@ -293,6 +293,7 @@ export const PRICING: PricingTier[] = [
       "Power Studio (UPF) + ECO paths",
       "Priority queue · private vault",
       "All VLSI workstations unlocked",
+      "7-day trial by request — key emailed after review",
     ],
   },
   {

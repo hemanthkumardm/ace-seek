@@ -92,6 +92,11 @@ export default function CommandCenterHome() {
                 <span>View Pricing & Plans</span>
               </a>
 
+              <a href="/trial" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
+                <Key className="w-4 h-4 text-[var(--accent-cyan)]" />
+                <span>Request 7-day Max trial</span>
+              </a>
+
               <a href="/dashboard" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
                 <Key className="w-4 h-4 text-[var(--accent-cyan)]" />
                 <span>Dashboard & API Keys</span>

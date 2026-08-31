@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey } from "@/lib/user-store";
-import { verifyIssuedApiKey } from "@/lib/api-keys";
-import {
-  entitlementsFromApiKey,
-  publicEntitlements,
-  entitlementsForPlan,
-} from "@/lib/entitlements";
+import { verifyIssuedApiKey, verifyTrialApiKey } from "@/lib/api-keys";
+import { publicEntitlements, entitlementsForPlan } from "@/lib/entitlements";
+import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
 
 /**
  * Validate dashboard API keys for subdomain login (vlsi / tools).
@@ -41,9 +38,36 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const trial = verifyTrialApiKey(apiKey);
+    if (trial.ok) {
+      const ent = await entitlementsFromApiKeyAsync(apiKey);
+      if (ent.tier === "guest") {
+        return NextResponse.json(
+          { valid: false, error: "Trial key expired or revoked" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({
+        valid: true,
+        plan: "max",
+        tier: "max",
+        email: ent.email,
+        name: ent.name,
+        apiKey,
+        trialExpiresAt: ent.trialExpiresAt || trial.expiresAt,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+    if (trial.reason === "expired") {
+      return NextResponse.json(
+        { valid: false, error: "Trial key expired" },
+        { status: 403 }
+      );
+    }
+
     const issued = verifyIssuedApiKey(apiKey);
     if (issued.ok) {
-      const ent = entitlementsFromApiKey(apiKey);
+      const ent = await entitlementsFromApiKeyAsync(apiKey);
       return NextResponse.json({
         valid: true,
         plan: issued.plan,

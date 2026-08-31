@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { registerUser, createSessionToken, parseUserPlan } from "@/lib/user-store";
+import { registerUser, createSessionToken } from "@/lib/user-store";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, name, password, plan } = body;
+    const { email, name, password } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validPlan = parseUserPlan(plan);
-    const user = registerUser(email, name || "", password, validPlan);
+    // New accounts always start Free. Max is a 7-day trial issued after review.
+    const user = registerUser(email, name || "", password, "free");
     const token = createSessionToken(user);
 
     const res = NextResponse.json({

@@ -15,7 +15,8 @@ import {
   type PdfDocxMode,
 } from "@/lib/formats";
 import { hostCapabilities, which, enrichedPath } from "@/lib/compile-job";
-import { entitlementsFromApiKey, isPremiumPlan } from "@/lib/entitlements";
+import { isPremiumPlan } from "@/lib/entitlements";
+import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -147,7 +148,7 @@ export async function POST(req: NextRequest) {
       Math.min(400, Number(formData.get("exactDpi") ?? 300) || 300)
     );
     const apiKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
-    const entitlements = entitlementsFromApiKey(apiKey || null);
+    const entitlements = await entitlementsFromApiKeyAsync(apiKey || null);
     // Pro engine defaults ON for premium unless client explicitly sends false
     const proFlag = formData.get("useProEngine");
     const wantProEngine =
@@ -213,8 +214,7 @@ export async function POST(req: NextRequest) {
             error: "Exact look requires Pro+",
             details:
               "Exact look embeds each PDF page as a full-page image.\n\n" +
-              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).\n\n" +
-              "Demo: pro@ace-seek.com / password123  ·  max@ace-seek.com / password123",
+              "Plans: Free (editable only) → Pro (exact @ ≤300 DPI) → Max (400 DPI, unlimited).",
             code: "PLAN_LIMIT",
             upgradeUrl: "/pricing",
             feature: "exact",

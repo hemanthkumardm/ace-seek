@@ -15,7 +15,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-black tracking-tight">Sign in</h1>
           <p className="text-xs text-[var(--muted)]">
-            Ace-Seek account (Clerk). Multi-device — same email on any browser.
+            Sign in with your Ace-Seek account. Works on any device.
           </p>
         </div>
         <div className="w-full max-w-md flex justify-center">
