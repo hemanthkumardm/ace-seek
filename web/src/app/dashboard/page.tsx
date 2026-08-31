@@ -153,7 +153,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </button>
             </div>
             <p className="text-xs text-[var(--muted)]">
-              Max trial keys are emailed after we verify a request — they are not shown here.
+              Paste this key into VLSI and tools workstations to authorize your plan.
             </p>
           </div>
         </div>

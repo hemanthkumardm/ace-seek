@@ -99,7 +99,7 @@ export default function TrialRequestPage() {
               <KeyRound className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-              7-day Max trial
+              Max access request
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight">
@@ -301,7 +301,7 @@ export default function TrialRequestPage() {
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5" />
-                  <span>Submit trial request</span>
+                  <span>Submit request</span>
                 </>
               )}
             </button>

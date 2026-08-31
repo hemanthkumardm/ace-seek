@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Request 7-day Max trial",
+  title: "Request Max access",
   description:
-    "Request a 7-day Ace-Seek Max trial. We verify your college or company details and email your API key.",
+    "Request Ace-Seek Max access. We verify your details and email your API key.",
 };
 
 export default function TrialLayout({ children }: { children: ReactNode }) {

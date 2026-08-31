@@ -311,7 +311,7 @@ export const PRICING: PricingTier[] = [
     price: "₹2,499",
     period: "/ month",
     blurb: "Unlock everything for one power user — no soft limits.",
-    cta: "Request 7-day trial",
+    cta: "Request Max",
     ctaHref: "/trial",
     features: [
       "Everything in Pro",

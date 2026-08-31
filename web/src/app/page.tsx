@@ -95,6 +95,11 @@ export default function CommandCenterHome() {
                 <span>View Pricing & Plans</span>
               </a>
 
+              <a href="/trial" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
+                <Zap className="w-4 h-4 text-[var(--accent-cyan)]" />
+                <span>Request Max</span>
+              </a>
+
               <a href="/dashboard" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
                 <Key className="w-4 h-4 text-[var(--accent-cyan)]" />
                 <span>Dashboard & API Keys</span>
@@ -350,6 +355,10 @@ export default function CommandCenterHome() {
               <a href="/pricing" className="sk-btn sk-btn-ghost !text-xs !py-2.5 !px-5">
                 <CreditCard className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
                 <span>View Pricing Tiers</span>
+              </a>
+              <a href="/trial" className="sk-btn sk-btn-ghost !text-xs !py-2.5 !px-5">
+                <Zap className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+                <span>Request Max</span>
               </a>
             </div>
           </div>
