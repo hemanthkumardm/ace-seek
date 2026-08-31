@@ -8,7 +8,7 @@
  */
 import type { UserPlan } from "@/lib/user-store";
 import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
-import { verifyIssuedApiKey, planFromApiKeyString } from "@/lib/api-keys";
+import { verifyIssuedApiKey, planFromApiKeyString, verifyTrialApiKey } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
 
@@ -32,6 +32,7 @@ export type Entitlements = {
   email?: string;
   name?: string;
   label: string;
+  trialExpiresAt?: number;
 
   // --- platform ---
   maxConvertsPerDay: number;
@@ -374,6 +375,14 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
   const raw = apiKey.trim();
   const shortcut = raw.toLowerCase();
 
+  const trial = verifyTrialApiKey(raw);
+  if (trial.ok) {
+    return {
+      ...entitlementsForPlan("max"),
+      trialExpiresAt: trial.expiresAt,
+    };
+  }
+
   // Developer bypass / plan shortcuts — NEVER honor in production.
   // Empty key already elevates to team in development; production must use real keys.
   const allowShortcuts =
@@ -510,6 +519,7 @@ export function publicEntitlements(e: Entitlements) {
     label: e.label,
     email: e.email,
     name: e.name,
+    trialExpiresAt: e.trialExpiresAt || null,
     maxConvertsPerDay: e.maxConvertsPerDay === INF ? null : e.maxConvertsPerDay,
     maxInputBytes: e.maxInputBytes === INF ? null : e.maxInputBytes,
     hasApiAccess: e.hasApiAccess,

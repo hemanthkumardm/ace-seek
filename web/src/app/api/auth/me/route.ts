@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser, createClerkClient } from "@clerk/nextjs/server";
 import { getSessionData } from "@/lib/user-store";
-import { apiKeyForUserId, generateUserDualKeys } from "@/lib/api-keys";
+import { apiKeyForUserId } from "@/lib/api-keys";
 import { planFromClerkMetadata } from "@/lib/clerk-config";
 import { getUserKeysFromDb, saveApiKeyToDb } from "@/lib/supabase-keys";
-import { sendWelcomeTrialEmail } from "@/lib/email-service";
 
 function clerkEnabled(): boolean {
   return Boolean(
@@ -41,46 +40,30 @@ export async function GET(req: NextRequest) {
         email ||
         "Engineer";
 
-      const dualKeys = generateUserDualKeys(userId);
       const activeKey = apiKeyForUserId(userId, plan);
 
-      // Send welcome email ONLY ONCE per account creation
       if (email && !meta.welcome_sent) {
-        getUserKeysFromDb(userId, email).then(async (existingKeys) => {
-          if (existingKeys.length === 0) {
-            // First time user registration! Save dual keys in Supabase
-            await saveApiKeyToDb({
-              userId,
-              email,
-              keyType: "free",
-              apiKey: dualKeys.freeKey,
-              tier: "free",
-            });
-            await saveApiKeyToDb({
-              userId,
-              email,
-              keyType: "trial",
-              apiKey: dualKeys.trialKey,
-              tier: "max",
-            });
-            await sendWelcomeTrialEmail({
-              toEmail: email,
-              customerName: name,
-              freeKey: dualKeys.freeKey,
-              trialKey: dualKeys.trialKey,
-            });
-          }
-
-          // Mark welcome_sent = true in Clerk user metadata so logins NEVER re-trigger welcome email
-          try {
-            const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
-            await clerk.users.updateUserMetadata(userId, {
-              privateMetadata: { welcome_sent: true },
-            });
-          } catch {
-            // ignore metadata write error
-          }
-        }).catch(() => {});
+        getUserKeysFromDb(userId, email)
+          .then(async (existingKeys) => {
+            if (existingKeys.length === 0) {
+              await saveApiKeyToDb({
+                userId,
+                email,
+                keyType: "free",
+                apiKey: apiKeyForUserId(userId, "free"),
+                tier: "free",
+              });
+            }
+            try {
+              const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+              await clerk.users.updateUserMetadata(userId, {
+                privateMetadata: { welcome_sent: true },
+              });
+            } catch {
+              // ignore metadata write error
+            }
+          })
+          .catch(() => {});
       }
 
       return NextResponse.json({
@@ -92,9 +75,6 @@ export async function GET(req: NextRequest) {
           name,
           plan,
           apiKey: activeKey,
-          freeKey: dualKeys.freeKey,
-          trialKey: dualKeys.trialKey,
-          createdAt: user.createdAt,
         },
       });
     } catch {
@@ -113,8 +93,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
   }
 
-  const dualKeys = generateUserDualKeys(session.userId);
-
   return NextResponse.json({
     authenticated: true,
     provider: "legacy",
@@ -124,8 +102,6 @@ export async function GET(req: NextRequest) {
       name: session.name,
       plan: session.plan,
       apiKey: session.apiKey,
-      freeKey: dualKeys.freeKey,
-      trialKey: dualKeys.trialKey,
     },
   });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
-import { verifyIssuedApiKey, planFromApiKeyString } from "@/lib/api-keys";
+import { verifyIssuedApiKey, planFromApiKeyString, verifyTrialApiKey } from "@/lib/api-keys";
+import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
 import {
   publicEntitlements,
   entitlementsForPlan,
@@ -70,6 +71,35 @@ export async function POST(req: NextRequest) {
           entitlements: publicEntitlements(ent),
         });
       }
+    }
+
+    const trialSig = verifyTrialApiKey(apiKey);
+    if (trialSig.ok) {
+      const ent = await entitlementsFromApiKeyAsync(apiKey);
+      if (ent.tier === "guest") {
+        return NextResponse.json(
+          { valid: false, error: "Trial key expired or revoked" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({
+        valid: true,
+        plan: "max",
+        tier: "max",
+        keyType: "trial",
+        trialActive: true,
+        expiresAt: new Date(ent.trialExpiresAt || trialSig.expiresAt).toISOString(),
+        email: ent.email,
+        name: ent.name,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+    if (trialSig.reason === "expired") {
+      return NextResponse.json(
+        { valid: false, error: "Trial key expired" },
+        { status: 403 }
+      );
     }
 
     // 2. Check Supabase DB for manual/custom key record overrides first

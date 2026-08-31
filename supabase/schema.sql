@@ -148,3 +148,34 @@ alter table public.openroad_artifacts enable row level security;
 
 comment on table public.openroad_projects is 'OpenROAD Project/Design/Studio state; Clerk user_id';
 comment on table public.openroad_artifacts is 'Per-stage logs/reports; large files in storage.openroad-artifacts';
+
+-- Manual 7-day Max trial requests (approve → email API key)
+create table if not exists public.trial_requests (
+  id text primary key,
+  name text not null,
+  email text not null,
+  qualification text not null,
+  organization text not null,
+  affiliation text not null default 'other',
+  reason text not null,
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
+  api_key text,
+  plan text not null default 'max',
+  trial_starts_at timestamptz,
+  trial_expires_at timestamptz,
+  reviewed_at timestamptz,
+  review_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists trial_requests_email_pending_idx
+  on public.trial_requests (email)
+  where status = 'pending';
+
+create index if not exists trial_requests_email_idx
+  on public.trial_requests (email);
+
+create unique index if not exists trial_requests_api_key_idx
+  on public.trial_requests (api_key)
+  where api_key is not null;
