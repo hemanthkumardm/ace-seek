@@ -18,6 +18,7 @@ import {
   pandocWriter,
 } from "@/lib/formats";
 import { projectRoot, enrichedPath, which } from "@/lib/compile-job";
+import { smartPdfToMarkdown } from "@/lib/pdf-structure";
 
 export type ConvertJobStatus = "queued" | "running" | "done" | "error";
 
@@ -578,42 +579,34 @@ async function convertFromPdf(
     return;
   }
 
-  const text = await pdfToText(inputPath, cwd);
-  log(`pdftotext: ${text.length} chars`);
+  const rawText = await pdfToText(inputPath, cwd);
+  log(`pdftotext: ${rawText.length} chars`);
+
+  const structuredMd = smartPdfToMarkdown(rawText, input.filename);
 
   if (to === "plain") {
-    writeFileSync(outputPath, text, "utf8");
+    writeFileSync(outputPath, rawText, "utf8");
     return;
   }
 
   if (to === "md") {
-    // Light wrap as markdown document
-    const md =
-      `# Extracted from PDF\n\n` +
-      text
-        .split(/\n{2,}/)
-        .map((p) => p.trim())
-        .filter(Boolean)
-        .join("\n\n") +
-      "\n";
-    writeFileSync(outputPath, md, "utf8");
+    writeFileSync(outputPath, structuredMd, "utf8");
     return;
   }
 
-  // Intermediate plain → target via pandoc
-  const mid = path.join(cwd, "extracted.txt");
-  writeFileSync(mid, text, "utf8");
+  // Intermediate structured Markdown → target via pandoc (LaTeX, HTML, ODT, DOCX)
+  const mid = path.join(cwd, "extracted.md");
+  writeFileSync(mid, structuredMd, "utf8");
 
   if (to === "pdf") {
-    // re-typeset extracted text
-    await convertToPdf("plain", mid, outputPath, cwd, input, log);
+    // re-typeset structured document
+    await convertToPdf("md", mid, outputPath, cwd, input, log);
     return;
   }
 
   if (!which("pandoc")) throw new Error("pandoc not found");
   const t = pandocWriter(to);
   if (!t) throw new Error(`Cannot convert PDF → ${to}`);
-  // Extracted PDF text is not Pandoc "plain" (write-only). Read as markdown.
   const args = [mid, "-f", "markdown", "-t", t, "-o", outputPath];
   if (to === "html" || to === "tex" || to === "odt") {
     args.push("--standalone");

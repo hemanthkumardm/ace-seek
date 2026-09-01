@@ -4,6 +4,7 @@ import React from "react";
 import { Crown, Lock, Sparkles } from "lucide-react";
 import type { PlanTier } from "@/lib/entitlements";
 import { planLabel } from "@/lib/entitlements";
+import { mainPricingHref } from "@/lib/site";
 
 type Props = {
   /** Feature is locked for current plan */
@@ -35,10 +36,10 @@ export function FeatureLock({
   if (mode === "badge") {
     return (
       <span
-        className={`inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 ${className}`}
+        className={`inline-flex items-center gap-1 rounded-full bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold text-amber-400 ${className}`}
         title={title || `${need}+ required`}
       >
-        <Lock className="h-3 w-3" />
+        <Lock className="h-3 w-3 text-amber-400" />
         {need}+
       </span>
     );
@@ -55,24 +56,24 @@ export function FeatureLock({
   return (
     <div className={`relative ${className}`}>
       <div className="pointer-events-none select-none opacity-40 blur-[0.5px]">{children}</div>
-      <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-[1px] p-4">
-        <div className="max-w-xs rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-lg">
-          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="max-w-xs rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] p-4 text-center shadow-2xl">
+          <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
             {requires === "team" ? (
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 text-amber-400" />
             ) : (
-              <Crown className="h-4 w-4" />
+              <Crown className="h-4 w-4 text-amber-400" />
             )}
           </div>
-          <p className="text-sm font-semibold text-slate-900">
+          <p className="text-sm font-semibold text-slate-100 font-mono">
             {title || `${need} feature`}
           </p>
-          <p className="mt-1 text-xs text-slate-500">
-            Upgrade to <strong>{need}</strong> (or higher) and activate your API key to unlock.
+          <p className="mt-1 text-xs text-slate-400">
+            Upgrade to <strong className="text-cyan-400">{need}</strong> (or higher) and activate your API key to unlock.
           </p>
           <a
-            href="/pricing"
-            className="mt-3 inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-slate-800"
+            href={mainPricingHref()}
+            className="mt-3 inline-flex items-center gap-1 rounded-full bg-[var(--accent-cyan)] text-black font-black px-4 py-1.5 text-[11px] hover:bg-cyan-300 transition-all shadow-md"
           >
             <Lock className="h-3 w-3" />
             View plans
@@ -83,17 +84,34 @@ export function FeatureLock({
   );
 }
 
-export function PlanPill({ tier }: { tier: PlanTier }) {
+export function PlanPill({
+  tier,
+  /** When false, render a neutral placeholder (avoids Guest→Team flash / hydration issues) */
+  ready = true,
+}: {
+  tier: PlanTier;
+  ready?: boolean;
+}) {
   const colors: Record<string, string> = {
-    guest: "bg-slate-100 text-slate-600",
-    free: "bg-slate-100 text-slate-700",
-    pro: "bg-sky-50 text-sky-800",
-    max: "bg-violet-50 text-violet-800",
-    team: "bg-amber-50 text-amber-900",
+    guest: "bg-slate-800 text-slate-400 border border-slate-700",
+    free: "bg-slate-800 text-slate-300 border border-slate-700",
+    pro: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30",
+    max: "bg-purple-500/10 text-purple-400 border border-purple-500/30",
+    team: "bg-amber-500/10 text-amber-400 border border-amber-500/30",
   };
+  if (!ready) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold font-mono bg-slate-800 text-slate-500 border border-slate-700 min-w-[4.5rem] justify-center"
+        aria-hidden
+      >
+        …
+      </span>
+    );
+  }
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold font-mono ${
         colors[tier] || colors.guest
       }`}
     >

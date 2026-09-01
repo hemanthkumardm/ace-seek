@@ -1,26 +1,34 @@
 # Dockerfile.web — single container for AIC web UI + Pandoc + TeX
 # Used by docker-compose on Oracle (or any VPS).
 #
-# Build:  docker compose build
-# Run:    docker compose up -d
-#
-# Inside this image, compiles use host TeX (local backend) — no Docker-in-Docker.
+# Build:  docker build -f Dockerfile.web -t aic .
+# Run:    docker run -d --name ace-compiler -p 3000:3000 aic
 
-# pandoc/latex is amd64-only (use QEMU on Apple Silicon)
 FROM --platform=linux/amd64 pandoc/latex:latest
 
 USER root
 
-# Node (Next.js), Python (preprocess), fonts
+# Node (Next.js), Python (preprocess), fonts, docker client for OpenROAD, VNC virtual display
 RUN apk add --no-cache \
       nodejs \
       npm \
       python3 \
+      py3-pip \
       bash \
       font-dejavu \
       fontconfig \
       ttf-freefont \
+      docker-cli \
+      poppler-utils \
       tini \
+      xvfb \
+      x11vnc \
+      fluxbox \
+      procps \
+      git \
+    && (pip install --no-cache-dir --break-system-packages websockify 2>/dev/null || pip install --no-cache-dir websockify) \
+    && git clone --depth 1 https://github.com/novnc/noVNC.git /usr/share/novnc \
+    && ln -s /usr/share/novnc/vnc.html /usr/share/novnc/index.html 2>/dev/null || true \
     && fc-cache -f \
     && node --version \
     && npm --version \
@@ -29,11 +37,12 @@ RUN apk add --no-cache \
 # TeX Live from base image is already on PATH via pandoc/latex
 WORKDIR /app
 
-# CLI + templates
+# CLI + scripts + workers
 COPY bin/ ./bin/
 COPY scripts/ ./scripts/
-COPY templates/ ./templates/
-RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess
+COPY workers/ ./workers/
+RUN mkdir -p ./templates
+RUN chmod +x ./bin/aic ./bin/aic-preprocess ./scripts/*.sh ./workers/openroad/*.sh ./workers/openroad/*.py 2>/dev/null || chmod +x ./bin/aic ./bin/aic-preprocess || true
 
 # Web app deps first (better layer cache)
 COPY web/package.json web/package-lock.json* ./web/
@@ -45,6 +54,7 @@ COPY web/ ./
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 ENV AIC_ROOT=/app
 # All compiles use TeX inside this container (no nested docker)
 ENV AIC_FORCE_LOCAL=1
@@ -52,17 +62,21 @@ ENV AIC_BACKEND_DEFAULT=local
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# Clerk authentication environment variables
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_c3VwZXItY2F0dGxlLTc5LmNsZXJrLmFjY291bnRzLmRldiQ
+ENV CLERK_SECRET_KEY=sk_test_321ystwxZHxC2dOk5VH2XF8B9a80lC19uYzbBkQ74g
+
 # Baked into the Next build for command-center → product links
-ARG NEXT_PUBLIC_SITE_URL=https://ace-seek.com
-ARG NEXT_PUBLIC_DOC_URL=https://doc.ace-seek.com
-ARG NEXT_PUBLIC_TIMING_URL=https://timing.ace-seek.com
-ARG NEXT_PUBLIC_SCRIPTS_URL=https://scripts.ace-seek.com
+ARG NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
+ARG NEXT_PUBLIC_DOC_URL=https://tools.ace-seek.com
+ARG NEXT_PUBLIC_TIMING_URL=https://vlsi.ace-seek.com
+ARG NEXT_PUBLIC_SCRIPTS_URL=https://tools.ace-seek.com
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_PUBLIC_DOC_URL=$NEXT_PUBLIC_DOC_URL
 ENV NEXT_PUBLIC_TIMING_URL=$NEXT_PUBLIC_TIMING_URL
 ENV NEXT_PUBLIC_SCRIPTS_URL=$NEXT_PUBLIC_SCRIPTS_URL
 
-RUN npm run build
+RUN NODE_OPTIONS="--max-old-space-size=2048" npm run build
 
 EXPOSE 3000
 

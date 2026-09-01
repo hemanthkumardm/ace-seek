@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { PlanFeatureTable } from "@/components/PlanFeatureTable";
-import { PRICING } from "@/lib/site";
+import { PricingClient } from "@/app/pricing/PricingClient";
+import { PORTAL_URL, PRICING } from "@/lib/site";
 import {
   CreditCard,
   CheckCircle2,
   Sparkles,
   ArrowRight,
   ShieldCheck,
+  Building2,
+  ExternalLink,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -42,76 +45,56 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Pricing Cards Grid */}
-        <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {PRICING.map((tier) => (
-            <li key={tier.id}>
-              <div
-                className={`sk-panel p-6 flex flex-col justify-between h-full space-y-6 ${
-                  tier.highlighted
-                    ? "border-[var(--accent-cyan)] shadow-cyan-950/30"
-                    : ""
-                }`}
-              >
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-[var(--foreground)]">
-                      {tier.name}
-                    </h2>
-                    {tier.highlighted && (
-                      <span className="sk-badge sk-badge-live">
-                        <Sparkles className="w-3 h-3 text-[var(--accent-cyan)]" />
-                        <span>MOST POPULAR</span>
-                      </span>
-                    )}
-                  </div>
+        {/* Pricing cards — paid plans use secure checkout */}
+        <PricingClient />
 
-                  <div className="sk-recessed p-4 flex items-baseline gap-1">
-                    <span className="text-3xl font-black font-mono text-[var(--foreground)]">
-                      {tier.price}
-                    </span>
-                    {tier.period && (
-                      <span className="text-xs font-mono text-[var(--muted)]">
-                        {tier.period}
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-[var(--muted)] leading-relaxed">
-                    {tier.blurb}
-                  </p>
-
-                  <div className="pt-3 border-t border-[var(--bevel-shadow)]">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] mb-3">
-                      Included Capabilities:
-                    </p>
-                    <ul className="space-y-2.5 text-xs text-[var(--muted)]">
-                      {tier.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)] shrink-0 mt-0.5" />
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <a
-                  href={tier.ctaHref}
-                  className={`sk-btn text-xs w-full justify-center ${
-                    tier.highlighted ? "sk-btn-primary" : "sk-btn-ghost"
-                  }`}
-                >
-                  <span>{tier.cta}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </a>
+        {/* DEDICATED CALLOUT: Custom Projects & Business Automation Portals */}
+        <div className="sk-panel p-8 md:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-[var(--surface-panel)] to-slate-950/40 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="sk-icon-well w-10 h-10 rounded-xl bg-amber-500/10 border-amber-500/30 text-amber-400">
+                <Sparkles className="w-5 h-5" />
               </div>
-            </li>
-          ))}
-        </ul>
+              <div>
+                <span className="sk-badge text-[10px] font-black uppercase text-amber-400 border-amber-500/30">
+                  Custom & Project-Based Solutions
+                </span>
+                <h3 className="text-xl font-black text-white mt-1">
+                  Looking for Academic VLSI Projects or Business Automation?
+                </h3>
+              </div>
+            </div>
+
+            <a
+              href={PORTAL_URL}
+              className="sk-btn sk-btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !font-black !text-xs !py-2.5 !px-5 inline-flex items-center gap-1.5 shadow-lg shadow-amber-950/50"
+            >
+              <span>Explore portal.ace-seek.com</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+            Our SaaS subscriptions (<strong className="text-white">Free, Pro, Max</strong>) cover the Cloud EDA software toolchain (<code className="text-[var(--accent-cyan)]">openroad</code>, <code className="text-[var(--accent-cyan)]">vlsi</code>, <code className="text-[var(--accent-cyan)]">tools</code>). For <strong>Academic VLSI Design Capstones</strong>, <strong>Enterprise Custom ASIC Engineering</strong>, or <strong>Small-Business WhatsApp Automation Portals</strong>, dedicated project & monthly subscription pricing is available directly on our Solutions Portal.
+          </p>
+
+          <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-amber-500/20 text-xs">
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Academic Capstones</span>
+              <p className="text-slate-300 text-[11px]">RTL-to-GDSII verification, clean reports, IEEE documentation.</p>
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">ASIC Consulting</span>
+              <p className="text-slate-300 text-[11px]">Custom PDK integration, dedicated flow scripting & tape-out guidance.</p>
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Business Automation</span>
+              <p className="text-slate-300 text-[11px]">WhatsApp billing pipelines & custom client portals from ₹1,499/mo.</p>
+            </div>
+          </div>
+        </div>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-bold tracking-tight">What each plan unlocks</h2>
           <p className="text-xs text-[var(--muted)] max-w-2xl">
             Subdomain tools read your API key and enable or lock features for that plan.
           </p>
@@ -125,7 +108,7 @@ export default function PricingPage() {
               <ShieldCheck className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <div>
-              <h3 className="text-base font-bold">Stripe Enterprise Security & Invoicing</h3>
+              <h3 className="text-base font-bold">Billing Security & Invoicing</h3>
               <p className="text-xs text-[var(--muted)]">
                 Centralized billing management and seat delegation.
               </p>
@@ -134,10 +117,10 @@ export default function PricingPage() {
 
           <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed font-mono">
             <p>
-              • Stripe Customer Portal handles all credit cards, invoices, tax IDs, and subscription upgrades.
+              • Secure customer portal for cards, invoices, tax IDs, and subscription upgrades.
             </p>
             <p>
-              • Single-sign-on (SSO) session tokens inherit Pro entitlements across doc.ace-seek.com, timing.ace-seek.com, and lab utilities.
+              • One Ace-Seek account unlocks Pro entitlements across www, vlsi, and tools product sites.
             </p>
           </div>
         </div>

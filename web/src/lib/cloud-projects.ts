@@ -1,6 +1,6 @@
 /**
  * Client helpers for cloud SDC projects (calls /api/projects/sdc).
- * No-ops gracefully when not signed in or Supabase not configured.
+ * No-ops gracefully when not signed in or cloud storage is unavailable.
  */
 
 import type { SdcStudioState } from "@/lib/sdc-engine";

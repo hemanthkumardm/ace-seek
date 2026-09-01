@@ -11,7 +11,7 @@ import type { TimingPath, TimingStep } from "./timing-engine";
 // Types
 // ---------------------------------------------------------------------------
 
-export type CellNameStyle = "d_drive" | "x_suffix" | "trail_digit" | "opaque";
+export type CellNameStyle = "d_drive" | "foundry_d" | "x_suffix" | "trail_digit" | "opaque";
 
 export interface ParsedCellName {
   raw: string;

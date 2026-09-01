@@ -23,7 +23,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 
 export default function FormatConverterPage() {
-  const { ent, isPremium } = useEntitlements();
+  const { ent } = useEntitlements();
   const allowedFrom = ent.format.from as DataFormat[];
   const allowedTo = ent.format.to as DataFormat[];
 
@@ -42,8 +42,6 @@ export default function FormatConverterPage() {
   const fromMeta = formatInfo(from);
   const toMeta = formatInfo(to);
   const pairOk = canConvertData(from, to);
-  const fromAllowed = allowedFrom.includes(from);
-  const toAllowed = allowedTo.includes(to);
 
   const runConvert = useCallback(
     (src?: string, f?: DataFormat, t?: DataFormat) => {
@@ -52,7 +50,7 @@ export default function FormatConverterPage() {
       if (!allowedFrom.includes(ff) || !allowedTo.includes(tt)) {
         setOutput("");
         setError(
-          `“${ff} → ${tt}” needs a higher plan (you’re on ${ent.label}). Upgrade at /pricing.`
+          `“${ff} → ${tt}” needs a higher plan (you’re on ${ent.label}). Upgrade at https://www.ace-seek.com/pricing.`
         );
         setNote("");
         return;
@@ -100,13 +98,11 @@ export default function FormatConverterPage() {
     setFrom(nextFrom);
     setTo(nextTo);
     setInput(nextInput);
-    // convert will run via live effect
     flash("Swapped formats");
   };
 
   const onFromChange = (f: DataFormat) => {
     setFrom(f);
-    // If empty-ish, load sample
     if (!input.trim() || input === formatInfo(from).sample) {
       setInput(formatInfo(f).sample);
     }
@@ -179,20 +175,20 @@ export default function FormatConverterPage() {
   }, [error, pairOk, note, output]);
 
   return (
-    <div className="absolute inset-0 flex flex-col overflow-hidden bg-[#f0f2f5] text-slate-800">
+    <div className="absolute inset-0 flex flex-col overflow-hidden bg-[var(--background)] text-slate-200 font-mono">
       {/* Header */}
-      <header className="shrink-0 border-b border-slate-200/80 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
+      <header className="shrink-0 border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-violet-600 shrink-0">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/30 shrink-0 font-bold">
               <RefreshCw className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-[15px] font-semibold text-slate-900">
-                Format converter
+              <h1 className="text-sm font-bold text-slate-100 uppercase tracking-tight">
+                Format Converter
               </h1>
               <p className="text-[11px] text-slate-400 truncate">
-                JSON · YAML · TOML · CSV · Base64 · URL · Hex — plan-gated
+                JSON · YAML · TOML · CSV · Base64 · URL · Hex
               </p>
             </div>
           </div>
@@ -200,12 +196,12 @@ export default function FormatConverterPage() {
           <div className="flex items-center gap-2">
             <PlanPill tier={ent.tier} />
             <span
-              className={`rounded-full px-3 py-1 text-xs font-medium ${
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
                 error
-                  ? "bg-rose-50 text-rose-700"
+                  ? "bg-rose-500/10 text-rose-400 border border-rose-500/30"
                   : output
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                    : "bg-slate-800 text-slate-400 border border-slate-700"
               }`}
             >
               {error ? "Error" : output ? "Converted" : "Waiting"}
@@ -215,19 +211,19 @@ export default function FormatConverterPage() {
       </header>
 
       {/* Controls */}
-      <div className="shrink-0 border-b border-slate-200/60 bg-white px-4 py-3 sm:px-6">
+      <div className="shrink-0 border-b border-[var(--bevel-shadow)] bg-[var(--surface-panel)] px-4 py-3 sm:px-6">
         <div className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-slate-600">
+          <label className="flex flex-col gap-1 text-[11px] font-bold text-slate-400 uppercase">
             From
             <select
               value={from}
               onChange={(e) => onFromChange(e.target.value as DataFormat)}
-              className="min-w-[8.5rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-200"
+              className="min-w-[8.5rem] rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[var(--accent-cyan)]"
             >
               {DATA_FORMATS.map((f) => {
                 const ok = allowedFrom.includes(f.id);
                 return (
-                  <option key={f.id} value={f.id} disabled={!ok}>
+                  <option key={f.id} value={f.id} disabled={!ok} className="bg-slate-900 text-slate-200">
                     {f.label}
                     {!ok ? " · Pro+" : ""}
                   </option>
@@ -239,23 +235,23 @@ export default function FormatConverterPage() {
           <button
             type="button"
             onClick={swap}
-            className="mb-0.5 rounded-full border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+            className="mb-0.5 rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-300 hover:bg-slate-700 transition-all"
             title="Swap formats"
           >
             <ArrowLeftRight className="h-4 w-4" />
           </button>
 
-          <label className="flex flex-col gap-1 text-[11px] font-medium text-slate-600">
+          <label className="flex flex-col gap-1 text-[11px] font-bold text-slate-400 uppercase">
             To
             <select
               value={to}
               onChange={(e) => setTo(e.target.value as DataFormat)}
-              className="min-w-[8.5rem] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 focus:ring-violet-200"
+              className="min-w-[8.5rem] rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 outline-none focus:border-[var(--accent-cyan)]"
             >
               {DATA_FORMATS.map((f) => {
                 const ok = allowedTo.includes(f.id);
                 return (
-                  <option key={f.id} value={f.id} disabled={!ok}>
+                  <option key={f.id} value={f.id} disabled={!ok} className="bg-slate-900 text-slate-200">
                     {f.label}
                     {!ok ? " · Pro+" : ""}
                   </option>
@@ -264,19 +260,19 @@ export default function FormatConverterPage() {
             </select>
           </label>
 
-          <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs text-slate-600 select-none">
+          <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs text-slate-400 select-none font-medium">
             <input
               type="checkbox"
-              className="rounded border-slate-300 text-violet-600"
+              className="rounded accent-[var(--accent-cyan)]"
               checked={live}
               onChange={(e) => setLive(e.target.checked)}
             />
             Live
           </label>
-          <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs text-slate-600 select-none">
+          <label className="mb-1 flex cursor-pointer items-center gap-2 text-xs text-slate-400 select-none font-medium">
             <input
               type="checkbox"
-              className="rounded border-slate-300 text-violet-600"
+              className="rounded accent-[var(--accent-cyan)]"
               checked={pretty}
               onChange={(e) => setPretty(e.target.checked)}
             />
@@ -287,7 +283,7 @@ export default function FormatConverterPage() {
             <button
               type="button"
               onClick={() => runConvert()}
-              className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-cyan)] px-4 py-1.5 text-xs font-black text-black hover:bg-cyan-300 transition-all shadow-md"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               Convert
@@ -296,7 +292,7 @@ export default function FormatConverterPage() {
               type="button"
               onClick={() => void copyOut()}
               disabled={!output}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? "Copied" : "Copy"}
@@ -312,7 +308,7 @@ export default function FormatConverterPage() {
               }}
               disabled={!output || !ent.format.download}
               title={ent.format.download ? "Download result" : "Pro+ required"}
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
             >
               <Download className="h-3.5 w-3.5" />
               Save{!ent.format.download ? " · Pro+" : ""}
@@ -333,10 +329,10 @@ export default function FormatConverterPage() {
                   setInput(formatInfo(p.from).sample);
                 }
               }}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition ${
+              className={`rounded-md px-2.5 py-1 text-[11px] font-bold transition ${
                 from === p.from && to === p.to
-                  ? "bg-violet-100 text-violet-800"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  ? "bg-[var(--accent-cyan)]/20 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/40"
+                  : "bg-slate-800/80 text-slate-400 border border-slate-700 hover:bg-slate-700"
               }`}
             >
               {p.label}
@@ -348,10 +344,10 @@ export default function FormatConverterPage() {
       {/* Panels */}
       <div className="grid min-h-0 flex-1 gap-3 p-3 sm:p-4 lg:grid-cols-2">
         {/* Input */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] shadow-2xl">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--bevel-shadow)] px-3 py-2 bg-[var(--surface-recessed)]">
             <div>
-              <p className="text-xs font-semibold text-slate-800">Input</p>
+              <p className="text-xs font-bold text-slate-200">Input</p>
               <p className="text-[11px] text-slate-400">{fromMeta.label}</p>
             </div>
             <div className="flex items-center gap-1.5">
@@ -365,7 +361,7 @@ export default function FormatConverterPage() {
                   detect();
                 }}
                 disabled={!ent.format.detect && ent.tier === "guest"}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700 disabled:opacity-40"
                 title="Auto-detect format"
               >
                 <Wand2 className="h-3 w-3" />
@@ -374,7 +370,7 @@ export default function FormatConverterPage() {
               <button
                 type="button"
                 onClick={loadSample}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700"
               >
                 Sample
               </button>
@@ -391,7 +387,7 @@ export default function FormatConverterPage() {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-50"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-bold text-slate-300 hover:bg-slate-700"
               >
                 <Upload className="h-3 w-3" />
                 File
@@ -403,22 +399,22 @@ export default function FormatConverterPage() {
             onChange={(e) => setInput(e.target.value)}
             spellCheck={false}
             placeholder={`Paste ${fromMeta.label} here…`}
-            className="min-h-[12rem] flex-1 resize-none border-0 bg-transparent px-3 py-3 font-mono text-[12px] leading-relaxed text-slate-800 outline-none placeholder:text-slate-300"
+            className="min-h-[12rem] flex-1 resize-none border-0 bg-transparent px-3 py-3 font-mono text-[12px] leading-relaxed text-slate-200 outline-none placeholder:text-slate-600"
           />
         </section>
 
         {/* Output */}
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+        <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] shadow-2xl">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[var(--bevel-shadow)] px-3 py-2 bg-[var(--surface-recessed)]">
             <div>
-              <p className="text-xs font-semibold text-slate-800">Result</p>
+              <p className="text-xs font-bold text-slate-200">Result</p>
               <p className="text-[11px] text-slate-400">{toMeta.label}</p>
             </div>
             <button
               type="button"
               onClick={() => void copyOut()}
               disabled={!output}
-              className="inline-flex items-center gap-1 rounded-lg bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 disabled:opacity-40"
+              className="inline-flex items-center gap-1 rounded-md bg-[var(--accent-cyan)] px-2.5 py-1 text-[11px] font-black text-black hover:bg-cyan-300 disabled:opacity-40"
             >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               {copied ? "Copied" : "Copy"}
@@ -426,11 +422,11 @@ export default function FormatConverterPage() {
           </div>
 
           {error ? (
-            <div className="flex flex-1 items-start gap-2 overflow-auto p-4 text-sm text-rose-700">
+            <div className="flex flex-1 items-start gap-2 overflow-auto p-4 text-sm text-rose-400 bg-rose-950/20">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <div>
-                <p className="font-medium">Couldn’t convert</p>
-                <p className="mt-1 font-mono text-xs text-rose-600/90 whitespace-pre-wrap">
+                <p className="font-bold">Couldn’t convert</p>
+                <p className="mt-1 font-mono text-xs text-rose-300 whitespace-pre-wrap">
                   {error}
                 </p>
               </div>
@@ -440,23 +436,23 @@ export default function FormatConverterPage() {
               readOnly
               value={output}
               placeholder="Result appears here…"
-              className="min-h-[12rem] flex-1 resize-none border-0 bg-slate-50/50 px-3 py-3 font-mono text-[12px] leading-relaxed text-slate-800 outline-none placeholder:text-slate-300"
+              className="min-h-[12rem] flex-1 resize-none border-0 bg-slate-950/40 px-3 py-3 font-mono text-[12px] leading-relaxed text-cyan-300 outline-none placeholder:text-slate-600"
             />
           )}
         </section>
       </div>
 
       {/* Status footer */}
-      <footer className="shrink-0 border-t border-slate-200/80 bg-white/80 px-4 py-2 text-[11px] text-slate-500 sm:px-6">
-        <span className="font-medium text-slate-600">
+      <footer className="shrink-0 border-t border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] px-4 py-2 text-[11px] text-slate-400 sm:px-6">
+        <span className="font-bold text-slate-300">
           {fromMeta.label} → {toMeta.label}
         </span>
-        <span className="mx-2 text-slate-300">·</span>
-        <span className={error ? "text-rose-600" : ""}>{statusLine}</span>
+        <span className="mx-2 text-slate-600">·</span>
+        <span className={error ? "text-rose-400" : ""}>{statusLine}</span>
       </footer>
 
       {toast && (
-        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-4 py-2 text-xs font-medium text-white shadow-lg">
+        <div className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-bold text-slate-100 shadow-2xl">
           {toast}
         </div>
       )}

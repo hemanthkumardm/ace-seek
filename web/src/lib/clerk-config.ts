@@ -15,8 +15,7 @@ export function isClerkConfigured(): boolean {
 export function planFromClerkMetadata(
   meta: Record<string, unknown> | null | undefined
 ): "free" | "pro" | "max" | "team" {
-  const raw = meta?.plan;
-  // Trial Max keys are emailed only — never attach them to the dashboard plan.
+  const raw = meta?.plan || meta?.tier;
   if (meta?.trialExpiresAt || meta?.trial_expires_at) {
     if (raw === "pro" || raw === "team") return raw;
     return "free";

@@ -215,7 +215,6 @@ export function normalizeMmmcState(raw: Partial<MmmcState> | MmmcState): MmmcSta
   return state;
 }
 
-/** Minimal starter — structure mirrors Innovus dual-corner func mode */
 export function starterMmmcState(): MmmcState {
   const libSs = createLibrarySet({
     id: "lib_ss",

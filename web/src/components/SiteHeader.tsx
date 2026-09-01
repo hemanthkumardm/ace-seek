@@ -15,7 +15,9 @@ import {
   Shield,
   Activity,
   Boxes,
+  Sparkles,
 } from "lucide-react";
+import { PORTAL_URL } from "@/lib/site";
 
 type Props = {
   /** Highlight active nav key */
@@ -23,6 +25,7 @@ type Props = {
     | "home"
     | "products"
     | "pricing"
+    | "portal"
     | "offers"
     | "advertise"
     | "blog"
@@ -183,6 +186,7 @@ export function SiteHeader({ active }: Props) {
               </a>
             )}
             {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
+            {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
             {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
             {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
             {link("docs", "https://www.ace-seek.com/docs", "Docs", FileText)}
@@ -220,7 +224,7 @@ export function SiteFooter() {
             <CreditCard className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>SaaS Core</span>
           </p>
-          <a href="/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/pricing" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Pricing & Plans
           </a>
           <a href="/trial" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
@@ -229,10 +233,10 @@ export function SiteFooter() {
           <a href="/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             User Dashboard & API Keys
           </a>
-          <a href="/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Promotions & Offers
           </a>
-          <a href="/advertise" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="https://www.ace-seek.com/advertise" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Advertise & Sponsorship
           </a>
         </div>
@@ -242,24 +246,34 @@ export function SiteFooter() {
             <Boxes className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>Subdomain Specs</span>
           </p>
-          <span className="block text-xs text-[var(--muted)]">doc.ace-seek.com (PDF · TeX · DOCX)</span>
-          <span className="block text-xs text-[var(--muted)]">vlsi.ace-seek.com (SDC · Timing · MMMC)</span>
-          <span className="block text-xs text-[var(--muted)]">tools.ace-seek.com (Utilities)</span>
+          <a href="https://vlsi.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-[var(--accent-cyan)]">vlsi.ace-seek.com (SDC · Timing · MMMC)</a>
+          <a href="https://openroad.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-emerald-400">openroad.ace-seek.com (PnR Studio · Max)</a>
+          <a href="https://tools.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-violet-400">tools.ace-seek.com (Doc · Diff · Convert)</a>
+          <a href="https://portal.ace-seek.com" className="block text-xs text-amber-400 font-bold hover:underline">portal.ace-seek.com (Solutions & Automation)</a>
         </div>
 
         <div className="space-y-2.5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center gap-1.5">
             <Shield className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-            <span>Identity & Support</span>
+            <span>Legal & Compliance</span>
           </p>
-          <a href="/login" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            User Login
+          <a href="/terms-and-conditions" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Terms & Conditions
           </a>
-          <a href="/signup" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            Create Identity
+          <a href="/privacy-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Privacy Policy
           </a>
-          <a href="/docs" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            Documentation
+          <a href="/refund-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Refund & Return Policy
+          </a>
+          <a href="/cancellation-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Cancellation Policy
+          </a>
+          <a href="/shipping-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Shipping & Delivery Policy
+          </a>
+          <a href="/contact-us" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Contact Us & Support
           </a>
         </div>
       </div>
@@ -273,9 +287,9 @@ export function SiteFooter() {
           <div className="flex items-center gap-4 font-mono text-[11px]">
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-[var(--led-green)]" />
-              <span>ace-seek.com</span>
+              <span>v2.8.0</span>
             </span>
-            <span className="text-[var(--accent-cyan)]">ace-seek.com</span>
+            <span className="text-[var(--accent-cyan)]">www.ace-seek.com</span>
           </div>
         </div>
       </div>

@@ -96,7 +96,7 @@ export default function BlogPage() {
             <h2 className="text-sm font-bold">Open Script Repository</h2>
           </div>
           <p className="text-xs text-[var(--muted)] leading-relaxed">
-            Public automation snippets and TCL flow glue will land here and on GitHub — free distribution to empower hardware teams.
+            Public automation snippets and TCL flow glue will land here — free distribution to empower hardware teams.
           </p>
         </div>
       </main>

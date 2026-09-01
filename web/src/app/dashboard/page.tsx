@@ -6,7 +6,6 @@ import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { PRODUCTS } from "@/lib/site";
 import {
-  LayoutDashboard,
   Cpu,
   Key,
   Zap,
@@ -30,13 +29,13 @@ type UserProfile = {
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => void }) {
-  const [copied, setCopied] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const handleCopy = () => {
-    if (!user.apiKey) return;
-    navigator.clipboard.writeText(user.apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = (keyStr: string, label: string) => {
+    if (!keyStr) return;
+    navigator.clipboard.writeText(keyStr);
+    setCopiedKey(label);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   return (
@@ -58,34 +57,46 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               Welcome back, {user.name}
             </h1>
             <p className="text-xs md:text-sm text-[var(--muted)] font-mono">
-              Account: {user.email} · ID: {user.id}
+              Account: {user.email} &bull; ID: {user.id}
             </p>
           </div>
 
-          <div className="sk-recessed p-4 flex flex-col gap-2 min-w-[240px]">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-[var(--muted)] font-mono">CURRENT TIER:</span>
-              <span className="sk-badge sk-badge-live uppercase">{user.plan} PLAN</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="text-right space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-[var(--muted)] font-mono">
+                  CURRENT TIER:
+                </span>
+                <span
+                  className={`sk-badge ${
+                    user.plan === "team"
+                      ? "border-purple-500 text-purple-400 bg-purple-950/30"
+                      : user.plan === "pro"
+                      ? "border-emerald-500 text-emerald-400 bg-emerald-950/30"
+                      : "border-slate-700 text-slate-300 bg-slate-800"
+                  }`}
+                >
+                  {user.plan.toUpperCase()} PLAN
+                </span>
+              </div>
+              <p className="text-[10px] text-[var(--muted)] font-mono">
+                AUTH: <span className="text-[#10b981] font-bold">&bull; SECURE</span>
+              </p>
             </div>
-            <div className="flex items-center justify-between text-xs pt-1 border-t border-[var(--bevel-shadow)]">
-              <span className="text-[var(--muted)] font-mono">STATUS:</span>
-              <span className="flex items-center gap-1.5 text-[#10b981] font-mono text-[11px] font-bold">
-                <span className="sk-led sk-led-green" />
-                SIGNED IN
-              </span>
-            </div>
-            <div className="flex gap-2 mt-1">
-              <a
-                href="/pricing"
-                className="sk-btn sk-btn-primary !text-xs !py-1 flex-1 justify-center"
-              >
-                <Zap className="w-3 h-3 fill-white" />
-                <span>Upgrade plan</span>
-              </a>
+            <div className="flex items-center gap-2">
+              {user.plan === "free" && (
+                <a
+                  href="/pricing"
+                  className="sk-btn sk-btn-primary !text-xs !py-2.5 flex items-center gap-1.5"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Upgrade Plan</span>
+                </a>
+              )}
               <button
                 type="button"
                 onClick={onLogout}
-                className="sk-btn sk-btn-ghost !text-xs !py-1 px-2.5"
+                className="sk-btn sk-btn-ghost !text-xs !py-2.5"
                 title="Log out"
               >
                 <LogOut className="w-3 h-3 text-red-400" />
@@ -101,13 +112,10 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                 <Key className="w-5 h-5 text-[var(--accent-cyan)]" />
               </div>
               <div>
-                <h2 className="text-base font-bold">Your Unique Plan API License Key</h2>
+                <h2 className="text-base font-bold">Your plan API license key</h2>
                 <p className="text-xs text-[var(--muted)]">
-                  Same key on every device for your{" "}
-                  <span className="font-mono text-[var(--accent-cyan)] uppercase font-bold">
-                    {user.plan}
-                  </span>{" "}
-                  plan.
+                  Use this key on VLSI and tools workstations for your{" "}
+                  <span className="font-mono uppercase text-[var(--accent-cyan)]">{user.plan}</span> plan.
                 </p>
               </div>
             </div>
@@ -116,7 +124,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
 
           <div className="space-y-3">
             <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-              Active API Token ({user.plan.toUpperCase()} TIER):
+              Active API token ({user.plan.toUpperCase()}):
             </label>
             <div className="flex items-center gap-3">
               <div className="sk-lcd flex-1 py-2.5 px-4 font-mono text-sm tracking-wider flex items-center justify-between overflow-x-auto">
@@ -127,13 +135,13 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               </div>
               <button
                 type="button"
-                onClick={handleCopy}
+                onClick={() => handleCopy(user.apiKey, "plan")}
                 className="sk-btn sk-btn-primary !text-xs !py-2.5 !px-5 shrink-0"
               >
-                {copied ? (
+                {copiedKey === "plan" ? (
                   <>
                     <Check className="w-3.5 h-3.5" />
-                    <span>Copied!</span>
+                    <span>Copied</span>
                   </>
                 ) : (
                   <>
@@ -167,52 +175,72 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-[var(--bevel-shadow)] pb-3">
-            <div className="flex items-center gap-2">
-              <Boxes className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <h2 className="text-base font-bold tracking-tight">
-                Subdomain Ecosystem Specifications
-              </h2>
-            </div>
-            <span className="sk-badge font-mono">{PRODUCTS.length} PRODUCTS</span>
+        {/* WORKSTATION ACCESSIBILITY GRID */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold flex items-center gap-2">
+              <Boxes className="w-5 h-5 text-[var(--accent-blue)]" />
+              <span>Available Microservices &amp; Workstations</span>
+            </h2>
+            <span className="text-xs text-[var(--muted)] font-mono">
+              Use your API key above for instant authentication
+            </span>
           </div>
 
-          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {PRODUCTS.map((p) => {
-              const live = p.status === "live";
-              return (
-                <li key={p.id}>
-                  <div className="sk-panel p-6 flex flex-col justify-between h-full space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="sk-icon-well">
-                            <Cpu className="w-4 h-4 text-[var(--accent-cyan)]" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-bold text-[var(--foreground)]">
-                              {p.name}
-                            </h3>
-                            <p className="font-mono text-[11px] text-[var(--accent-cyan)]">
-                              {p.host}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="sk-badge">
-                          <span
-                            className={`sk-led ${live ? "sk-led-green" : "sk-led-amber"}`}
-                          />
-                          <span>{live ? "Live Host" : "Soon"}</span>
-                        </span>
-                      </div>
-                      <p className="text-xs text-[var(--muted)] leading-relaxed">{p.blurb}</p>
-                    </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {PRODUCTS.map((prod) => (
+              <div key={prod.slug} className="sk-card group p-6 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="sk-badge sk-badge-cyan">
+                      {prod.status === "live" ? "OPERATIONAL" : "COMING SOON"}
+                    </span>
+                    <span className="text-[10px] text-[var(--muted)] font-mono">
+                      Subdomain: {prod.slug}.ace-seek.com
+                    </span>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                  <h3 className="text-xl font-bold group-hover:text-[var(--accent-cyan)] transition">
+                    {prod.name}
+                  </h3>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                    {prod.blurb}
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-[var(--bevel-shadow)] flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-[#10b981] flex items-center gap-1">
+                    <span className="sk-led sk-led-green" /> Hub Operational
+                  </span>
+                  <a
+                    href={prod.appPath}
+                    className="sk-btn sk-btn-primary !text-xs !py-1.5"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <span>Launch {prod.name}</span>
+                    <Cpu className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* HELP & DOCUMENTATION */}
+        <div className="sk-recessed p-6 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+          <div className="flex items-center gap-3">
+            <HelpCircle className="w-5 h-5 text-[var(--muted)]" />
+            <div>
+              <p className="font-bold text-white">Need developer documentation or custom API keys?</p>
+              <p className="text-[var(--muted)]">Check our guides or reach out to support@ace-seek.com</p>
+            </div>
+          </div>
+          <a
+            href="https://www.ace-seek.com/docs"
+            className="sk-btn sk-btn-ghost !text-xs"
+          >
+            <span>API Docs &rarr;</span>
+          </a>
         </div>
       </main>
 
@@ -221,99 +249,83 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
   );
 }
 
-function ClerkDashboard() {
+export default function DashboardPage() {
   const router = useRouter();
-  const { isLoaded, isSignedIn } = useAuth();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [apiUser, setApiUser] = useState<UserProfile | null>(null);
+  const [fallbackUser, setFallbackUser] = useState<UserProfile | null>(null);
+
+  const clerkRes = useUser();
+  const { signOut } = useClerk();
+  const { isSignedIn } = useAuth();
 
   useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      router.push("/login?redirect=/dashboard");
-      return;
+    setMounted(true);
+    const raw = localStorage.getItem("ace_seek_user");
+    if (raw) {
+      try {
+        setFallbackUser(JSON.parse(raw));
+      } catch {
+        // ignore
+      }
     }
+
+    // Fetch exact authentic API keys from backend route /api/auth/me
     fetch("/api/auth/me")
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthenticated");
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         if (data.authenticated && data.user) {
-          setProfile(data.user);
-        } else {
-          router.push("/login?redirect=/dashboard");
+          setApiUser(data.user);
         }
       })
-      .catch(() => router.push("/login?redirect=/dashboard"))
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [isLoaded, isSignedIn, router, clerkUser?.id]);
+  }, []);
 
-  if (!isLoaded || loading) {
+  if (!mounted || loading) {
     return (
-      <div className="min-h-full flex flex-col justify-center items-center py-32">
-        <Loader2 className="w-6 h-6 text-[var(--accent-cyan)] animate-spin" />
-        <p className="font-mono text-xs mt-3">VERIFYING CLERK SESSION…</p>
+      <div className="min-h-screen bg-[var(--bg-dark)] flex items-center justify-center text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-cyan)]" />
       </div>
     );
   }
 
-  if (!profile) return null;
+  const currentUser: UserProfile | null = apiUser || fallbackUser;
 
-  return (
-    <DashboardBody
-      user={profile}
-      onLogout={async () => {
-        await signOut({ redirectUrl: "/login" });
-      }}
-    />
-  );
-}
-
-function LegacyDashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => {
-        if (!res.ok) throw new Error("Unauthenticated");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.authenticated && data.user) setUser(data.user);
-        else router.push("/login?redirect=/dashboard");
-      })
-      .catch(() => router.push("/login?redirect=/dashboard"))
-      .finally(() => setLoading(false));
-  }, [router]);
-
-  if (loading) {
+  if (!currentUser) {
     return (
-      <div className="min-h-full flex flex-col justify-center items-center py-32">
-        <Loader2 className="w-6 h-6 text-[var(--accent-cyan)] animate-spin" />
-        <p className="font-mono text-xs mt-3">VERIFYING USER SESSION…</p>
+      <div className="min-h-screen bg-[var(--bg-dark)] flex flex-col items-center justify-center p-6 text-center space-y-6 text-white">
+        <div className="sk-icon-well w-14 h-14">
+          <Key className="w-7 h-7 text-[var(--accent-cyan)]" />
+        </div>
+        <div className="space-y-2 max-w-sm">
+          <h2 className="text-xl font-bold">Authentication Required</h2>
+          <p className="text-xs text-[var(--muted)]">
+            Please log in to access your Ace-Seek API keys and EDA workstations.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <a href="/login" className="sk-btn sk-btn-primary">
+            Log In &rarr;
+          </a>
+          <a href="/" className="sk-btn sk-btn-ghost">
+            Back to Home
+          </a>
+        </div>
       </div>
     );
   }
-  if (!user) return null;
 
-  return (
-    <DashboardBody
-      user={user}
-      onLogout={async () => {
-        await fetch("/api/auth/logout", { method: "POST" });
-        router.push("/login");
-        router.refresh();
-      }}
-    />
-  );
-}
+  const handleLogout = async () => {
+    localStorage.removeItem("ace_seek_user");
+    localStorage.removeItem("ace_seek_api_key");
+    localStorage.removeItem("ace_api_key");
+    if (clerkPk?.trim() && signOut) {
+      await signOut();
+    }
+    router.push("/");
+  };
 
-export default function DashboardPage() {
-  if (clerkPk?.trim()) return <ClerkDashboard />;
-  return <LegacyDashboard />;
+  return <DashboardBody user={currentUser} onLogout={handleLogout} />;
 }

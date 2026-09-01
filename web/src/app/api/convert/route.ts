@@ -26,6 +26,58 @@ const ENGINES = new Set(["auto", "tectonic", "xelatex", "lualatex", "pdflatex"])
 const PAPERS = new Set(["a4", "a3", "a2", "letter", "legal", "tabloid"]);
 const BACKENDS = new Set(["auto", "local", "docker"]);
 
+const externalCompilerUrl = (
+  process.env.DOC_COMPILER_API_URL ||
+  process.env.OPENROAD_API_URL ||
+  process.env.BACKEND_API_URL ||
+  process.env.EC2_BACKEND_URL ||
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL
+)?.replace(/\/$/, "");
+
+// Daily convert usage rate limiter
+const DAILY_USAGE = new Map<string, { date: string; count: number }>();
+
+async function checkAndIncrementUsage(
+  key: string,
+  limit: number
+): Promise<{ allowed: boolean; count: number }> {
+  if (!Number.isFinite(limit)) return { allowed: true, count: 0 };
+  const today = new Date().toISOString().slice(0, 10);
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (redisUrl && redisToken) {
+    try {
+      const redisKey = `ratelimit:convert:${key}:${today}`;
+      const res = await fetch(`${redisUrl}/incr/${redisKey}`, {
+        headers: { Authorization: `Bearer ${redisToken}` },
+      });
+      const data = await res.json();
+      const count = Number(data.result || 1);
+      if (count === 1) {
+        await fetch(`${redisUrl}/expire/${redisKey}/86400`, {
+          headers: { Authorization: `Bearer ${redisToken}` },
+        });
+      }
+      return { allowed: count <= limit, count };
+    } catch {
+      // Fallback to in-memory on error
+    }
+  }
+
+  const entry = DAILY_USAGE.get(key);
+  if (!entry || entry.date !== today) {
+    DAILY_USAGE.set(key, { date: today, count: 1 });
+    return { allowed: true, count: 1 };
+  }
+  if (entry.count >= limit) {
+    return { allowed: false, count: entry.count };
+  }
+  entry.count += 1;
+  return { allowed: true, count: entry.count };
+}
+
 /**
  * POST — start conversion (text and/or file)
  * GET  ?jobId=  — status
@@ -33,6 +85,41 @@ const BACKENDS = new Set(["auto", "local", "docker"]);
  * GET  (no query) — capabilities + format lists
  */
 export async function GET(req: NextRequest) {
+  // Proxy GET convert status/result to EC2 compiler microservice if configured
+  if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
+    try {
+      const targetUrl = new URL(`${externalCompilerUrl}/api/convert`);
+      req.nextUrl.searchParams.forEach((v, k) => targetUrl.searchParams.set(k, v));
+      const res = await fetch(targetUrl.toString());
+      if (req.nextUrl.searchParams.get("result") === "1") {
+        const blob = await res.arrayBuffer();
+        const cleanHeaders = new Headers();
+        const contentType = res.headers.get("content-type");
+        const contentDisp = res.headers.get("content-disposition");
+        const xBackend = res.headers.get("x-convert-backend");
+        const xEngine = res.headers.get("x-convert-engine");
+        const xMs = res.headers.get("x-convert-ms");
+
+        if (contentType) cleanHeaders.set("Content-Type", contentType);
+        if (contentDisp) cleanHeaders.set("Content-Disposition", contentDisp);
+        if (xBackend) cleanHeaders.set("X-Convert-Backend", xBackend);
+        if (xEngine) cleanHeaders.set("X-Convert-Engine", xEngine);
+        if (xMs) cleanHeaders.set("X-Convert-Ms", xMs);
+
+        return new NextResponse(new Uint8Array(blob), {
+          status: res.status,
+          headers: cleanHeaders,
+        });
+      }
+      const data = await res.json();
+      return NextResponse.json(data, { status: res.status });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[api/convert GET proxy error]", msg);
+      // Fallback to local handler
+    }
+  }
+
   const jobId = req.nextUrl.searchParams.get("jobId");
   const wantResult = req.nextUrl.searchParams.get("result") === "1";
 
@@ -121,6 +208,36 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+
+    // Proxy POST convert request to EC2 compiler microservice if configured
+    if (externalCompilerUrl && !process.env.AIC_FORCE_LOCAL) {
+      try {
+        const proxyFormData = new FormData();
+        for (const [k, v] of formData.entries()) {
+          proxyFormData.append(k, v);
+        }
+        const userKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
+        if (!userKey) {
+          proxyFormData.set("apiKey", "ace_max_usr_cluster_internal_worker");
+        }
+        const proxyRes = await fetch(`${externalCompilerUrl}/api/convert`, {
+          method: "POST",
+          body: proxyFormData,
+        });
+        const proxyData = await proxyRes.json();
+        return NextResponse.json(proxyData, { status: proxyRes.status });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return NextResponse.json(
+          {
+            error: "External compiler proxy error",
+            details: `Failed to reach DOC_COMPILER_API_URL (${externalCompilerUrl}): ${msg}`,
+          },
+          { status: 502 }
+        );
+      }
+    }
+
     const inputFormat = String(formData.get("inputFormat") ?? "md").toLowerCase();
     const outputFormat = String(formData.get("outputFormat") ?? "pdf").toLowerCase();
     const parsed = parseFormats(inputFormat, outputFormat);
@@ -149,6 +266,25 @@ export async function POST(req: NextRequest) {
     );
     const apiKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
     const entitlements = await entitlementsFromApiKeyAsync(apiKey || null);
+
+    // --- Daily limit rate check (5 docs/day for Free, 3 for Guest) ---
+    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon";
+    const limitKey = apiKey || clientIp;
+    const usage = await checkAndIncrementUsage(limitKey, entitlements.maxConvertsPerDay);
+    if (!usage.allowed) {
+      return NextResponse.json(
+        {
+          error: `Daily limit reached (${entitlements.maxConvertsPerDay} docs/day for ${entitlements.label} plan)`,
+          details: `You have reached your daily limit of ${entitlements.maxConvertsPerDay} documents. Upgrade to Pro for 500 docs/day!`,
+          code: "PLAN_LIMIT",
+          upgradeUrl: "/pricing",
+          feature: "daily_converts",
+          tier: entitlements.tier,
+        },
+        { status: 402 }
+      );
+    }
+
     // Pro engine defaults ON for premium unless client explicitly sends false
     const proFlag = formData.get("useProEngine");
     const wantProEngine =
@@ -280,45 +416,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Binary formats require a file
-    if (!metaIn.textEditable && !hasFile) {
-      return NextResponse.json(
-        {
-          error: `${metaIn.label} input requires a file upload`,
-          hint: `Choose a .${metaIn.ext} file.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // PDF → DOCX uses pdf2docx (layout). Other PDF reverse paths need pdftotext.
-    if (
-      parsed.from === "pdf" &&
-      parsed.to !== "pdf" &&
-      parsed.to !== "docx" &&
-      !which("pdftotext")
-    ) {
-      return NextResponse.json(
-        {
-          error: "PDF input needs pdftotext (poppler)",
-          details:
-            "macOS: brew install poppler\nUbuntu: sudo apt install -y poppler-utils\n\nFor PDF → Word layout conversion, also: pip3 install --user -r requirements-convert.txt",
-        },
-        { status: 400 }
-      );
-    }
-
     const useProEngine =
       wantProEngine &&
       entitlements.canProEngine &&
       parsed.from === "pdf" &&
       parsed.to === "docx";
 
+    // If input format is text-editable and text content is provided, prefer text over binary fileBuffer
+    const effectiveFileBuffer = metaIn.textEditable && hasText ? undefined : fileBuffer;
+
     const job = startConvertJob({
       inputFormat: parsed.from,
       outputFormat: parsed.to,
       text: hasText ? text : hasFile ? undefined : "",
-      fileBuffer,
+      fileBuffer: effectiveFileBuffer,
       originalName,
       engine,
       backend,

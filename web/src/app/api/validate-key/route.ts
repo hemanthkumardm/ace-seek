@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { findUserByApiKey, resolveLocalDevUser } from "@/lib/user-store";
-import { verifyIssuedApiKey, verifyTrialApiKey } from "@/lib/api-keys";
-import { publicEntitlements, entitlementsForPlan } from "@/lib/entitlements";
+import { findUserByApiKey, findUserByEmail, resolveLocalDevUser } from "@/lib/user-store";
+import { verifyIssuedApiKey, planFromApiKeyString, verifyTrialApiKey } from "@/lib/api-keys";
 import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
+import {
+  publicEntitlements,
+  entitlementsForPlan,
+} from "@/lib/entitlements";
+import { activateTrialKeyFirstUse, getApiKeyRecordFromDb } from "@/lib/supabase-keys";
 
 /**
  * Validate dashboard API keys for subdomain login (vlsi / tools).
+ * Handles Free, 7-Day Trial (activated on first use), Pro, Max, and Team keys.
  * Returns plan + full public entitlements matrix for client-side UI locks.
  */
 export async function POST(req: NextRequest) {
@@ -20,11 +24,210 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isDev =
-      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
-    const legacy = isDev
-      ? resolveLocalDevUser(apiKey) || findUserByApiKey(apiKey)
-      : findUserByApiKey(apiKey);
+    const isDevMode = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+
+    // 1. Dev test keys and plan shortcuts (development mode only)
+    if (isDevMode) {
+      const resolved = resolveLocalDevUser(apiKey);
+      if (resolved) {
+        const ent = {
+          ...entitlementsForPlan(resolved.plan),
+          email: resolved.email,
+          name: resolved.name,
+        };
+        return NextResponse.json({
+          valid: true,
+          plan: resolved.plan,
+          tier: resolved.plan,
+          email: resolved.email,
+          name: resolved.name,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+      const lower = apiKey.toLowerCase();
+      if (
+        lower === "dev" ||
+        lower === "dev_key" ||
+        lower === "admin" ||
+        lower === "team" ||
+        lower === "local" ||
+        lower === "max" ||
+        lower === "pro" ||
+        lower === "free"
+      ) {
+        const targetPlan = lower === "free" ? "free" : lower === "pro" ? "pro" : lower === "max" ? "max" : "team";
+        const ent = entitlementsForPlan(targetPlan);
+        return NextResponse.json({
+          valid: true,
+          plan: ent.tier,
+          tier: ent.tier,
+          email: ent.email || `${targetPlan}@ace-seek.com`,
+          name: ent.name || `${ent.label} Developer`,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+
+      // Demo email lookup (e.g. user enters free@ace-seek.com in dev)
+      const userByEmail = findUserByEmail(apiKey);
+      if (userByEmail) {
+        const ent = {
+          ...entitlementsForPlan(userByEmail.plan),
+          email: userByEmail.email,
+          name: userByEmail.name,
+        };
+        return NextResponse.json({
+          valid: true,
+          plan: userByEmail.plan,
+          tier: userByEmail.plan,
+          email: userByEmail.email,
+          name: userByEmail.name,
+          apiKey: userByEmail.apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+    }
+
+    const trialSig = verifyTrialApiKey(apiKey);
+    if (trialSig.ok) {
+      const ent = await entitlementsFromApiKeyAsync(apiKey);
+      if (ent.tier === "guest") {
+        return NextResponse.json(
+          { valid: false, error: "Trial key expired or revoked" },
+          { status: 403 }
+        );
+      }
+      return NextResponse.json({
+        valid: true,
+        plan: "max",
+        tier: "max",
+        keyType: "trial",
+        trialActive: true,
+        expiresAt: new Date(ent.trialExpiresAt || trialSig.expiresAt).toISOString(),
+        email: ent.email,
+        name: ent.name,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+    if (trialSig.reason === "expired") {
+      return NextResponse.json(
+        { valid: false, error: "Trial key expired" },
+        { status: 403 }
+      );
+    }
+
+    // 2. Check Supabase DB for manual/custom key record overrides first
+    const dbRecord = await getApiKeyRecordFromDb(apiKey);
+    if (dbRecord) {
+      if (dbRecord.status === "revoked") {
+        return NextResponse.json(
+          { valid: false, error: "This API Key has been revoked by admin." },
+          { status: 403 }
+        );
+      }
+
+      if (dbRecord.key_type === "trial") {
+        const trialActivation = await activateTrialKeyFirstUse(apiKey);
+        if (trialActivation && trialActivation.active) {
+          const ent = entitlementsForPlan("max");
+          return NextResponse.json({
+            valid: true,
+            plan: "max",
+            tier: "max",
+            keyType: "trial",
+            trialActive: true,
+            daysRemaining: trialActivation.daysRemaining,
+            expiresAt: trialActivation.expiresAt,
+            email: dbRecord.email,
+            apiKey,
+            entitlements: publicEntitlements(ent),
+          });
+        }
+
+        // Trial expired & fell back to Free tier
+        const ent = entitlementsForPlan("free");
+        return NextResponse.json({
+          valid: true,
+          plan: "free",
+          tier: "free",
+          keyType: "trial",
+          trialExpired: true,
+          message: "Your 7-day Max trial has expired. Reverted to Free plan.",
+          email: dbRecord.email,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+
+      const activePlan = dbRecord.tier;
+      const ent = entitlementsForPlan(activePlan);
+      return NextResponse.json({
+        valid: true,
+        plan: activePlan,
+        tier: activePlan,
+        email: dbRecord.email,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 3. Cryptographic HMAC issued key verification
+    const issued = verifyIssuedApiKey(apiKey);
+    if (issued.ok) {
+      if (issued.plan === "trial") {
+        const trialActivation = await activateTrialKeyFirstUse(apiKey);
+        const isTrialValid = trialActivation ? trialActivation.active : true;
+        const activePlan = isTrialValid ? "max" : "free";
+        const ent = entitlementsForPlan(activePlan);
+
+        return NextResponse.json({
+          valid: true,
+          plan: activePlan,
+          tier: activePlan,
+          keyType: "trial",
+          trialActive: isTrialValid,
+          trialExpired: !isTrialValid,
+          daysRemaining: trialActivation?.daysRemaining ?? 7,
+          expiresAt: trialActivation?.expiresAt,
+          apiKey,
+          entitlements: publicEntitlements(ent),
+        });
+      }
+
+      const ent = entitlementsForPlan(issued.plan);
+      return NextResponse.json({
+        valid: true,
+        plan: issued.plan,
+        tier: issued.plan,
+        email: ent.email,
+        name: ent.name,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 3.5 Fallback plan signature match (for cross-environment / proxy parity)
+    const planPrefix = planFromApiKeyString(apiKey);
+    if (planPrefix) {
+      const activePlan = planPrefix === "trial" ? "max" : planPrefix;
+      const ent = entitlementsForPlan(activePlan);
+      return NextResponse.json({
+        valid: true,
+        plan: activePlan,
+        tier: activePlan,
+        keyType: planPrefix === "trial" ? "trial" : "regular",
+        trialActive: true,
+        daysRemaining: 7,
+        apiKey,
+        entitlements: publicEntitlements(ent),
+      });
+    }
+
+    // 4. In-memory user store key lookup fallback
+    const legacy = findUserByApiKey(apiKey);
+>>>>>>> main
     if (legacy) {
       const ent = {
         ...entitlementsForPlan(legacy.plan),
@@ -42,47 +245,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const trial = verifyTrialApiKey(apiKey);
-    if (trial.ok) {
-      const ent = await entitlementsFromApiKeyAsync(apiKey);
-      if (ent.tier === "guest") {
-        return NextResponse.json(
-          { valid: false, error: "Trial key expired or revoked" },
-          { status: 403 }
-        );
-      }
-      return NextResponse.json({
-        valid: true,
-        plan: "max",
-        tier: "max",
-        email: ent.email,
-        name: ent.name,
-        apiKey,
-        trialExpiresAt: ent.trialExpiresAt || trial.expiresAt,
-        entitlements: publicEntitlements(ent),
-      });
     }
-    if (trial.reason === "expired") {
-      return NextResponse.json(
-        { valid: false, error: "Trial key expired" },
-        { status: 403 }
-      );
-    }
-
-    const issued = verifyIssuedApiKey(apiKey);
-    if (issued.ok) {
-      const ent = await entitlementsFromApiKeyAsync(apiKey);
-      return NextResponse.json({
-        valid: true,
-        plan: issued.plan,
-        tier: issued.plan,
-        email: ent.email,
-        name: ent.name,
-        apiKey,
-        entitlements: publicEntitlements(ent),
-      });
-    }
-
     return NextResponse.json(
       { valid: false, error: "Invalid or revoked API Key" },
       { status: 404 }

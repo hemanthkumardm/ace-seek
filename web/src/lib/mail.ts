@@ -112,7 +112,13 @@ export function adminNotifyEmails(): string[] {
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
   const fromMailbox = mailboxFromAddress(fromAddress());
-  const all = [dedicated, ...listed, fromMailbox, ACE_SEEK_FROM_EMAIL]
+  const all = [
+    dedicated,
+    ...listed,
+    fromMailbox,
+    ACE_SEEK_FROM_EMAIL,
+    "support@ace-seek.com",
+  ]
     .filter(Boolean)
     .map((e) => String(e).toLowerCase().trim())
     .filter(isAceSeekMailbox);

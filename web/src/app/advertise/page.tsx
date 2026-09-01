@@ -29,7 +29,7 @@ export default function AdvertisePage() {
           </h1>
 
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
-            Position your EDA tools, IP cores, FPGA dev kits, and cloud compute platforms directly in front of active VLSI architects, timing engineers, and chip designers.
+            Position your EDA tools, IP cores, and cloud compute platforms directly in front of active VLSI architects, timing engineers, and chip designers.
           </p>
         </div>
 

@@ -50,18 +50,31 @@ export function VlsiHeaderNav({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const key = localStorage.getItem("ace_seek_api_key");
-    if (key && key.trim().length > 0) {
-      setIsAuthorized(true);
-    }
+    const sync = () => {
+      const key = localStorage.getItem("ace_seek_api_key");
+      setIsAuthorized(Boolean(key && key.trim().length > 0));
+    };
+    sync();
+    window.addEventListener("ace_key_updated", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("ace_key_updated", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
+  /** Studios open only with validated API key — not Clerk session alone */
   const handleOpenStudio = () => {
-    if (isSignedIn || isAuthorized) {
+    if (isAuthorized) {
       router.push("/vlsi/reports");
     } else {
       setShowAuthModal(true);
     }
+  };
+
+  /** API Key Active / Login: open key manager only */
+  const handleApiKeyButton = () => {
+    setShowAuthModal(true);
   };
 
   return (
@@ -104,6 +117,32 @@ export function VlsiHeaderNav({
                   <span>Open Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+                <button
+                  type="button"
+                  onClick={handleApiKeyButton}
+                  className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
+                </button>
+                <a
+                  href={signupHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black"
+                >
+                  <span>Get Key</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+                <a
+                  href={mainSiteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden lg:inline-flex text-[10px] font-black text-slate-600 hover:text-black underline"
+                  title="Main Ace-Seek site"
+                >
+                  ace-seek.com
+                </a>
               </div>
             </div>
           ) : isLearnPage ? (
@@ -195,11 +234,11 @@ export function VlsiHeaderNav({
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
                     pathname === "/vlsi/reports"
                       ? "bg-slate-900 text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      : "bg-slate-800 text-white hover:bg-slate-700"
                   }`}
                 >
-                  <FolderOpen className="w-3.5 h-3.5" />
-                  <span>Reports</span>
+                  <FolderOpen className="w-3.5 h-3.5 text-cyan-300" />
+                  <span className="text-white font-bold">Reports</span>
                 </Link>
                 <Link
                   href="/vlsi/sdc-studio"
@@ -267,7 +306,9 @@ export function VlsiHeaderNav({
               onAuthorize={() => {
                 setIsAuthorized(true);
                 setShowAuthModal(false);
-                router.push("/vlsi/reports");
+                if (pathname === "/" || pathname === "/vlsi") {
+                  router.push("/vlsi/reports");
+                }
               }}
             />
           </div>

@@ -13,11 +13,15 @@ import {
 import { mainDashboardHref, mainSignupHref, SITE_URL } from "@/lib/site";
 
 type SubdomainAuthModalProps = {
-  subdomainName: "VLSI" | "TOOLS";
+  subdomainName: "VLSI" | "TOOLS" | "OPENROAD";
   /** After successful key validation */
   onAuthorize?: (apiKey: string) => void;
   /** Compact layout for dedicated /login page */
   compact?: boolean;
+  /** Alias of onAuthorize (legacy intro pages) */
+  onSuccess?: () => void;
+  /** Optional close handler for modal chrome on intro pages */
+  onClose?: () => void;
 };
 
 /**
@@ -27,6 +31,8 @@ type SubdomainAuthModalProps = {
 export function SubdomainAuthModal({
   subdomainName,
   onAuthorize,
+  onSuccess,
+  onClose,
   compact = false,
 }: SubdomainAuthModalProps) {
   const [apiKeyInput, setApiKeyInput] = useState("");
@@ -35,18 +41,19 @@ export function SubdomainAuthModal({
     "idle" | "validating" | "valid" | "invalid"
   >("idle");
   const [keyInfo, setKeyInfo] = useState<{ plan?: string } | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     const existing = localStorage.getItem("ace_seek_api_key");
     if (existing) {
       setStoredKey(existing);
-      void validateKey(existing);
+      void validateKey(existing, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const validateKey = async (keyToTest: string) => {
+  const validateKey = async (keyToTest: string, isInitialMount = false) => {
     setKeyStatus("validating");
     try {
       const res = await fetch("/api/validate-key", {
@@ -60,7 +67,15 @@ export function SubdomainAuthModal({
         setKeyInfo({ plan: data.plan || data.tier });
         setStoredKey(keyToTest);
         localStorage.setItem("ace_seek_api_key", keyToTest);
-        if (onAuthorize) onAuthorize(keyToTest);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("ace_key_updated"));
+        }
+        if (!isInitialMount) {
+          setIsSwitching(false);
+          setApiKeyInput("");
+          if (onAuthorize) onAuthorize(keyToTest);
+          onSuccess?.();
+        }
       } else {
         setKeyStatus("invalid");
       }
@@ -72,7 +87,7 @@ export function SubdomainAuthModal({
   const handleKeySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!apiKeyInput.trim()) return;
-    void validateKey(apiKeyInput.trim());
+    void validateKey(apiKeyInput.trim(), false);
   };
 
   const handleClearKey = () => {
@@ -81,6 +96,10 @@ export function SubdomainAuthModal({
     setKeyStatus("idle");
     setKeyInfo(null);
     setApiKeyInput("");
+    setIsSwitching(true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("ace_key_updated"));
+    }
   };
 
   return (
@@ -93,63 +112,87 @@ export function SubdomainAuthModal({
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-5 h-5 text-[var(--accent-cyan)]" />
           <h2 className="text-base font-black uppercase text-white tracking-wide">
-            {subdomainName} · API Key Login
+            {subdomainName} · API Key License
           </h2>
         </div>
         <span className="brutal-badge brutal-badge-cyan">NO SIGNUP HERE</span>
       </div>
 
       <p className="text-xs text-slate-300 font-bold leading-relaxed">
-        This subdomain only accepts a <b className="text-white">dashboard API key</b>{" "}
-        (from {SITE_URL.replace("https://", "")}). Create an account and get your key
-        on the main site — not here.
+        Enter your <b className="text-white">dashboard API key</b>{" "}
+        (from {SITE_URL.replace("https://", "")}).
       </p>
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-black uppercase text-slate-200 flex items-center gap-1.5">
             <Key className="w-4 h-4 text-[var(--brutal-yellow)]" />
-            <span>Paste API license key</span>
+            <span>{storedKey && !isSwitching ? "Active API License" : "Paste API License Key"}</span>
           </label>
           {keyStatus === "valid" && (
             <span className="text-[10px] font-mono text-emerald-400 font-bold uppercase flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Verified ({keyInfo?.plan || "active"})
+              <Sparkles className="w-3 h-3" /> Verified ({(keyInfo?.plan || "active").toUpperCase()})
             </span>
           )}
         </div>
 
-        {keyStatus === "valid" ? (
-          <div className="flex items-center justify-between p-3 bg-emerald-950/40 border-2 border-emerald-500 rounded">
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 truncate max-w-xs">
-              <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Key Active: {storedKey?.slice(0, 18)}…</span>
+        {storedKey && !isSwitching ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-emerald-950/40 border-2 border-emerald-500 rounded">
+              <div className="flex items-center gap-2 text-xs font-mono text-emerald-300 truncate max-w-xs">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span>Active: {storedKey.slice(0, 18)}…</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSwitching(true)}
+                  className="text-[11px] font-bold text-sky-400 hover:underline uppercase"
+                >
+                  Switch Key
+                </button>
+                <span className="text-slate-600">·</span>
+                <button
+                  type="button"
+                  onClick={handleClearKey}
+                  className="text-[11px] font-bold text-rose-400 hover:underline uppercase"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={handleClearKey}
-              className="text-[10px] font-bold text-rose-400 hover:underline uppercase"
-            >
-              Log out key
-            </button>
           </div>
         ) : (
-          <form onSubmit={handleKeySubmit} className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="password"
-              autoComplete="off"
-              placeholder="ace_free_usr_… or ace_pro_usr_…"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              className="flex-1 bg-black border-2 border-slate-700 text-white text-xs font-mono px-3 py-2.5 rounded outline-none focus:border-[var(--accent-cyan)]"
-            />
-            <button
-              type="submit"
-              disabled={keyStatus === "validating"}
-              className="sk-btn sk-btn-primary !text-xs !py-2.5 !px-4 shrink-0 font-bold uppercase inline-flex items-center gap-1.5 justify-center"
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              {keyStatus === "validating" ? "Validating…" : "Authorize"}
-            </button>
+          <form onSubmit={handleKeySubmit} className="space-y-2">
+            <div className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="text"
+                autoComplete="off"
+                placeholder="ace_max_usr_… or ace_pro_usr_…"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                className="flex-1 bg-black border-2 border-slate-700 text-white text-xs font-mono px-3 py-2.5 rounded outline-none focus:border-[var(--accent-cyan)] select-all"
+              />
+              <button
+                type="submit"
+                disabled={keyStatus === "validating"}
+                className="sk-btn sk-btn-primary !text-xs !py-2.5 !px-4 shrink-0 font-bold uppercase inline-flex items-center gap-1.5 justify-center"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                {keyStatus === "validating" ? "Validating…" : "Authorize"}
+              </button>
+            </div>
+            {storedKey && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsSwitching(false)}
+                  className="text-[10px] text-slate-400 hover:text-white underline uppercase font-bold"
+                >
+                  Cancel (keep existing key)
+                </button>
+              </div>
+            )}
           </form>
         )}
 

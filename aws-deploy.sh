@@ -21,31 +21,36 @@ ID_LIKE_LOWER="$(echo "${ID_LIKE:-$ID}" | tr '[:upper:]' '[:lower:]')"
 echo "→ OS: ${PRETTY_NAME:-unknown} ($ID_LIKE_LOWER)"
 
 # ---- swap space ----
-echo "[0/5] Creating 4GB Swap File (critical for AWS t2.micro)..."
-if [ ! -f /swapfile ]; then
-  fallocate -l 4G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=4096
+echo "[0/5] Ensuring 8GB Swap File for memory-safe builds..."
+SWAP_TOTAL_MB=$(free -m 2>/dev/null | awk '/Swap:/ {print $2}' || echo "0")
+if [ "${SWAP_TOTAL_MB:-0}" -lt 6000 ]; then
+  echo "  Allocating 8GB swapfile (was ${SWAP_TOTAL_MB:-0}MB)..."
+  swapoff /swapfile 2>/dev/null || true
+  rm -f /swapfile 2>/dev/null || true
+  fallocate -l 8G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=8192
   chmod 600 /swapfile
   mkswap /swapfile
   swapon /swapfile
-  if ! grep -q '/swapfile' /etc/fstab; then
+  if ! grep -q '/swapfile' /etc/fstab 2>/dev/null; then
     echo '/swapfile none swap sw 0 0' >> /etc/fstab
   fi
-  echo "  Swap created."
+  sysctl -w vm.swappiness=60 2>/dev/null || true
+  echo "  8GB Swap active."
 else
-  echo "  Swapfile already exists."
+  echo "  Sufficient swap already active (${SWAP_TOTAL_MB}MB)."
 fi
 
 # ---- packages ----
-echo "[1/5] Installing packages (curl, git, firewall tools)..."
+echo "[1/5] Installing packages (curl, git, firewall tools, python3)..."
 if echo "$ID_LIKE_LOWER" | grep -Eq 'debian|ubuntu'; then
   export DEBIAN_FRONTEND=noninteractive
   apt-get update -y
-  apt-get install -y ca-certificates curl gnupg lsb-release git iptables-persistent wget
+  apt-get install -y ca-certificates curl gnupg lsb-release git iptables-persistent wget python3 python3-pip python3-venv || true
 elif echo "$ID_LIKE_LOWER" | grep -Eq 'rhel|fedora|centos|ol|oracle'; then
   if command -v dnf >/dev/null 2>&1; then
-    dnf -y install curl git wget firewalld iptables
+    dnf -y install curl git wget firewalld iptables python3 python3-pip
   else
-    yum -y install curl git wget firewalld iptables
+    yum -y install curl git wget firewalld iptables python3 python3-pip
   fi
   systemctl enable --now firewalld 2>/dev/null || true
 else
@@ -91,11 +96,14 @@ fi
 # docker compose plugin
 if ! docker compose version >/dev/null 2>&1; then
   echo "  Installing docker compose plugin..."
-  if echo "$ID_LIKE_LOWER" | grep -Eq 'debian|ubuntu'; then
-    apt-get install -y docker-compose-plugin || true
-  elif command -v dnf >/dev/null 2>&1; then
-    dnf -y install docker-compose-plugin || true
-  fi
+  mkdir -p /usr/local/lib/docker/cli-plugins /usr/libexec/docker/cli-plugins
+  ARCH="$(uname -m)"
+  COMPOSE_URL="https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}"
+  curl -sSL "$COMPOSE_URL" -o /usr/local/lib/docker/cli-plugins/docker-compose 2>/dev/null || true
+  chmod +x /usr/local/lib/docker/cli-plugins/docker-compose 2>/dev/null || true
+  cp -f /usr/local/lib/docker/cli-plugins/docker-compose /usr/libexec/docker/cli-plugins/docker-compose 2>/dev/null || true
+  cp -f /usr/local/lib/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose 2>/dev/null || true
+  cp -f /usr/local/lib/docker/cli-plugins/docker-compose /usr/bin/docker-compose 2>/dev/null || true
 fi
 
 systemctl enable --now docker 2>/dev/null || service docker start || true
@@ -108,6 +116,32 @@ for u in opc ubuntu ec2-user admin azureuser; do
   fi
 done
 
+# ---- OpenROAD durable storage & PDKs ----
+echo "[3.5/5] Setting up OpenROAD durable storage and Sky130 PDK..."
+mkdir -p /data/ace-openroad-jobs /data/volare
+for u in opc ubuntu ec2-user admin azureuser; do
+  if id "$u" &>/dev/null; then
+    chown -R "$u:$u" /data 2>/dev/null || true
+  fi
+done
+chmod -R 777 /data/ace-openroad-jobs /data/volare 2>/dev/null || true
+
+# Install Python & Volare if available
+if command -v python3 >/dev/null 2>&1; then
+  if ! command -v volare >/dev/null 2>&1; then
+    echo "  Installing Volare PDK manager..."
+    python3 -m pip install --break-system-packages --quiet volare 2>/dev/null || pip3 install --break-system-packages --quiet volare 2>/dev/null || true
+  fi
+  if command -v volare >/dev/null 2>&1 && [ ! -d /data/volare/sky130A ]; then
+    echo "  Downloading Sky130 PDK into /data/volare..."
+    volare enable --pdk sky130 --pdk-root /data/volare 2>/dev/null || echo "  Note: run 'volare enable --pdk sky130 --pdk-root /data/volare' after deploy"
+  fi
+fi
+
+# Pre-pull OpenLane Docker image
+echo "  Pulling OpenLane Docker image in background..."
+docker pull efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a 2>/dev/null || true
+
 # ---- repo root ----
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
@@ -118,8 +152,15 @@ fi
 
 # ---- build & run ----
 echo "[4/5] Building and starting AIC (this may take several minutes first time)..."
-docker compose down 2>/dev/null || true
-docker compose up -d --build
+COMPOSE_BIN="docker compose"
+if ! docker compose version >/dev/null 2>&1; then
+  if command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_BIN="docker-compose"
+  fi
+fi
+
+$COMPOSE_BIN down 2>/dev/null || true
+$COMPOSE_BIN up -d --build
 
 echo "[5/5] Waiting for health..."
 sleep 5

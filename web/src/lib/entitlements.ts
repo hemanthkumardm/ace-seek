@@ -1,14 +1,14 @@
 /**
  * Plan entitlements — Free / Pro / Max / Team
  *
- * Free  → try basic tools, hard locks on advanced features, daily caps
+ * Free  → try basic tools, hard locks on advanced features, daily caps (5 docs/day)
  * Pro   → most tools unlocked, soft limits (DPI, size, exports)
  * Max   → everything unlocked for an individual (no soft limits)
- * Team  → everything Max has + seats, shared vault, SSO, priority support
+ * Team  → everything Max has + seats, shared vault, admin, priority support
  */
 import type { UserPlan } from "@/lib/user-store";
-import { findUserByApiKey } from "@/lib/user-store";
-import { verifyIssuedApiKey, verifyTrialApiKey } from "@/lib/api-keys";
+import { findUserByApiKey, findUserByEmail } from "@/lib/user-store";
+import { verifyIssuedApiKey, planFromApiKeyString, verifyTrialApiKey } from "@/lib/api-keys";
 
 export type PlanTier = UserPlan | "guest";
 
@@ -23,7 +23,9 @@ export type ToolId =
   | "vlsi_timing"
   | "vlsi_mmmc"
   | "vlsi_power"
-  | "vlsi_reports";
+  | "vlsi_reports"
+  | "openroad_scripts"
+  | "openroad_run";
 
 export type Entitlements = {
   tier: PlanTier;
@@ -53,6 +55,7 @@ export type Entitlements = {
   defaultExactDpi: number;
   canDockerBackend: boolean;
   canWidePdf: boolean;
+  canToc: boolean;
 
   // --- diff ---
   canAccessDiff: boolean;
@@ -95,6 +98,14 @@ export type Entitlements = {
   canVlsiReports: boolean;
   canVlsiExportTcl: boolean;
   canVlsiEco: boolean;
+
+  // --- OpenROAD peer platform (openroad.ace-seek.com) ---
+  /** Platform access (project upload + hub) */
+  canAccessOpenroad: boolean;
+  /** Pro: full Yosys/OpenROAD/OpenSTA script packs */
+  canOpenroadScripts: boolean;
+  /** Max: container / dry-run jobs */
+  canOpenroadRun: boolean;
 };
 
 const INF = Number.POSITIVE_INFINITY;
@@ -112,71 +123,77 @@ const GUEST: Entitlements = {
   hasSharedWorkspace: false,
 
   canAccessDocCompiler: true,
-  docAllowedInputFormats: ["md"],
-  docAllowedOutputFormats: ["pdf", "md"],
-  canEditablePdfDocx: false,
-  canExactPdfDocx: false,
-  canProEngine: false,
-  maxExactDpi: 72,
-  defaultExactDpi: 72,
-  canDockerBackend: false,
-  canWidePdf: false,
+  docAllowedInputFormats: ["md", "tex", "docx", "pdf", "html", "odt", "plain", "rst"],
+  docAllowedOutputFormats: ["pdf", "md", "tex", "docx", "html", "odt", "plain"],
+  canEditablePdfDocx: true,
+  canExactPdfDocx: true,
+  canProEngine: true,
+  maxExactDpi: 150,
+  defaultExactDpi: 150,
+  canDockerBackend: true,
+  canWidePdf: true,
+  canToc: true,
 
   canAccessDiff: true,
-  canDiffUnified: false,
+  canDiffUnified: true,
   canDiffCharHighlight: false,
   canDiffPatchExport: false,
-  canDiffFileUpload: false,
-  maxDiffChars: 8_000,
+  canDiffFileUpload: true,
+  maxDiffChars: 50_000,
 
   canAccessFormatConverter: true,
-  formatAllowedFrom: ["json", "text"],
-  formatAllowedTo: ["json", "yaml", "text"],
+  formatAllowedFrom: ["json", "yaml", "text", "base64"],
+  formatAllowedTo: ["json", "yaml", "text", "base64"],
   canFormatLive: true,
-  canFormatDetect: false,
-  canFormatDownload: false,
+  canFormatDetect: true,
+  canFormatDownload: true,
 
   canAccessTexBuilder: true,
-  canTexAllTemplates: false,
-  canTexStaTemplates: false,
-  canTexDownload: false,
-  canTexAlignExport: false,
+  canTexAllTemplates: true,
+  canTexStaTemplates: true,
+  canTexDownload: true,
+  canTexAlignExport: true,
 
   canAccessSanitizer: true,
-  canSanitizerBatch: false,
+  canSanitizerBatch: true,
 
   canAccessTableBuilder: true,
-  maxTableRows: 20,
-  canTableLandscapeExport: false,
+  maxTableRows: 100,
+  canTableLandscapeExport: true,
 
-  canAccessVlsi: false,
-  canVlsiSdc: false,
-  canVlsiTiming: false,
-  canVlsiMmmc: false,
-  canVlsiPower: false,
-  canVlsiReports: false,
-  canVlsiExportTcl: false,
-  canVlsiEco: false,
+  canAccessVlsi: true,
+  canVlsiSdc: true,
+  canVlsiTiming: true,
+  canVlsiMmmc: true,
+  canVlsiPower: true,
+  canVlsiReports: true,
+  canVlsiExportTcl: true,
+  canVlsiEco: true,
+
+  canAccessOpenroad: true,
+  canOpenroadScripts: true,
+  canOpenroadRun: true,
 };
 
 const FREE: Entitlements = {
   ...GUEST,
   tier: "free",
   label: "Free",
-  maxConvertsPerDay: 25,
-  maxInputBytes: 200_000,
+  maxConvertsPerDay: 20,
+  maxInputBytes: 2_000_000,
   hasApiAccess: true,
 
   canAccessDocCompiler: true,
-  docAllowedInputFormats: ["md", "tex", "plain", "html"],
-  docAllowedOutputFormats: ["pdf", "md", "tex", "html", "plain"],
-  canEditablePdfDocx: true, // basic only
+  docAllowedInputFormats: ["md", "tex", "docx", "pdf", "html", "odt", "plain", "rst"],
+  docAllowedOutputFormats: ["pdf", "md", "tex", "docx", "html", "odt", "plain"],
+  canEditablePdfDocx: true,
   canExactPdfDocx: false,
   canProEngine: false,
   maxExactDpi: 100,
   defaultExactDpi: 100,
   canDockerBackend: false,
   canWidePdf: false,
+  canToc: false,
 
   canAccessDiff: true,
   canDiffUnified: true,
@@ -206,13 +223,18 @@ const FREE: Entitlements = {
   canTableLandscapeExport: false,
 
   canAccessVlsi: true,
-  canVlsiSdc: true, // limited studio
+  canVlsiSdc: true,
   canVlsiTiming: false,
   canVlsiMmmc: false,
   canVlsiPower: false,
   canVlsiReports: true,
   canVlsiExportTcl: false,
   canVlsiEco: false,
+
+  // Free: VLSI handoff download only; OpenROAD platform starts at Pro
+  canAccessOpenroad: false,
+  canOpenroadScripts: false,
+  canOpenroadRun: false,
 };
 
 const PRO: Entitlements = {
@@ -233,6 +255,7 @@ const PRO: Entitlements = {
   defaultExactDpi: 200,
   canDockerBackend: true,
   canWidePdf: true,
+  canToc: true,
 
   canDiffCharHighlight: true,
   canDiffPatchExport: true,
@@ -259,6 +282,11 @@ const PRO: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: true,
   canVlsiEco: false,
+
+  // Pro: upload handoff + full script / local docker packs
+  canAccessOpenroad: true,
+  canOpenroadScripts: true,
+  canOpenroadRun: false,
 };
 
 const MAX: Entitlements = {
@@ -274,6 +302,8 @@ const MAX: Entitlements = {
   defaultExactDpi: 300,
   canProEngine: true,
   canExactPdfDocx: true,
+  canWidePdf: true,
+  canToc: true,
 
   maxDiffChars: INF,
 
@@ -286,6 +316,11 @@ const MAX: Entitlements = {
   canVlsiTiming: true,
   canVlsiMmmc: true,
   canVlsiReports: true,
+
+  // Max: hosted OpenROAD runs (dry-run now; container workers when provisioned)
+  canAccessOpenroad: true,
+  canOpenroadScripts: true,
+  canOpenroadRun: true,
 };
 
 const TEAM: Entitlements = {
@@ -314,10 +349,74 @@ export function entitlementsForPlan(plan: PlanTier): Entitlements {
 }
 
 export function entitlementsFromApiKey(apiKey: string | null | undefined): Entitlements {
-  if (!apiKey || !apiKey.trim()) return entitlementsForPlan("guest");
-  const key = apiKey.trim();
+  const isDev = process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+  const isClusterWorker = process.env.AIC_FORCE_LOCAL === "1" || process.env.AIC_ROOT === "/app";
+  
+  // Dedicated EC2 computational cluster nodes always execute with full MAX capabilities
+  if (isClusterWorker) {
+    return {
+      ...entitlementsForPlan("max"),
+      name: "Cluster Worker Node",
+      email: "worker@cluster.local",
+    };
+  }
 
-  const user = findUserByApiKey(key);
+  if (!apiKey || !apiKey.trim()) {
+    if (isDev) {
+      return {
+        ...entitlementsForPlan("team"),
+        name: "Local Developer",
+        email: "dev@localhost",
+      };
+    }
+    return entitlementsForPlan("guest");
+  }
+  // Keep original case for HMAC verification (Clerk user ids are case-sensitive).
+  const raw = apiKey.trim();
+  const shortcut = raw.toLowerCase();
+
+  const trial = verifyTrialApiKey(raw);
+  if (trial.ok) {
+    return {
+      ...entitlementsForPlan("max"),
+      trialExpiresAt: trial.expiresAt,
+    };
+  }
+
+  // Developer bypass / plan shortcuts — NEVER honor in production.
+  // Empty key already elevates to team in development; production must use real keys.
+  const allowShortcuts =
+    isDev || process.env.ACE_ALLOW_PLAN_SHORTCUTS === "1";
+  if (allowShortcuts) {
+    if (
+      shortcut === "dev" ||
+      shortcut === "dev_key" ||
+      shortcut === "admin" ||
+      shortcut === "team" ||
+      shortcut === "local"
+    ) {
+      return {
+        ...entitlementsForPlan("team"),
+        name: "Local Developer",
+        email: "dev@localhost",
+      };
+    }
+    if (shortcut === "max") return entitlementsForPlan("max");
+    if (shortcut === "pro") return entitlementsForPlan("pro");
+    if (shortcut === "free") return entitlementsForPlan("free");
+  }
+
+  // Demo / seeded users by email or key
+  const byEmail = findUserByEmail(shortcut);
+  if (byEmail) {
+    return {
+      ...entitlementsForPlan(byEmail.plan),
+      email: byEmail.email,
+      name: byEmail.name,
+    };
+  }
+
+  const user = findUserByApiKey(raw);
   if (user) {
     return {
       ...entitlementsForPlan(user.plan),
@@ -334,9 +433,27 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
     };
   }
 
-  const issued = verifyIssuedApiKey(key);
+  // Issued dashboard keys — original casing required for HMAC (do not lower-case user id)
+  const issued = verifyIssuedApiKey(raw);
   if (issued.ok) {
-    return entitlementsForPlan(issued.plan);
+    const tier = issued.plan === "trial" ? "max" : issued.plan;
+    return entitlementsForPlan(tier);
+  }
+
+  // Cross-environment / proxy signature fallback (ensures 7-day trial and paid keys work across all backend nodes)
+  const fallbackPlan = planFromApiKeyString(raw);
+  if (fallbackPlan) {
+    const tier = fallbackPlan === "trial" ? "max" : fallbackPlan;
+    return entitlementsForPlan(tier);
+  }
+
+  // Fallback for dev mode
+  if (isDev) {
+    return {
+      ...entitlementsForPlan("team"),
+      name: "Local Developer",
+      email: "dev@localhost",
+    };
   }
 
   return entitlementsForPlan("guest");
@@ -373,6 +490,7 @@ export const FEATURE_MIN_PLAN: Record<string, PlanTier> = {
   pro_engine: "pro",
   docker_backend: "pro",
   wide_pdf: "pro",
+  toc: "pro",
   diff_patch_export: "pro",
   diff_char_highlight: "pro",
   format_toml_csv: "pro",
@@ -385,6 +503,9 @@ export const FEATURE_MIN_PLAN: Record<string, PlanTier> = {
   vlsi_export_tcl: "pro",
   vlsi_power: "max",
   vlsi_eco: "max",
+  openroad_platform: "pro",
+  openroad_scripts: "pro",
+  openroad_run: "max",
   unlimited_converts: "max",
   team_seats: "team",
   sso: "team",
@@ -426,6 +547,7 @@ export function publicEntitlements(e: Entitlements) {
       defaultExactDpi: e.defaultExactDpi,
       dockerBackend: e.canDockerBackend,
       widePdf: e.canWidePdf,
+      canToc: e.canToc,
     },
     diff: {
       access: e.canAccessDiff,
@@ -468,6 +590,11 @@ export function publicEntitlements(e: Entitlements) {
       reports: e.canVlsiReports,
       exportTcl: e.canVlsiExportTcl,
       eco: e.canVlsiEco,
+    },
+    openroad: {
+      access: e.canAccessOpenroad,
+      scripts: e.canOpenroadScripts,
+      run: e.canOpenroadRun,
     },
   };
 }

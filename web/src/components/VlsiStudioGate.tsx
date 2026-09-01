@@ -6,6 +6,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 import type { PlanTier } from "@/lib/entitlements";
 import { planLabel } from "@/lib/entitlements";
+import { mainPricingHref } from "@/lib/site";
 
 export type VlsiStudioId = "sdc" | "timing" | "mmmc" | "power" | "reports" | "rtl";
 
@@ -41,7 +42,7 @@ export function VlsiStudioGate({
   featureTitle,
   featureRequires = "max",
 }: Props) {
-  const { ent, loading } = useEntitlements();
+  const { ent, loading, ready } = useEntitlements();
   const meta = STUDIO_META[studio];
   const studioOk = Boolean(ent.vlsi.access && ent.vlsi[meta.entKey]);
   const flagOk =
@@ -53,11 +54,11 @@ export function VlsiStudioGate({
     ? featureTitle || (requireFlag === "eco" ? "ECO engine" : "TCL export")
     : meta.title;
 
-  if (loading) {
+  if (loading || !ready) {
     return (
       <div className="flex min-h-[50vh] flex-1 items-center justify-center bg-[var(--bg-main)] p-8">
         <div className="flex items-center gap-2 text-sm font-bold text-[var(--muted)] font-mono">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-4 w-4 animate-spin text-[var(--accent-cyan)]" />
           Checking plan entitlements…
         </div>
       </div>
@@ -72,18 +73,18 @@ export function VlsiStudioGate({
 
   return (
     <div className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col items-center justify-center bg-[var(--bg-main)] p-6">
-      {/* Decorative workstation chrome (no heavy studio mount) */}
+      {/* Decorative workstation chrome */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        className="pointer-events-none absolute inset-0 opacity-[0.05]"
         style={{
           backgroundImage:
-            "linear-gradient(#000 1px, transparent 1px), linear-gradient(90deg, #000 1px, transparent 1px)",
+            "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
           backgroundSize: "24px 24px",
         }}
       />
-      <div className="relative w-full max-w-md rounded-2xl border-2 border-black bg-white p-6 text-center shadow-[6px_6px_0_#000000] font-mono">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-800 border-2 border-black">
+      <div className="relative w-full max-w-md rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] p-6 text-center shadow-2xl font-mono">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
           {requires === "team" || requires === "max" ? (
             <Crown className="h-5 w-5" />
           ) : (
@@ -91,27 +92,27 @@ export function VlsiStudioGate({
           )}
         </div>
         <div className="mb-2 flex justify-center">
-          <PlanPill tier={ent.tier} />
+          <PlanPill tier={ent.tier} ready={ready && !loading} />
         </div>
-        <h2 className="text-lg font-black uppercase text-slate-900 tracking-tight">
+        <h2 className="text-lg font-black uppercase text-slate-100 tracking-tight">
           {title}
         </h2>
-        <p className="mt-2 text-xs font-bold text-slate-600 leading-relaxed">
+        <p className="mt-2 text-xs font-medium text-slate-400 leading-relaxed">
           Your current plan ({ent.label}) does not include this workstation.
-          Upgrade to <strong>{need}</strong> or higher and activate your API key
+          Upgrade to <strong className="text-cyan-400">{need}</strong> or higher and activate your API key
           on the VLSI dashboard.
         </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
           <a
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 rounded-md border-2 border-black bg-slate-900 px-4 py-2 text-xs font-black uppercase text-white shadow-[3px_3px_0_#000000] hover:bg-slate-800"
+            href={mainPricingHref()}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-cyan)] px-4 py-2 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
           >
             <Lock className="h-3.5 w-3.5" />
             View plans
           </a>
           <a
             href="/vlsi"
-            className="inline-flex items-center gap-1.5 rounded-md border-2 border-black bg-white px-4 py-2 text-xs font-black uppercase text-slate-900 shadow-[3px_3px_0_#000000] hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-bold uppercase text-slate-300 hover:bg-slate-700 transition-all"
           >
             Suite home
           </a>

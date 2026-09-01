@@ -1,0 +1,19 @@
+# Clerk Auth Keys (from dashboard.clerk.com)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_c3VwZXItY2F0dGxlLTc5LmNsZXJrLmFjY291bnRzLmRldiQ
+CLERK_SECRET_KEY=sk_test_321ystwxZHxC2dOk5VH2XF8B9a80lC19uYzbBkQ74g
+
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/signup
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+
+# Supabase Keys
+NEXT_PUBLIC_SUPABASE_URL=https://qqpwxigtkxauklfjosvx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxcHd4aWd0a3hhdWtsZmpvc3Z4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjQzNDcyNSwiZXhwIjoyMTAyMDEwNzI1fQ.cwCWW-7vx-Klf8e0TVS05ia57IcX76kA15z-R0xb-uc
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_Smq8DvHUs8lRSgA9g3llOA_K99jboal
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_Smq8DvHUs8lRSgA9g3llOA_K99jboal
+
+# Subdomain URLs (Canonical www)
+NEXT_PUBLIC_SITE_URL=https://www.ace-seek.com
+NEXT_PUBLIC_VLSI_URL=https://vlsi.ace-seek.com
+NEXT_PUBLIC_TOOLS_URL=https://tools.ace-seek.com
