@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from "next/server";
 import { findUserByApiKey, findUserByEmail, resolveLocalDevUser } from "@/lib/user-store";
 import { verifyIssuedApiKey, planFromApiKeyString, verifyTrialApiKey } from "@/lib/api-keys";
 import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
@@ -227,7 +228,6 @@ export async function POST(req: NextRequest) {
 
     // 4. In-memory user store key lookup fallback
     const legacy = findUserByApiKey(apiKey);
->>>>>>> main
     if (legacy) {
       const ent = {
         ...entitlementsForPlan(legacy.plan),
@@ -245,7 +245,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    }
     return NextResponse.json(
       { valid: false, error: "Invalid or revoked API Key" },
       { status: 404 }

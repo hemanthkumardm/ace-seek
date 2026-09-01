@@ -425,14 +425,6 @@ export function entitlementsFromApiKey(apiKey: string | null | undefined): Entit
     };
   }
 
-  const trial = verifyTrialApiKey(key);
-  if (trial.ok) {
-    return {
-      ...entitlementsForPlan("max"),
-      trialExpiresAt: trial.expiresAt,
-    };
-  }
-
   // Issued dashboard keys — original casing required for HMAC (do not lower-case user id)
   const issued = verifyIssuedApiKey(raw);
   if (issued.ok) {

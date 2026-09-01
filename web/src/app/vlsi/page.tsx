@@ -17,6 +17,7 @@ import {
   ArrowRight,
   GraduationCap,
   Boxes,
+  Lock,
 } from "lucide-react";
 import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
