@@ -212,84 +212,130 @@ export function VlsiHeaderNav({
 
                 <Link
                   href="/vlsi/learn"
-                  className="neu-btn px-3 py-1.5 text-xs font-black text-purple-700 flex items-center gap-1.5"
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
+                    pathname.startsWith("/vlsi/learn")
+                      ? "bg-purple-600 !text-white font-black shadow-sm border border-purple-700"
+                      : "neu-btn text-purple-700"
+                  }`}
                   title="Open VLSI Curriculum & EDA Tracks"
                 >
-                  <GraduationCap className="w-4 h-4 text-purple-600" />
-                  <span className="hidden sm:inline">Learn Hub</span>
-                  <span className="sm:hidden">Learn</span>
+                  <GraduationCap
+                    className={`w-4 h-4 ${
+                      pathname.startsWith("/vlsi/learn") ? "text-white" : "text-purple-600"
+                    }`}
+                  />
+                  <span className={pathname.startsWith("/vlsi/learn") ? "text-white font-black" : "text-purple-700 font-bold"}>
+                    <span className="hidden sm:inline">Learn Hub</span>
+                    <span className="sm:hidden">Learn</span>
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/rtl-lab"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname.startsWith("/vlsi/rtl-lab")
-                      ? "bg-emerald-500 text-slate-950 font-black shadow-sm border border-emerald-600"
+                      ? "bg-emerald-500 !text-slate-950 font-black shadow-sm border border-emerald-600"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Code2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>RTL Lab</span>
+                  <Code2
+                    className={`w-3.5 h-3.5 ${
+                      pathname.startsWith("/vlsi/rtl-lab") ? "text-slate-950" : "text-emerald-600"
+                    }`}
+                  />
+                  <span className={pathname.startsWith("/vlsi/rtl-lab") ? "text-slate-950 font-black" : "text-slate-800 font-bold"}>
+                    RTL Lab
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/reports"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/reports"
-                      ? "bg-slate-900 text-white font-black shadow-sm border border-slate-950"
+                      ? "bg-blue-600 !text-white font-black shadow-sm border border-blue-700"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <FolderOpen className="w-3.5 h-3.5 text-cyan-600" />
-                  <span>Reports</span>
+                  <FolderOpen
+                    className={`w-3.5 h-3.5 ${
+                      pathname === "/vlsi/reports" ? "text-white" : "text-blue-600"
+                    }`}
+                  />
+                  <span className={pathname === "/vlsi/reports" ? "text-white font-black" : "text-slate-800 font-bold"}>
+                    Reports
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/sdc-studio"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/sdc-studio"
-                      ? "bg-cyan-500 text-slate-950 font-black shadow-sm border border-cyan-600"
+                      ? "bg-cyan-500 !text-slate-950 font-black shadow-sm border border-cyan-600"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Cpu className="w-3.5 h-3.5 text-cyan-600" />
-                  <span>SDC Studio</span>
+                  <Cpu
+                    className={`w-3.5 h-3.5 ${
+                      pathname === "/vlsi/sdc-studio" ? "text-slate-950" : "text-cyan-600"
+                    }`}
+                  />
+                  <span className={pathname === "/vlsi/sdc-studio" ? "text-slate-950 font-black" : "text-slate-800 font-bold"}>
+                    SDC Studio
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/timing-studio"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/timing-studio"
-                      ? "bg-amber-400 text-slate-950 font-black shadow-sm border border-amber-500"
+                      ? "bg-amber-400 !text-slate-950 font-black shadow-sm border border-amber-500"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Activity className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Timing Studio</span>
+                  <Activity
+                    className={`w-3.5 h-3.5 ${
+                      pathname === "/vlsi/timing-studio" ? "text-slate-950" : "text-amber-600"
+                    }`}
+                  />
+                  <span className={pathname === "/vlsi/timing-studio" ? "text-slate-950 font-black" : "text-slate-800 font-bold"}>
+                    Timing Studio
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/mmmc-studio"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/mmmc-studio"
-                      ? "bg-indigo-600 text-white font-black shadow-sm border border-indigo-700"
+                      ? "bg-indigo-600 !text-white font-black shadow-sm border border-indigo-700"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
-                  <span>MMMC Studio</span>
+                  <Layers
+                    className={`w-3.5 h-3.5 ${
+                      pathname === "/vlsi/mmmc-studio" ? "text-white" : "text-indigo-600"
+                    }`}
+                  />
+                  <span className={pathname === "/vlsi/mmmc-studio" ? "text-white font-black" : "text-slate-800 font-bold"}>
+                    MMMC Studio
+                  </span>
                 </Link>
 
                 <Link
                   href="/vlsi/power-studio"
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/power-studio"
-                      ? "bg-rose-500 text-white font-black shadow-sm border border-rose-600"
+                      ? "bg-rose-500 !text-white font-black shadow-sm border border-rose-600"
                       : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Zap className="w-3.5 h-3.5 text-rose-600" />
-                  <span>Power Studio</span>
+                  <Zap
+                    className={`w-3.5 h-3.5 ${
+                      pathname === "/vlsi/power-studio" ? "text-white" : "text-rose-600"
+                    }`}
+                  />
+                  <span className={pathname === "/vlsi/power-studio" ? "text-white font-black" : "text-slate-800 font-bold"}>
+                    Power Studio
+                  </span>
                 </Link>
               </nav>
 
