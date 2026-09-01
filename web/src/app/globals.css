@@ -118,31 +118,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* VLSI product: always dark carbon.
-   OS light mode restyles :root (white-on-white studio cards). Learn's
-   light reader only uses --ln-* inside .learn-shell and must not leak. */
-html:has([data-vlsi-shell]),
-html:has([data-vlsi-shell]) body,
-[data-vlsi-shell] {
-  color-scheme: dark;
-  --bg-main: #0c0f14;
-  --bg-subtle: #11151c;
-  --surface-panel: #161b24;
-  --surface-raised: #1c222e;
-  --surface-recessed: #0a0d12;
-  --foreground: #f1f5f9;
-  --muted: #8b99ad;
-  --muted-dark: #4b5563;
-  --border-light: rgba(255, 255, 255, 0.12);
-  --border-dark: rgba(0, 0, 0, 0.6);
-  --bevel-highlight: rgba(255, 255, 255, 0.18);
-  --bevel-shadow: rgba(0, 0, 0, 0.5);
-}
-
-html:has([data-vlsi-shell]),
-html:has([data-vlsi-shell]) body {
-  background-color: #0c0f14;
-  color: #f1f5f9;
+/* VLSI Studio Shell: Light Neumorphic Engineering Theme */
+[data-vlsi-studio] {
+  color-scheme: light;
+  --bg-main: #e6ecf5;
+  --bg-subtle: #dbe4ef;
+  --surface-panel: #e6ecf5;
+  --surface-raised: #ffffff;
+  --surface-recessed: #d4dde8;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --muted-dark: #64748b;
+  --border-light: rgba(255, 255, 255, 0.9);
+  --border-dark: rgba(0, 0, 0, 0.12);
+  background-color: #e6ecf5;
+  color: #0f172a;
 }
 
 [data-vlsi-shell] {

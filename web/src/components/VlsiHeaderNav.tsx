@@ -79,22 +79,22 @@ export function VlsiHeaderNav({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[var(--surface-raised)] border-b-3 border-black text-[var(--foreground)]">
-        <div className="flex items-center justify-between px-3 md:px-6 py-2">
+      <header className="sticky top-0 z-40 bg-[#e6ecf5] border-b border-slate-300/90 shadow-sm text-slate-900">
+        <div className="flex items-center justify-between px-3 md:px-6 py-2.5">
           {isIntroPage ? (
             /* INTRO / MARKETING PAGE HEADER */
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
                 <Link
                   href={homeHref}
-                  className="flex items-center gap-2 p-1.5 rounded-md bg-[var(--brutal-yellow)] text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:bg-yellow-400 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-sm hover:opacity-95 transition-all text-xs"
                 >
-                  <Cpu className="w-5 h-5" />
-                  <span className="font-black tracking-wider text-sm uppercase">
-                    VLSI
+                  <Cpu className="w-4 h-4" />
+                  <span className="font-black tracking-wider uppercase">
+                    VLSI Cloud
                   </span>
                 </Link>
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-[var(--muted)]">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-600">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Engineering Cloud</span>
                 </div>
@@ -103,15 +103,15 @@ export function VlsiHeaderNav({
               <div className="flex items-center gap-2">
                 <Link
                   href="/vlsi/learn"
-                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black flex items-center gap-1.5 uppercase"
+                  className="neu-btn px-3 py-1.5 text-xs font-black text-slate-800 flex items-center gap-1.5"
                 >
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Learn</span>
+                  <GraduationCap className="w-4 h-4 text-purple-600" />
+                  <span>Learn Hub</span>
                 </Link>
                 <button
                   type="button"
                   onClick={handleOpenStudio}
-                  className="brutal-btn brutal-btn-cyan !text-xs !py-1.5 !px-3 font-black flex items-center gap-1.5 uppercase"
+                  className="neu-btn neu-btn-primary px-3 py-1.5 text-xs font-black flex items-center gap-1.5"
                 >
                   <Cpu className="w-4 h-4" />
                   <span>Open Studio</span>
@@ -120,28 +120,19 @@ export function VlsiHeaderNav({
                 <button
                   type="button"
                   onClick={handleApiKeyButton}
-                  className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
+                  className="neu-btn px-3 py-1.5 text-xs font-bold text-slate-800 flex items-center gap-1.5"
                 >
-                  <Key className="w-3.5 h-3.5" />
+                  <Key className="w-3.5 h-3.5 text-amber-600" />
                   <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
                 </button>
                 <a
                   href={signupHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black"
+                  className="neu-btn px-3 py-1.5 text-xs font-black text-amber-700 flex items-center gap-1"
                 >
                   <span>Get Key</span>
                   <ExternalLink className="w-3 h-3" />
-                </a>
-                <a
-                  href={mainSiteUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="hidden lg:inline-flex text-[10px] font-black text-slate-600 hover:text-black underline"
-                  title="Main Ace-Seek site"
-                >
-                  ace-seek.com
                 </a>
               </div>
             </div>
@@ -151,7 +142,7 @@ export function VlsiHeaderNav({
               <div className="flex items-center gap-2 shrink-0">
                 <Link
                   href={homeHref}
-                  className="p-1.5 rounded-md bg-purple-400 text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:bg-purple-500 transition-all shrink-0 font-black flex items-center gap-1.5 px-2.5 text-xs"
+                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-sm hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5 text-xs"
                   title="Return to VLSI Intro"
                 >
                   <Home className="w-4 h-4" />
@@ -159,13 +150,13 @@ export function VlsiHeaderNav({
                 </Link>
                 <Link
                   href="/vlsi/learn"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black transition-all text-xs ${
                     pathname === "/vlsi/learn" && !learnKind
-                      ? "bg-[var(--brutal-yellow)] text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "neu-btn text-slate-800 font-bold"
                   }`}
                 >
-                  <GraduationCap className="w-4 h-4" />
+                  <GraduationCap className="w-4 h-4 text-purple-400" />
                   <span className="hidden sm:inline">Curriculum</span>
                   <span className="sm:hidden">Learn</span>
                 </Link>
@@ -185,13 +176,13 @@ export function VlsiHeaderNav({
                   <Link
                     key={kind}
                     href={`/vlsi/learn?kind=${kind}`}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                       pathname === "/vlsi/learn" && learnKind === kind
-                        ? "bg-[var(--brutal-yellow)] text-black shadow-[2px_2px_0_#000000]"
-                        : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                        ? "bg-slate-900 text-white shadow-sm font-black"
+                        : "neu-btn text-slate-700"
                     }`}
                   >
-                    <Icon className="w-3.5 h-3.5" />
+                    <Icon className="w-3.5 h-3.5 text-sky-600" />
                     <span>{LEARN_KIND_META[kind].hubLabel}</span>
                   </Link>
                 ))}
@@ -199,7 +190,7 @@ export function VlsiHeaderNav({
               <button
                 type="button"
                 onClick={handleOpenStudio}
-                className="brutal-btn brutal-btn-cyan !text-xs !py-1.5 !px-3 font-black flex items-center gap-1.5 uppercase shrink-0"
+                className="neu-btn neu-btn-primary px-3 py-1.5 text-xs font-black flex items-center gap-1.5 uppercase shrink-0"
               >
                 <Cpu className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">VLSI Studio</span>
@@ -207,84 +198,111 @@ export function VlsiHeaderNav({
               </button>
             </div>
           ) : (
-            /* STUDIO PAGES: RTL Lab + workstations only */
-            <div className="flex items-center justify-between w-full">
-              <nav className="flex items-center gap-2 text-xs">
+            /* STUDIO PAGES: RTL Lab + workstations + Learn switcher */
+            <div className="flex items-center justify-between w-full gap-2">
+              <nav className="flex items-center gap-1.5 md:gap-2 text-xs flex-wrap">
                 <Link
                   href={homeHref}
-                  className="p-1.5 rounded-md bg-purple-400 text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:bg-purple-500 transition-all shrink-0 font-black flex items-center gap-1.5 px-2.5"
+                  className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-sm hover:opacity-90 transition-all shrink-0 flex items-center gap-1.5"
                   title="Return to VLSI Intro"
                 >
                   <Home className="w-4 h-4" />
                   <span className="text-xs font-black hidden sm:inline">VLSI</span>
                 </Link>
+
+                <Link
+                  href="/vlsi/learn"
+                  className="neu-btn px-3 py-1.5 text-xs font-black text-purple-700 flex items-center gap-1.5"
+                  title="Open VLSI Curriculum & EDA Tracks"
+                >
+                  <GraduationCap className="w-4 h-4 text-purple-600" />
+                  <span className="hidden sm:inline">Learn Hub</span>
+                  <span className="sm:hidden">Learn</span>
+                </Link>
+
                 <Link
                   href="/vlsi/rtl-lab"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname.startsWith("/vlsi/rtl-lab")
-                      ? "bg-emerald-400 text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-emerald-500 text-slate-950 font-black shadow-sm border border-emerald-600"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Code2 className="w-3.5 h-3.5" />
+                  <Code2 className="w-3.5 h-3.5 text-emerald-600" />
                   <span>RTL Lab</span>
                 </Link>
+
                 <Link
                   href="/vlsi/reports"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/reports"
-                      ? "bg-slate-900 text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-800 text-white hover:bg-slate-700"
+                      ? "bg-slate-900 text-white font-black shadow-sm border border-slate-950"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <FolderOpen className="w-3.5 h-3.5 text-cyan-300" />
-                  <span className="text-white font-bold">Reports</span>
+                  <FolderOpen className="w-3.5 h-3.5 text-cyan-600" />
+                  <span>Reports</span>
                 </Link>
+
                 <Link
                   href="/vlsi/sdc-studio"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/sdc-studio"
-                      ? "bg-[var(--brutal-cyan)] text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-cyan-500 text-slate-950 font-black shadow-sm border border-cyan-600"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Cpu className="w-3.5 h-3.5" />
+                  <Cpu className="w-3.5 h-3.5 text-cyan-600" />
                   <span>SDC Studio</span>
                 </Link>
+
                 <Link
                   href="/vlsi/timing-studio"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/timing-studio"
-                      ? "bg-[var(--brutal-yellow)] text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-amber-400 text-slate-950 font-black shadow-sm border border-amber-500"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Activity className="w-3.5 h-3.5" />
+                  <Activity className="w-3.5 h-3.5 text-amber-600" />
                   <span>Timing Studio</span>
                 </Link>
+
                 <Link
                   href="/vlsi/mmmc-studio"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/mmmc-studio"
-                      ? "bg-indigo-500 text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-indigo-600 text-white font-black shadow-sm border border-indigo-700"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5" />
+                  <Layers className="w-3.5 h-3.5 text-indigo-600" />
                   <span>MMMC Studio</span>
                 </Link>
+
                 <Link
                   href="/vlsi/power-studio"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition-all text-xs ${
                     pathname === "/vlsi/power-studio"
-                      ? "bg-rose-500 text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-rose-500 text-white font-black shadow-sm border border-rose-600"
+                      : "neu-btn text-slate-800"
                   }`}
                 >
-                  <Zap className="w-3.5 h-3.5" />
+                  <Zap className="w-3.5 h-3.5 text-rose-600" />
                   <span>Power Studio</span>
                 </Link>
               </nav>
+
+              <div className="hidden lg:flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleApiKeyButton}
+                  className="neu-btn px-2.5 py-1.5 text-xs font-bold text-slate-700 flex items-center gap-1.5"
+                >
+                  <Key className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{isAuthorized ? "Key Active" : "Key Login"}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>

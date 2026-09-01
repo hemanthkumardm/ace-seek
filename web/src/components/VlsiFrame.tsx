@@ -41,13 +41,12 @@ export function VlsiFrame({
 
   return (
     <div
-      data-vlsi-shell
-      className="h-dvh max-h-dvh flex flex-col overflow-hidden font-mono"
-      style={{ background: "var(--bg-main)", color: "var(--foreground)" }}
+      data-vlsi-studio
+      className="h-dvh max-h-dvh flex flex-col overflow-hidden font-mono bg-[#e6ecf5] text-slate-900"
     >
       <Suspense
         fallback={
-          <header className="shrink-0 border-b-4 border-black h-14 md:h-16 bg-[var(--surface-raised)]" />
+          <header className="shrink-0 border-b border-slate-300 h-14 bg-[#e6ecf5]" />
         }
       >
         <VlsiHeaderNav
