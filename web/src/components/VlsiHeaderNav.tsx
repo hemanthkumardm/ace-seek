@@ -79,23 +79,29 @@ export function VlsiHeaderNav({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#e6ecf5] border-b border-slate-300/90 shadow-sm text-slate-900">
+      <header
+        className={`sticky top-0 z-40 ${
+          isIntroPage
+            ? "bg-[#161b24] border-b-2 border-black text-white shadow-md"
+            : "bg-[#e6ecf5] border-b border-slate-300/90 shadow-sm text-slate-900"
+        }`}
+      >
         <div className="flex items-center justify-between px-3 md:px-6 py-2.5">
           {isIntroPage ? (
-            /* INTRO / MARKETING PAGE HEADER */
+            /* INTRO / MARKETING PAGE HEADER (Dark Neo-Brutalism) */
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
                 <Link
                   href={homeHref}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black shadow-sm hover:opacity-95 transition-all text-xs"
+                  className="flex items-center gap-2 p-1.5 rounded-md bg-[var(--brutal-yellow)] text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:bg-yellow-400 transition-all font-black text-xs"
                 >
                   <Cpu className="w-4 h-4" />
                   <span className="font-black tracking-wider uppercase">
                     VLSI Cloud
                   </span>
                 </Link>
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Engineering Cloud</span>
                 </div>
               </div>
@@ -103,24 +109,24 @@ export function VlsiHeaderNav({
               <div className="flex items-center gap-2">
                 <Link
                   href="/vlsi/learn"
-                  className="neu-btn px-3 py-1.5 text-xs font-black text-slate-800 flex items-center gap-1.5"
+                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black flex items-center gap-1.5 uppercase"
                 >
-                  <GraduationCap className="w-4 h-4 text-purple-600" />
-                  <span>Learn Hub</span>
+                  <GraduationCap className="w-4 h-4 text-black" />
+                  <span>Learn</span>
                 </Link>
                 <button
                   type="button"
                   onClick={handleOpenStudio}
-                  className="neu-btn neu-btn-primary px-3 py-1.5 text-xs font-black flex items-center gap-1.5"
+                  className="brutal-btn brutal-btn-cyan !text-xs !py-1.5 !px-3 font-black flex items-center gap-1.5 uppercase"
                 >
-                  <Cpu className="w-4 h-4" />
+                  <Cpu className="w-4 h-4 text-black" />
                   <span>Open Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={handleApiKeyButton}
-                  className="neu-btn px-3 py-1.5 text-xs font-bold text-slate-800 flex items-center gap-1.5"
+                  className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
                 >
                   <Key className="w-3.5 h-3.5 text-amber-600" />
                   <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
@@ -129,7 +135,7 @@ export function VlsiHeaderNav({
                   href={signupHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="neu-btn px-3 py-1.5 text-xs font-black text-amber-700 flex items-center gap-1"
+                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black flex items-center gap-1"
                 >
                   <span>Get Key</span>
                   <ExternalLink className="w-3 h-3" />

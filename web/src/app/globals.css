@@ -118,7 +118,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* VLSI Studio Shell: Light Neumorphic Engineering Theme */
+/* VLSI Studio Shell: Light Neumorphic Engineering Theme (Strictly Studios) */
 [data-vlsi-studio] {
   color-scheme: light;
   --bg-main: #e6ecf5;
@@ -135,9 +135,23 @@ body {
   color: #0f172a;
 }
 
+/* VLSI Marketing / Intro & Default Platform Shell: Dark Carbon */
 [data-vlsi-shell] {
-  background-color: var(--bg-main);
-  color: var(--foreground);
+  color-scheme: dark;
+  --bg-main: #0c0f14;
+  --bg-subtle: #11151c;
+  --surface-panel: #161b24;
+  --surface-raised: #1c222e;
+  --surface-recessed: #0a0d12;
+  --foreground: #f1f5f9;
+  --muted: #8b99ad;
+  --muted-dark: #4b5563;
+  --border-light: rgba(255, 255, 255, 0.12);
+  --border-dark: rgba(0, 0, 0, 0.6);
+  --bevel-highlight: rgba(255, 255, 255, 0.18);
+  --bevel-shadow: rgba(0, 0, 0, 0.5);
+  background-color: #0c0f14;
+  color: #f1f5f9;
 }
 
 /* Tools workstation pages: lock to viewport so editor/preview fill height */
