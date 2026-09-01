@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: [],
   async redirects() {
     return [
+      { source: "/docs", destination: "/vlsi/learn", permanent: true },
+      { source: "/docs/:path*", destination: "/vlsi/learn", permanent: true },
       { source: "/compiler", destination: "/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf", destination: "/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf/:path*", destination: "/tools/doc-compiler/:path*", permanent: true },

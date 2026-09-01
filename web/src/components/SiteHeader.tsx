@@ -16,8 +16,9 @@ import {
   Activity,
   Boxes,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
-import { PORTAL_URL } from "@/lib/site";
+import { PORTAL_URL, VLSI_URL } from "@/lib/site";
 
 type Props = {
   /** Highlight active nav key */
