@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, Lock, Search, Calculator, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Home, Lock, Search, Calculator, Sparkles } from "lucide-react";
 import {
   LEARN_KIND_META,
   LEARN_LAYER_META,
@@ -29,11 +29,13 @@ export function LearnSidebar({
   const { ent } = useEntitlements();
   const [q, setQ] = useState("");
   const [done, setDone] = useState<string[]>([]);
+  const [ready, setReady] = useState(false);
   const track = activeTrack ? trackById(activeTrack) : undefined;
 
   useEffect(() => {
     const update = () => setDone(loadLearnProgress().completed);
     update();
+    setReady(true);
     window.addEventListener("ace_vlsi_learn_progress_updated", update);
     window.addEventListener("storage", update);
     return () => {
@@ -68,6 +70,16 @@ export function LearnSidebar({
       }}
     >
       <Link
+        href="/vlsi"
+        data-ln="vlsi-home-sidebar"
+        className="flex items-center gap-1.5 text-[12px] font-medium px-1 py-1 rounded hover:underline"
+        style={{ color: "var(--ln-accent)" }}
+      >
+        <Home className="w-3.5 h-3.5" />
+        VLSI home
+      </Link>
+
+      <Link
         href="/vlsi/learn"
         className="flex items-center gap-1.5 text-[12px] font-medium px-1 py-1 rounded hover:underline"
         style={{ color: "var(--ln-accent)" }}
@@ -78,8 +90,8 @@ export function LearnSidebar({
 
       <div className="px-1">
         <p className="text-[15px] font-bold leading-tight">{track.title}</p>
-        <p className="text-[11px] mt-0.5" style={{ color: "var(--ln-muted)" }}>
-          {nDone}/{total} done · this course only
+        <p className="text-[11px] mt-0.5" style={{ color: "var(--ln-muted)" }} suppressHydrationWarning>
+          {ready ? `${nDone}/${total} done · this course only` : "this course"}
         </p>
       </div>
 

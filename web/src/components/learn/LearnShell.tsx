@@ -46,7 +46,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
   const activeTrack = courseTrack || session?.track;
   const showSidebar = !isCatalog && !!trackById(activeTrack || "");
 
-  const [theme, setThemeState] = useState<LnTheme>("light");
+  const [theme, setThemeState] = useState<LnTheme>("dark");
   const [font, setFontState] = useState<LnFont>("md");
   const [focus, setFocus] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -57,10 +57,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
       if (raw) {
         const p = JSON.parse(raw) as { theme?: LnTheme; font?: LnFont };
         if (p.theme === "dark" || p.theme === "light") setThemeState(p.theme);
-        else if (window.matchMedia("(prefers-color-scheme: dark)").matches) setThemeState("dark");
         if (p.font === "sm" || p.font === "md" || p.font === "lg") setFontState(p.font);
-      } else if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        setThemeState("dark");
       }
     } catch {
       /* ignore */

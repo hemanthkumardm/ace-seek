@@ -17,14 +17,10 @@ import {
   FileCheck2,
 } from "lucide-react";
 import {
-  LEARN_GROUPS,
   LEARN_SESSIONS,
   LEARN_TRACKS,
   learnCourseHref,
   orderedSessionsForTrack,
-  tracksForGroup,
-  type LearnTrack,
-  type LearnSession,
 } from "@/lib/vlsi-curriculum";
 import {
   LEARN_PROGRESS_EVENT,
@@ -36,12 +32,14 @@ import {
 export function LearnProgressTracker() {
   const [open, setOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [ready, setReady] = useState(false);
   const [progress, setProgress] = useState<LearnProgress>({ completed: [], quizScores: {} });
 
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setProgress(loadLearnProgress());
+    setReady(true);
 
     const handleUpdate = () => {
       setProgress(loadLearnProgress());
@@ -219,8 +217,12 @@ export function LearnProgressTracker() {
               className="transition-all duration-500 ease-out"
             />
           </svg>
-          <span className="absolute text-[8px] font-bold" style={{ color: "var(--ln-text)" }}>
-            {stats.pct > 0 ? `${stats.pct}` : "0"}
+          <span
+            className="absolute text-[8px] font-bold"
+            style={{ color: "var(--ln-text)" }}
+            suppressHydrationWarning
+          >
+            {ready && stats.pct > 0 ? `${stats.pct}` : "0"}
           </span>
         </div>
 
@@ -229,8 +231,9 @@ export function LearnProgressTracker() {
           <span
             className="px-1.5 py-0.2 rounded text-[10px] font-medium"
             style={{ background: "var(--ln-accent-soft)", color: "var(--ln-accent)" }}
+            suppressHydrationWarning
           >
-            {stats.completedCount}/{stats.totalLessons}
+            {ready ? `${stats.completedCount}/${stats.totalLessons}` : "–"}
           </span>
         </div>
       </button>
@@ -357,7 +360,7 @@ export function LearnProgressTracker() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wider opacity-75 px-1">
               <span>Track Breakdown</span>
-              <span>17 Tracks</span>
+              <span>{LEARN_TRACKS.length} Tracks</span>
             </div>
 
             <div

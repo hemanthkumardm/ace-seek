@@ -13,6 +13,7 @@ import {
   Cpu,
   Menu,
   Calculator,
+  Home,
 } from "lucide-react";
 import { useLearnPrefs } from "@/components/learn/LearnShell";
 import { trackById } from "@/lib/vlsi-curriculum";
@@ -43,6 +44,16 @@ export function LearnTopbar({ activeTrack, catalog }: { activeTrack?: string; ca
           </button>
         </div>
       )}
+
+      <Link
+        href="/vlsi"
+        data-ln="vlsi-home"
+        className="ln-btn ln-btn-primary !px-2.5 shrink-0"
+        title="Back to VLSI home"
+      >
+        <Home className="w-4 h-4" />
+        <span className="hidden sm:inline text-xs">VLSI Home</span>
+      </Link>
 
       <Link href="/vlsi/learn" className="flex items-center gap-2 min-w-0 mr-auto">
         <span
@@ -126,7 +137,7 @@ export function LearnTopbar({ activeTrack, catalog }: { activeTrack?: string; ca
       {/* Advanced Progress Tracker */}
       <LearnProgressTracker />
 
-      <Link href="/vlsi" className="ln-btn !px-2" title="VLSI Studio">
+      <Link href="/vlsi" className="ln-btn !px-2" title="VLSI Studio workstations">
         <Cpu className="w-4 h-4" />
         <span className="hidden lg:inline text-xs">Studio</span>
       </Link>

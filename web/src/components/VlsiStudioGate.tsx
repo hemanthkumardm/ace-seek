@@ -55,8 +55,8 @@ export function VlsiStudioGate({
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] flex-1 items-center justify-center bg-slate-100 p-8">
-        <div className="flex items-center gap-2 text-sm font-bold text-slate-600 font-mono">
+      <div className="flex min-h-[50vh] flex-1 items-center justify-center bg-[var(--bg-main)] p-8">
+        <div className="flex items-center gap-2 text-sm font-bold text-[var(--muted)] font-mono">
           <Loader2 className="h-4 w-4 animate-spin" />
           Checking plan entitlements…
         </div>
@@ -71,7 +71,7 @@ export function VlsiStudioGate({
   const need = planLabel(requires);
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col items-center justify-center bg-slate-100 p-6">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col items-center justify-center bg-[var(--bg-main)] p-6">
       {/* Decorative workstation chrome (no heavy studio mount) */}
       <div
         aria-hidden

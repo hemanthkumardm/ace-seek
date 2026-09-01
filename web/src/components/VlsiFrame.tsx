@@ -23,9 +23,15 @@ export function VlsiFrame({
   const pathname = usePathname();
   const isLearn = pathname.startsWith("/vlsi/learn");
 
+  // Keep data-vlsi-shell on Learn too so OS light mode cannot leak onto
+  // html/body and wash out the studio when navigating back to /vlsi.
   if (isLearn) {
     return (
-      <div className="h-dvh max-h-dvh flex flex-col overflow-hidden">
+      <div
+        data-vlsi-shell
+        className="h-dvh max-h-dvh flex flex-col overflow-hidden"
+        style={{ background: "var(--bg-main)", color: "var(--foreground)" }}
+      >
         <main className="relative flex-1 min-h-0 overflow-hidden flex flex-col">
           <WorkstationAuthGuard>{children}</WorkstationAuthGuard>
         </main>
@@ -36,11 +42,12 @@ export function VlsiFrame({
   return (
     <div
       data-vlsi-shell
-      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-slate-100 font-mono"
+      className="h-dvh max-h-dvh flex flex-col overflow-hidden font-mono"
+      style={{ background: "var(--bg-main)", color: "var(--foreground)" }}
     >
       <Suspense
         fallback={
-          <header className="shrink-0 border-b-4 border-black bg-white h-14 md:h-16" />
+          <header className="shrink-0 border-b-4 border-black h-14 md:h-16 bg-[var(--surface-raised)]" />
         }
       >
         <VlsiHeaderNav

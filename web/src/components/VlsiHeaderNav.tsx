@@ -66,7 +66,7 @@ export function VlsiHeaderNav({
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[var(--surface-raised)] border-b-3 border-black text-black">
+      <header className="sticky top-0 z-40 bg-[var(--surface-raised)] border-b-3 border-black text-[var(--foreground)]">
         <div className="flex items-center justify-between px-3 md:px-6 py-2">
           {isIntroPage ? (
             /* INTRO / MARKETING PAGE HEADER */
@@ -81,7 +81,7 @@ export function VlsiHeaderNav({
                     VLSI
                   </span>
                 </Link>
-                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-[var(--muted)]">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span>Engineering Cloud</span>
                 </div>

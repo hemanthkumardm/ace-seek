@@ -118,6 +118,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* VLSI product: always dark carbon.
+   OS light mode restyles :root (white-on-white studio cards). Learn's
+   light reader only uses --ln-* inside .learn-shell and must not leak. */
+html:has([data-vlsi-shell]),
+html:has([data-vlsi-shell]) body,
+[data-vlsi-shell] {
+  color-scheme: dark;
+  --bg-main: #0c0f14;
+  --bg-subtle: #11151c;
+  --surface-panel: #161b24;
+  --surface-raised: #1c222e;
+  --surface-recessed: #0a0d12;
+  --foreground: #f1f5f9;
+  --muted: #8b99ad;
+  --muted-dark: #4b5563;
+  --border-light: rgba(255, 255, 255, 0.12);
+  --border-dark: rgba(0, 0, 0, 0.6);
+  --bevel-highlight: rgba(255, 255, 255, 0.18);
+  --bevel-shadow: rgba(0, 0, 0, 0.5);
+}
+
+html:has([data-vlsi-shell]),
+html:has([data-vlsi-shell]) body {
+  background-color: #0c0f14;
+  color: #f1f5f9;
+}
+
+[data-vlsi-shell] {
+  background-color: var(--bg-main);
+  color: var(--foreground);
+}
+
 /* Tools workstation pages: lock to viewport so editor/preview fill height */
 body:has([data-tools-shell]) {
   overflow: hidden;
@@ -680,9 +712,24 @@ a {
 /* ——— VLSI Learn reader (not brutalism) ——— */
 .learn-shell {
   --ln-fs: 1.0625rem;
+  /* Dark defaults so first paint matches SSR even before data-ln-theme hydrates */
+  --ln-bg: #0b1018;
+  --ln-bg-elev: #121a26;
+  --ln-sidebar: #0e1520;
+  --ln-text: #e8edf5;
+  --ln-muted: #9aa6b8;
+  --ln-border: #243044;
+  --ln-accent: #5eead4;
+  --ln-accent-soft: #134e4a;
+  --ln-hover: #1a2433;
+  --ln-code-bg: #020617;
+  --ln-code-fg: #e2e8f0;
+  --ln-ok: #34d399;
+  --ln-bad: #f87171;
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   background: var(--ln-bg);
   color: var(--ln-text);
+  color-scheme: dark;
 }
 .learn-shell[data-ln-font="sm"] { --ln-fs: 0.95rem; }
 .learn-shell[data-ln-font="md"] { --ln-fs: 1.0625rem; }
