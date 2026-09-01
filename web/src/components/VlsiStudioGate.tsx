@@ -72,49 +72,39 @@ export function VlsiStudioGate({
   const need = planLabel(requires);
 
   return (
-    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col items-center justify-center bg-[var(--bg-main)] p-6">
-      {/* Decorative workstation chrome */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
-      />
-      <div className="relative w-full max-w-md rounded-2xl border border-[var(--bevel-highlight)] bg-[var(--surface-panel)] p-6 text-center shadow-2xl font-mono">
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30">
+    <div className="flex min-h-[calc(100dvh-3.5rem)] flex-1 flex-col items-center justify-center bg-[#e6ecf5] p-6 font-mono">
+      <div className="relative w-full max-w-md neu-panel p-8 text-center">
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl neu-inset text-amber-600">
           {requires === "team" || requires === "max" ? (
-            <Crown className="h-5 w-5" />
+            <Crown className="h-7 w-7" />
           ) : (
-            <Lock className="h-5 w-5" />
+            <Lock className="h-7 w-7" />
           )}
         </div>
-        <div className="mb-2 flex justify-center">
+        <div className="mb-3 flex justify-center">
           <PlanPill tier={ent.tier} ready={ready && !loading} />
         </div>
-        <h2 className="text-lg font-black uppercase text-slate-100 tracking-tight">
+        <h2 className="text-base md:text-lg font-black uppercase text-slate-900 tracking-tight">
           {title}
         </h2>
-        <p className="mt-2 text-xs font-medium text-slate-400 leading-relaxed">
+        <p className="mt-2.5 text-xs font-bold text-slate-600 leading-relaxed">
           Your current plan ({ent.label}) does not include this workstation.
-          Upgrade to <strong className="text-cyan-400">{need}</strong> or higher and activate your API key
+          Upgrade to <strong className="text-sky-700 font-black">{need}</strong> or higher and activate your API key
           on the VLSI dashboard.
         </p>
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           <a
             href={mainPricingHref()}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent-cyan)] px-4 py-2 text-xs font-black uppercase text-black hover:bg-cyan-300 transition-all shadow-md"
+            className="neu-btn neu-btn-primary px-4 py-2.5 text-xs font-black uppercase flex items-center gap-1.5"
           >
             <Lock className="h-3.5 w-3.5" />
-            View plans
+            <span>View plans</span>
           </a>
           <a
             href="/vlsi"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-bold uppercase text-slate-300 hover:bg-slate-700 transition-all"
+            className="neu-btn px-4 py-2.5 text-xs font-bold uppercase text-slate-700 flex items-center gap-1.5"
           >
-            Suite home
+            <span>Suite home</span>
           </a>
         </div>
       </div>
