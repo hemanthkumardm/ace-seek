@@ -40,9 +40,7 @@ export function WorkstationAuthGuard({ children }: Props) {
     pathname === "/openroad" ||
     pathname === "/tools" ||
     pathname === "/login" ||
-    pathname.endsWith("/login") ||
-    pathname.startsWith("/vlsi/learn") ||
-    pathname.startsWith("/learn");
+    pathname.endsWith("/login");
 
   const validateKeySilently = useCallback(async (keyToTest: string) => {
     try {
