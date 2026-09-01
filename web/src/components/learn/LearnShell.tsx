@@ -56,8 +56,7 @@ export function LearnShell({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE);
       if (raw) {
         const p = JSON.parse(raw) as { theme?: LnTheme; font?: LnFont };
-        // Default strictly to dark
-        if (p.theme === "dark") setThemeState("dark");
+        if (p.theme === "dark" || p.theme === "light") setThemeState(p.theme);
         if (p.font === "sm" || p.font === "md" || p.font === "lg") setFontState(p.font);
       }
     } catch {

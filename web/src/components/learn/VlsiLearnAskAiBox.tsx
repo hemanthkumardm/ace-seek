@@ -193,23 +193,49 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
   };
 
   return (
-    <section className="bg-gradient-to-r from-blue-950/40 via-indigo-950/30 to-purple-950/30 border border-blue-500/30 rounded-2xl p-6 shadow-xl space-y-6 relative overflow-hidden">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+    <section
+      className="border rounded-2xl p-6 shadow-md space-y-6 relative overflow-hidden transition-all"
+      style={{
+        background: "var(--ln-ask-bg)",
+        borderColor: "var(--ln-ask-border)",
+      }}
+    >
+      <div
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b"
+        style={{ borderColor: "var(--ln-border)" }}
+      >
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-semibold">
+          <div
+            className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold"
+            style={{
+              background: "var(--ln-accent-soft)",
+              color: "var(--ln-accent)",
+              border: "1px solid var(--ln-border)",
+            }}
+          >
             <Bot className="w-3.5 h-3.5" />
             VLSI AI TUTOR & CONCEPT ASSISTANT
           </div>
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h2
+            className="text-xl font-bold tracking-tight flex items-center gap-2"
+            style={{ color: "var(--ln-text)" }}
+          >
             Ask Questions If You Didn't Understand Any Concepts
           </h2>
-          <p className="text-xs text-slate-300 max-w-2xl">
+          <p className="text-xs max-w-2xl leading-relaxed" style={{ color: "var(--ln-muted)" }}>
             Stuck on a tricky physical design question, timing constraint, dynamic IR drop issue, or formal LEC proof? Ask your question below for instant physics derivations and EDA solutions.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
-          <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[11px] font-mono text-slate-400">
+          <span
+            className="px-2.5 py-1 rounded-lg border text-[11px] font-mono"
+            style={{
+              background: "var(--ln-bg-elev)",
+              borderColor: "var(--ln-border)",
+              color: "var(--ln-muted)",
+            }}
+          >
             Available 24/7
           </span>
         </div>
@@ -217,8 +243,11 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
 
       {/* Quick Prompts */}
       <div className="space-y-2">
-        <div className="text-[11px] font-mono font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-          <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
+        <div
+          className="text-[11px] font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
+          style={{ color: "var(--ln-muted)" }}
+        >
+          <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
           Popular Questions & Interview Topics:
         </div>
         <div className="flex flex-wrap gap-2">
@@ -227,7 +256,12 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
               key={idx}
               type="button"
               onClick={() => handleSelectQuickPrompt(p)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-blue-950/60 hover:border-blue-500/50 border border-slate-800 text-xs text-slate-300 hover:text-white transition-all cursor-pointer text-left"
+              className="px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer text-left hover:brightness-105"
+              style={{
+                background: "var(--ln-prompt-bg)",
+                borderColor: "var(--ln-prompt-border)",
+                color: "var(--ln-prompt-text)",
+              }}
             >
               {p.label}
             </button>
@@ -243,14 +277,19 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Type any VLSI question or concept you didn't understand (e.g. 'Why does hold slack fail at -40C?', 'Explain clock gating setup checks', 'How does Conformal LEC debug non-equivalence?')..."
             rows={3}
-            className="w-full rounded-xl bg-slate-950/90 border border-slate-700/80 p-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 font-sans leading-relaxed shadow-inner"
+            className="w-full rounded-xl border p-3.5 text-xs focus:outline-none focus:border-blue-500 font-sans leading-relaxed shadow-sm transition-all"
+            style={{
+              background: "var(--ln-input-bg)",
+              borderColor: "var(--ln-input-border)",
+              color: "var(--ln-input-text)",
+            }}
           />
           <button
             type="submit"
             disabled={!question.trim() || isAnswering}
             className={`absolute right-3 bottom-3 px-4 py-2 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
               !question.trim() || isAnswering
-                ? "bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed"
+                ? "bg-slate-400/20 text-slate-400 border border-slate-300/40 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-500 text-white border border-blue-400 shadow-blue-600/30"
             }`}
           >
@@ -271,13 +310,17 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
 
       {/* Answers History */}
       {history.length > 0 && (
-        <div className="space-y-4 pt-2 border-t border-slate-800/80">
-          <div className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+        <div className="space-y-4 pt-2 border-t" style={{ borderColor: "var(--ln-border)" }}>
+          <div
+            className="text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-between"
+            style={{ color: "var(--ln-muted)" }}
+          >
             <span>Recent Explanations & Answers ({history.length}):</span>
             <button
               type="button"
               onClick={() => setHistory([])}
-              className="text-[10px] text-slate-500 hover:text-slate-300 underline cursor-pointer"
+              className="text-[10px] underline cursor-pointer hover:opacity-80"
+              style={{ color: "var(--ln-muted)" }}
             >
               Clear
             </button>
@@ -287,34 +330,45 @@ Feel free to ask more specific questions about Setup/Hold timing, Dynamic IR dro
             {history.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 space-y-3 shadow-md"
+                className="border rounded-xl p-4 space-y-3 shadow-sm transition-all"
+                style={{
+                  background: "var(--ln-history-bg)",
+                  borderColor: "var(--ln-history-border)",
+                }}
               >
                 <div className="flex items-start gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 text-xs font-bold shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-500 text-xs font-bold shrink-0 mt-0.5">
                     Q
                   </div>
-                  <div className="text-xs font-bold text-white leading-relaxed">
+                  <div className="text-xs font-bold leading-relaxed" style={{ color: "var(--ln-text)" }}>
                     {item.q}
                   </div>
                 </div>
 
                 <div className="flex items-start gap-2.5 pl-1">
-                  <div className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 text-xs font-bold shrink-0 mt-0.5">
+                  <div className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-500 text-xs font-bold shrink-0 mt-0.5">
                     <Bot className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs text-slate-300 leading-relaxed space-y-2 whitespace-pre-wrap font-sans">
+                  <div className="text-xs leading-relaxed space-y-2 whitespace-pre-wrap font-sans" style={{ color: "var(--ln-muted)" }}>
                     {item.a}
                   </div>
                 </div>
 
                 {item.links && item.links.length > 0 && (
-                  <div className="pt-2 border-t border-slate-800/60 pl-8 flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono text-slate-500">Related Lessons & Labs:</span>
+                  <div className="pt-2 border-t pl-8 flex flex-wrap items-center gap-2" style={{ borderColor: "var(--ln-border)" }}>
+                    <span className="text-[10px] font-mono" style={{ color: "var(--ln-muted)" }}>
+                      Related Lessons & Labs:
+                    </span>
                     {item.links.map((link, lIdx) => (
                       <Link
                         key={lIdx}
                         href={link.href}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-950/40 hover:bg-blue-950/80 border border-blue-500/30 text-blue-300 text-[11px] font-mono transition-all"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all hover:opacity-90"
+                        style={{
+                          background: "var(--ln-accent-soft)",
+                          borderColor: "var(--ln-border)",
+                          color: "var(--ln-accent)",
+                        }}
                       >
                         <BookOpen className="w-3 h-3" />
                         {link.title}

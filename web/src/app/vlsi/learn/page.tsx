@@ -135,16 +135,29 @@ export default function VlsiLearnHub() {
       </header>
 
       {/* 🧮 Featured VLSI Production Calculators Hub */}
-      <div className="bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-900 border border-indigo-500/30 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+      <div
+        className="rounded-2xl p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden transition-all"
+        style={{
+          background: "var(--ln-banner-bg)",
+          border: "1px solid var(--ln-banner-border)",
+        }}
+      >
         <div className="space-y-1.5 relative z-10">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-[11px] font-mono font-semibold">
-            <Calculator className="w-3.5 h-3.5 text-indigo-400" />
+          <div
+            className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold"
+            style={{
+              background: "var(--ln-accent-soft)",
+              color: "var(--ln-accent)",
+              border: "1px solid var(--ln-border)",
+            }}
+          >
+            <Calculator className="w-3.5 h-3.5" />
             34 LIVE PRODUCTION CALCULATORS
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight flex items-center gap-2" style={{ color: "var(--ln-text)" }}>
             VLSI Production Engineering Calculator Suite
           </h2>
-          <p className="text-xs text-slate-300 max-w-xl">
+          <p className="text-xs max-w-xl leading-relaxed" style={{ color: "var(--ln-muted)" }}>
             Interactive mathematical calculators for Floorplanning, Core/Die Sizing, Power Rings/Stripes, CTS Useful Skew, Process Antenna Diodes, Dynamic IR Drop, and RTL Logic Synthesis.
           </p>
         </div>
