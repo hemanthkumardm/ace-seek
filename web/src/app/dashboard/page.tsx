@@ -236,10 +236,10 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
             </div>
           </div>
           <a
-            href="https://www.ace-seek.com/docs"
+            href="https://vlsi.ace-seek.com/learn"
             className="sk-btn sk-btn-ghost !text-xs"
           >
-            <span>API Docs &rarr;</span>
+            <span>VLSI Learn Hub &rarr;</span>
           </a>
         </div>
       </main>
