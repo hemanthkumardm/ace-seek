@@ -633,11 +633,11 @@ assert(
 const userSyn = generateMmmcTcl(userCfg, "synopsys");
 assert(userSyn.includes("create_scenario view_func_user_setup"), `Synopsys scenarios from user config`);
 
-// B1.7: Real Innovus multi-line fixture (TSMC-style dual corner)
+// B1.7: Real Innovus multi-line fixture (Open-source Sky130 style dual corner)
 console.log("\n--- Phase B1.7: Innovus reference fixture parse / regenerate ---");
 const innovusFixturePath = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../src/lib/__fixtures__/mmmc/innovus_tsmc16_func.tcl"
+  "../src/lib/__fixtures__/mmmc/innovus_sky130_func.tcl"
 );
 assert(fs.existsSync(innovusFixturePath), `Innovus MMMC fixture exists`);
 const innovusFixture = fs.readFileSync(innovusFixturePath, "utf8");

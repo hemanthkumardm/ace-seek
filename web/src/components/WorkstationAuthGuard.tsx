@@ -34,7 +34,9 @@ export function WorkstationAuthGuard({ children }: Props) {
     pathname === "/vlsi" ||
     pathname === "/tools" ||
     pathname === "/login" ||
-    pathname.endsWith("/login");
+    pathname.endsWith("/login") ||
+    pathname.startsWith("/vlsi/learn") ||
+    pathname.startsWith("/learn");
 
   useEffect(() => {
     if (typeof window === "undefined") return;

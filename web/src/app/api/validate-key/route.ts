@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findUserByApiKey } from "@/lib/user-store";
+import { findUserByApiKey, resolveLocalDevUser } from "@/lib/user-store";
 import { verifyIssuedApiKey, verifyTrialApiKey } from "@/lib/api-keys";
 import { publicEntitlements, entitlementsForPlan } from "@/lib/entitlements";
 import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
@@ -20,7 +20,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const legacy = findUserByApiKey(apiKey);
+    const isDev =
+      process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
+    const legacy = isDev
+      ? resolveLocalDevUser(apiKey) || findUserByApiKey(apiKey)
+      : findUserByApiKey(apiKey);
     if (legacy) {
       const ent = {
         ...entitlementsForPlan(legacy.plan),

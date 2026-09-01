@@ -676,3 +676,158 @@ a {
   border-radius: 9999px;
   padding: 0.25rem 0.75rem;
 }
+
+/* ——— VLSI Learn reader (not brutalism) ——— */
+.learn-shell {
+  --ln-fs: 1.0625rem;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--ln-bg);
+  color: var(--ln-text);
+}
+.learn-shell[data-ln-font="sm"] { --ln-fs: 0.95rem; }
+.learn-shell[data-ln-font="md"] { --ln-fs: 1.0625rem; }
+.learn-shell[data-ln-font="lg"] { --ln-fs: 1.2rem; }
+
+.learn-shell[data-ln-theme="light"] {
+  --ln-bg: #f6f7f9;
+  --ln-bg-elev: #ffffff;
+  --ln-sidebar: #eef1f5;
+  --ln-text: #1b2330;
+  --ln-muted: #5c6778;
+  --ln-border: #e2e6ee;
+  --ln-accent: #0f766e;
+  --ln-accent-soft: #ccfbf1;
+  --ln-hover: #e7ebf1;
+  --ln-code-bg: #0f172a;
+  --ln-code-fg: #e2e8f0;
+  --ln-ok: #047857;
+  --ln-bad: #b91c1c;
+  color-scheme: light;
+}
+.learn-shell[data-ln-theme="dark"] {
+  --ln-bg: #0b1018;
+  --ln-bg-elev: #121a26;
+  --ln-sidebar: #0e1520;
+  --ln-text: #e8edf5;
+  --ln-muted: #9aa6b8;
+  --ln-border: #243044;
+  --ln-accent: #5eead4;
+  --ln-accent-soft: #134e4a;
+  --ln-hover: #1a2433;
+  --ln-code-bg: #020617;
+  --ln-code-fg: #e2e8f0;
+  --ln-ok: #34d399;
+  --ln-bad: #f87171;
+  color-scheme: dark;
+}
+
+.learn-prose {
+  font-size: var(--ln-fs);
+  line-height: 1.75;
+  color: var(--ln-text);
+  max-width: 46rem;
+}
+.learn-prose p + p { margin-top: 1.05em; }
+.learn-prose h1 {
+  font-size: calc(var(--ln-fs) * 1.85);
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.4em;
+}
+.learn-prose h2 {
+  font-size: calc(var(--ln-fs) * 1.15);
+  font-weight: 620;
+  margin: 1.6em 0 0.5em;
+}
+
+.ln-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--ln-border);
+  background: var(--ln-bg-elev);
+  color: var(--ln-text);
+  font-size: 0.8rem;
+  font-weight: 550;
+  padding: 0.4rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, filter 0.15s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.ln-btn:hover:not(:disabled) {
+  background: var(--ln-hover);
+  border-color: var(--ln-accent);
+  color: var(--ln-text);
+}
+
+.ln-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.ln-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ln-btn-primary,
+.ln-btn.ln-btn-primary {
+  background: var(--ln-accent) !important;
+  border-color: var(--ln-accent) !important;
+  color: #042f2e !important;
+  font-weight: 650;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.learn-shell[data-ln-theme="light"] .ln-btn-primary,
+.learn-shell[data-ln-theme="light"] .ln-btn.ln-btn-primary {
+  background: var(--ln-accent) !important;
+  border-color: var(--ln-accent) !important;
+  color: #ffffff !important;
+}
+
+.learn-shell[data-ln-theme="dark"] .ln-btn-primary,
+.learn-shell[data-ln-theme="dark"] .ln-btn.ln-btn-primary {
+  background: var(--ln-accent) !important;
+  border-color: var(--ln-accent) !important;
+  color: #042f2e !important;
+}
+
+.ln-btn-primary:hover:not(:disabled),
+.ln-btn.ln-btn-primary:hover:not(:disabled) {
+  background: var(--ln-accent) !important;
+  border-color: var(--ln-accent) !important;
+  filter: brightness(1.15) !important;
+}
+
+.learn-shell[data-ln-theme="light"] .ln-btn-primary:hover:not(:disabled),
+.learn-shell[data-ln-theme="light"] .ln-btn.ln-btn-primary:hover:not(:disabled) {
+  background: var(--ln-accent) !important;
+  color: #ffffff !important;
+  filter: brightness(1.1) !important;
+}
+
+.learn-shell[data-ln-theme="dark"] .ln-btn-primary:hover:not(:disabled),
+.learn-shell[data-ln-theme="dark"] .ln-btn.ln-btn-primary:hover:not(:disabled) {
+  background: var(--ln-accent) !important;
+  color: #042f2e !important;
+  filter: brightness(1.15) !important;
+}
+
+.ln-card {
+  background: var(--ln-bg-elev);
+  border: 1px solid var(--ln-border);
+  border-radius: 0.85rem;
+}
+
+.ln-code {
+  background: var(--ln-code-bg);
+  color: var(--ln-code-fg);
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.6;
+}

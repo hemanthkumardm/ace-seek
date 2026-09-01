@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
 import {
   Cpu,
@@ -15,6 +16,7 @@ import {
   ArrowUpRight,
   ArrowRight,
   Lock,
+  GraduationCap,
 } from "lucide-react";
 import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -161,6 +163,14 @@ export default function VlsiHome() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {/* Primary Action Button */}
+            <a
+              href="/vlsi/learn"
+              className="brutal-btn brutal-btn-yellow !text-sm !py-3 !px-6 font-black uppercase flex items-center gap-2 shadow-[4px_4px_0_#000000]"
+            >
+              <GraduationCap className="w-5 h-5 text-black" />
+              <span>VLSI Learn</span>
+              <ArrowRight className="w-4 h-4" />
+            </a>
             <button
               type="button"
               onClick={handleOpenStudio}
@@ -202,16 +212,60 @@ export default function VlsiHome() {
                 VLSI Suite Workstation Catalog
               </span>
             </div>
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase text-white">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight uppercase text-slate-900">
               Physical Design & Signoff Engines
             </h2>
           </div>
-          <span className="text-xs font-bold text-slate-400 font-mono hidden md:inline-block">
+          <span className="text-xs font-bold text-slate-600 font-mono hidden md:inline-block">
             5 Professional Workstations
           </span>
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
+          <div className="brutal-panel brutal-panel-interactive p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-md bg-[var(--brutal-yellow)] border-2 border-black flex items-center justify-center text-black">
+                  <GraduationCap className="w-5 h-5" />
+                </div>
+                <span className="brutal-badge brutal-badge-yellow">OPEN</span>
+              </div>
+              <h3 className="text-lg font-black uppercase text-white">VLSI Learn</h3>
+              <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                Digital design, Verilog, SystemVerilog, synthesis, UVM — a readable course index, not a studio. RTL Lab stays in VLSI Studio.
+              </p>
+            </div>
+            <Link
+              href="/vlsi/learn"
+              className="brutal-btn brutal-btn-yellow !text-xs w-full justify-between font-black"
+            >
+              <span>Open curriculum</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="brutal-panel brutal-panel-interactive p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-md bg-emerald-400 border-2 border-black flex items-center justify-center text-black">
+                  <Cpu className="w-5 h-5" />
+                </div>
+                <span className="brutal-badge brutal-badge-lime">FREE+</span>
+              </div>
+              <h3 className="text-lg font-black uppercase text-white">RTL Lab</h3>
+              <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                ChipVerify-style Verilog lab: DUT + testbench, Icarus sim, console, VCD waves — in the browser.
+              </p>
+            </div>
+            <a
+              href="/vlsi/rtl-lab"
+              className="brutal-btn bg-emerald-400 text-black hover:bg-emerald-300 !text-xs w-full justify-between font-black"
+            >
+              <span>Open RTL Lab</span>
+              <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+
           {/* Tool 0: Report Hub */}
           <div className="brutal-panel brutal-panel-interactive p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border-3 border-black shadow-[5px_5px_0_#000000]">
             <div className="space-y-3">

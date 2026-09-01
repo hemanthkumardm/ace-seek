@@ -7,13 +7,14 @@ import { PlanPill } from "@/components/FeatureLock";
 import type { PlanTier } from "@/lib/entitlements";
 import { planLabel } from "@/lib/entitlements";
 
-export type VlsiStudioId = "sdc" | "timing" | "mmmc" | "power" | "reports";
+export type VlsiStudioId = "sdc" | "timing" | "mmmc" | "power" | "reports" | "rtl";
 
 const STUDIO_META: Record<
   VlsiStudioId,
   { title: string; requires: PlanTier; entKey: keyof ReturnType<typeof useEntitlements>["ent"]["vlsi"] }
 > = {
   reports: { title: "Report Hub", requires: "free", entKey: "reports" },
+  rtl: { title: "RTL Lab", requires: "free", entKey: "reports" },
   sdc: { title: "SDC Studio", requires: "free", entKey: "sdc" },
   timing: { title: "Timing Studio", requires: "pro", entKey: "timing" },
   mmmc: { title: "MMMC Studio", requires: "pro", entKey: "mmmc" },
@@ -122,18 +123,12 @@ export function VlsiStudioGate({
 
 /** Whether a studio is unlocked for the current public entitlements object */
 export function studioUnlocked(
-  vlsi: {
-    access: boolean;
-    sdc: boolean;
-    timing: boolean;
-    mmmc: boolean;
-    power: boolean;
-    reports: boolean;
-  },
+  vlsi: ReturnType<typeof useEntitlements>["ent"]["vlsi"],
   studio: VlsiStudioId
 ): boolean {
   if (!vlsi.access) return false;
-  return Boolean(vlsi[studio]);
+  const key = STUDIO_META[studio].entKey;
+  return Boolean(vlsi[key]);
 }
 
 export function studioMinPlan(studio: VlsiStudioId): PlanTier {

@@ -38,12 +38,14 @@ import {
   emptyUpfState,
   normalizeUpfState,
   generateUpf,
+  generateGenusPowerIntentTcl,
   parseUpf,
   lintUpfState,
   buildUpfDiagram,
   newId,
   padTopPracticeState,
 } from "@/lib/upf-engine";
+import { generateVoltusFromDesign } from "@/lib/cadence-flow-export";
 import {
   clearHubTransfer,
   loadHubTransfer,
@@ -149,6 +151,21 @@ function PowerStudioPage() {
     a.click();
     URL.revokeObjectURL(url);
     flash(`Downloaded ${filename}`);
+  };
+
+  const handleDownloadCadence = () => {
+    const name = state.designName || "design";
+    const genus = generateGenusPowerIntentTcl(name, `${name}.upf`);
+    const voltus = generateVoltusFromDesign(name);
+    const text = `${genus}\n${voltus}`;
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name}_cadence_power.tcl`;
+    a.click();
+    URL.revokeObjectURL(url);
+    flash(`Downloaded ${name}_cadence_power.tcl (Genus UPF + Voltus)`);
   };
 
   const handleImport = (text: string) => {
@@ -309,6 +326,14 @@ function PowerStudioPage() {
           >
             <Download className="w-3.5 h-3.5" />
             Download .upf
+          </button>
+          <button
+            type="button"
+            onClick={handleDownloadCadence}
+            className="neu-btn px-3 py-1.5 text-xs font-black flex items-center gap-1.5 bg-indigo-600 text-white"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Genus + Voltus Tcl
           </button>
         </div>
       </header>

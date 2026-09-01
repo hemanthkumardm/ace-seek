@@ -11,7 +11,7 @@ import type { TimingPath, TimingStep } from "./timing-engine";
 // Types
 // ---------------------------------------------------------------------------
 
-export type CellNameStyle = "tsmc_d" | "x_suffix" | "trail_digit" | "opaque";
+export type CellNameStyle = "d_drive" | "x_suffix" | "trail_digit" | "opaque";
 
 export interface ParsedCellName {
   raw: string;
@@ -48,6 +48,20 @@ export interface DriveLadder {
   seenCount: number;
 }
 
+export interface CellSizeCandidate {
+  fromCell: string;
+  toCell: string;
+  fromDrive: number;
+  toDrive: number;
+  direction: "up" | "down";
+  driveStep: number;
+  /** Estimated delay multiplier vs current cell */
+  delayMultiplier: number;
+  /** Estimated area multiplier */
+  areaMultiplier: number;
+  note: string;
+}
+
 export interface CellLadderCatalog {
   builtAt: number;
   sightings: CellSighting[];
@@ -77,9 +91,9 @@ export interface EcoCellPick {
 const VT_RE = /(ULVT|ELVT|LVT|SVT|HVT|RVT)$/i;
 
 /**
- * Parse common foundry cell naming into family + drive + VT.
+ * Parse common standard cell naming into family + drive + VT.
  * Supports:
- *  - TSMC-like: BUFFD4BWP16P90LVT, ND2D1BWP16P90, INVSKND10BWP16P90
+ *  - D-drive style: BUFFD4, ND2D1, INVSKND10
  *  - X-suffix: AND2X2, BUFX4, BUF_X4
  *  - Trailing digits: INVD1, CKBD8
  */
@@ -125,8 +139,8 @@ export function parseCellName(raw: string): ParsedCellName | null {
     }
   }
 
-  // 2) TSMC-style ...D<drive><suffix> e.g. BUFFD4BWP16P90, ND2D1BWP16P90
-  //    Prefer D before BWP / CP / letter-digit tech tokens
+  // 2) D-drive style ...D<drive><suffix> e.g. BUFFD4, ND2D1
+  //    Prefer D before tech tokens
   const dMatch = base.match(/^(.*?)D(\d+)([A-Z].*)?$/i);
   if (dMatch && dMatch[2]) {
     const prefix = dMatch[1];
@@ -141,7 +155,7 @@ export function parseCellName(raw: string): ParsedCellName | null {
         drive,
         driveToken: `D${drive}`,
         vt,
-        style: "tsmc_d",
+        style: "d_drive",
         rebuild: (d, vtNew) => {
           const v =
             vtNew === null ? "" : vtNew !== undefined ? vtNew : vt || "";

@@ -49,13 +49,19 @@ export function generatePlanApiKey(userId: string, plan: UserPlan): string {
   return `${prefix}_${userId.slice(0, 6)}_${random}`;
 }
 
+/** Stable local-dev keys so Pro/Max/Team login does not change every restart. */
+export const LOCAL_DEV_KEYS: Record<UserPlan, string> = {
+  free: "ace_free_usr_local_devkey",
+  pro: "ace_pro_usr_local_devkey",
+  max: "ace_max_usr_local_devkey",
+  team: "ace_team_usr_local_devkey",
+};
+
 export function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
 function seedDemoUsers() {
-  if (userMap.size > 0) return;
-
   const demos: { email: string; name: string; plan: UserPlan; pass: string }[] = [
     {
       email: "free@ace-seek.com",
@@ -98,10 +104,23 @@ function seedDemoUsers() {
       name: d.name,
       passwordHash: hashPassword(d.pass),
       plan: d.plan,
-      apiKey: generatePlanApiKey(id, d.plan),
+      apiKey: LOCAL_DEV_KEYS[d.plan],
       createdAt: Date.now(),
     });
   }
+}
+
+export function resolveLocalDevUser(raw: string): StoredUser | null {
+  const s = raw.trim().toLowerCase();
+  if (!s) return null;
+  const byKey = findUserByApiKey(raw.trim());
+  if (byKey) return byKey;
+  if (s === "free" || s === "pro" || s === "max" || s === "team") {
+    return findUserByEmail(`${s}@ace-seek.com`);
+  }
+  if (s.includes("@")) return findUserByEmail(s);
+  if (LOCAL_DEV_KEYS.free === raw.trim()) return findUserByEmail("free@ace-seek.com");
+  return null;
 }
 
 seedDemoUsers();

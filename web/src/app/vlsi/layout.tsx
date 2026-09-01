@@ -6,16 +6,13 @@ import {
   platformLoginHref,
   SITE_URL,
 } from "@/lib/site";
-import { Cpu, Activity, Layers, Zap, FolderOpen, Key, ExternalLink } from "lucide-react";
+import { VlsiFrame } from "@/components/VlsiFrame";
 
 export const metadata: Metadata = {
   title: "VLSI Platform · vlsi.ace-seek.com",
   description:
-    "Advanced VLSI tools suite — Reports Hub, SDC, Timing, MMMC, Power (UPF).",
+    "VLSI Learn: digital design, Verilog, SystemVerilog, synthesis, verification, UVM, SDC, STA. Studios live in VLSI Studio.",
 };
-
-import { WorkstationAuthGuard } from "@/components/WorkstationAuthGuard";
-import { VlsiHeaderNav } from "@/components/VlsiHeaderNav";
 
 export default async function VlsiLayout({
   children,
@@ -28,20 +25,13 @@ export default async function VlsiLayout({
   const signupHref = mainSignupHref();
 
   return (
-    <div
-      data-vlsi-shell
-      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-slate-100 font-mono"
+    <VlsiFrame
+      homeHref={homeHref}
+      loginHref={loginHref}
+      signupHref={signupHref}
+      mainSiteUrl={SITE_URL}
     >
-      <VlsiHeaderNav
-        homeHref={homeHref}
-        loginHref={loginHref}
-        signupHref={signupHref}
-        mainSiteUrl={SITE_URL}
-      />
-
-      <main className="relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col">
-        <WorkstationAuthGuard>{children}</WorkstationAuthGuard>
-      </main>
-    </div>
+      {children}
+    </VlsiFrame>
   );
 }

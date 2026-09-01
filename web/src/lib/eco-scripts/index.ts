@@ -862,10 +862,10 @@ export function exportGenusSynthFlow(options: GenusSynthFlowOptions = {}): strin
   const lines: string[] = [];
 
   lines.push(`######################################################################`);
-  lines.push(`# ACE-SEEK Genus full synthesis flow (Common UI)`);
+  lines.push(`# ACE-SEEK Genus full synthesis flow (PLAN logical / iSpatial)`);
   lines.push(`# Design: ${top}`);
   lines.push(`# Generated: ${new Date().toISOString()}`);
-  lines.push(`# Refs: misc/GENUS_COMMANDS.md, GENUS_SYNTHESIS_LEARNING_NOTES.md`);
+  lines.push(`# Refs: PLAN syn_generic / syn_map / syn_opt`);
   lines.push(`######################################################################`);
   lines.push(``);
 
@@ -1051,7 +1051,8 @@ export function exportVendorEcoScript(
       lines.push(``);
       break;
     case "innovus":
-      lines.push(`# Innovus ECO mode`);
+      lines.push(`# Innovus ECO (PLAN PODV2)`);
+      lines.push(`# Prefer place_opt_design / clock_opt_design / route_opt_design -incremental`);
       lines.push(`setEcoMode -updateTiming reserve -batchMode true`);
       lines.push(``);
       break;
@@ -1072,8 +1073,10 @@ export function exportVendorEcoScript(
       lines.push(``);
       break;
     case "tempus":
-      lines.push(`# Tempus`);
-      lines.push(`set_eco_option -update_timing true`);
+      lines.push(`# Tempus (PLAN 11.sta_post_layout.tcl)`);
+      lines.push(`set_db delaycal_enable_si true`);
+      lines.push(`update_timing -full`);
+      lines.push(`set_db opt_signoff_verbose true`);
       lines.push(``);
       break;
     case "opensta":
