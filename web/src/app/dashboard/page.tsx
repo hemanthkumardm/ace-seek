@@ -226,20 +226,20 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
         </div>
 
-        {/* HELP & DOCUMENTATION */}
+        {/* HELP & SUPPORT */}
         <div className="sk-recessed p-6 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
           <div className="flex items-center gap-3">
             <HelpCircle className="w-5 h-5 text-[var(--muted)]" />
             <div>
-              <p className="font-bold text-white">Need developer documentation or custom API keys?</p>
-              <p className="text-[var(--muted)]">Check our guides or reach out to support@ace-seek.com</p>
+              <p className="font-bold text-white">Need custom enterprise licenses or integration help?</p>
+              <p className="text-[var(--muted)]">Reach out to our engineering support team directly</p>
             </div>
           </div>
           <a
-            href="https://vlsi.ace-seek.com/learn"
+            href="mailto:support@ace-seek.com"
             className="sk-btn sk-btn-ghost !text-xs"
           >
-            <span>VLSI Learn Hub &rarr;</span>
+            <span>Contact Support &rarr;</span>
           </a>
         </div>
       </main>

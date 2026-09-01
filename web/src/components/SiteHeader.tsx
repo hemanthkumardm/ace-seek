@@ -7,7 +7,6 @@ import {
   CreditCard,
   Tag,
   Megaphone,
-  FileText,
   LayoutDashboard,
   LogIn,
   UserPlus,
@@ -16,9 +15,8 @@ import {
   Activity,
   Boxes,
   Sparkles,
-  BookOpen,
 } from "lucide-react";
-import { PORTAL_URL, VLSI_URL } from "@/lib/site";
+import { PORTAL_URL } from "@/lib/site";
 
 type Props = {
   /** Highlight active nav key */
@@ -190,13 +188,6 @@ export function SiteHeader({ active }: Props) {
             {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
             {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
             {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
-            <a
-              href={VLSI_URL + "/learn"}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.03)] transition-all"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span>Learn Hub</span>
-            </a>
           </nav>
         </div>
 

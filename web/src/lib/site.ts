@@ -107,6 +107,13 @@ export function mainPricingHref(): string {
   return `${SITE_URL}/pricing`;
 }
 
+export function vlsiLearnHref(host?: string | null): string {
+  if (typeof VLSI_URL === "string" && VLSI_URL.startsWith("http")) {
+    return `${VLSI_URL}/vlsi/learn`;
+  }
+  return "/vlsi/learn";
+}
+
 /** True for product hosts like doc.ace-seek.com or doc.localhost */
 export function productHostSlug(host: string | null | undefined): string | null {
   if (!host) return null;

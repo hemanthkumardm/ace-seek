@@ -65,6 +65,44 @@ function applyHostRouting(req: NextRequest): NextResponse {
     }
   }
 
+  if (slug === "vlsi") {
+    if (pathname === "/" || pathname === "") {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = "/vlsi";
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    if (pathname === "/learn" || pathname.startsWith("/learn/")) {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = `/vlsi${pathname}`;
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    if (pathname === "/c" || pathname.startsWith("/c/")) {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = `/vlsi/learn${pathname}`;
+      return NextResponse.rewrite(rewriteUrl);
+    }
+    const vlsiAliases: Record<string, string> = {
+      "/sdc": "/vlsi/sdc-studio",
+      "/sdc-studio": "/vlsi/sdc-studio",
+      "/timing": "/vlsi/timing-studio",
+      "/timing-studio": "/vlsi/timing-studio",
+      "/mmmc": "/vlsi/mmmc-studio",
+      "/mmmc-studio": "/vlsi/mmmc-studio",
+      "/power": "/vlsi/power-studio",
+      "/power-studio": "/vlsi/power-studio",
+      "/reports": "/vlsi/reports",
+      "/rtl": "/vlsi/rtl-lab",
+      "/rtl-lab": "/vlsi/rtl-lab",
+      "/login": "/vlsi/login",
+    };
+    const aliasTarget = vlsiAliases[pathname];
+    if (aliasTarget) {
+      const rewriteUrl = req.nextUrl.clone();
+      rewriteUrl.pathname = aliasTarget;
+      return NextResponse.rewrite(rewriteUrl);
+    }
+  }
+
   if (slug && (pathname === "/" || pathname === "")) {
     if (slug === "tools") {
       const rewriteUrl = req.nextUrl.clone();
