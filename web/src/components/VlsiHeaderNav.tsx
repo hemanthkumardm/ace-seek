@@ -362,7 +362,10 @@ export function VlsiHeaderNav({
 
       {/* Pop-up Auth Modal when OPEN VLSI STUDIO is clicked without being logged in */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div
+          data-vlsi-shell
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        >
           <div className="relative w-full max-w-xl">
             <button
               type="button"

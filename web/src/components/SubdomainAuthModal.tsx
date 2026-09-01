@@ -104,7 +104,8 @@ export function SubdomainAuthModal({
 
   return (
     <div
-      className={`brutal-panel bg-[var(--surface-panel)] border-3 border-black shadow-[6px_6px_0_#000000] p-6 space-y-5 max-w-xl mx-auto ${
+      data-vlsi-shell
+      className={`brutal-panel !bg-[#161b24] !text-white border-3 border-black shadow-[8px_8px_0_#000000] p-6 space-y-5 max-w-xl mx-auto font-mono ${
         compact ? "my-0" : "my-6"
       }`}
     >
