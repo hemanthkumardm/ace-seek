@@ -22,3 +22,8 @@ scripts.ace-seek.com {
 tools.ace-seek.com {
 	reverse_proxy aic-web:3000
 }
+
+# VLSI Learning Platform
+vlsi.ace-seek.com {
+	reverse_proxy aic-web:3000
+}
