@@ -37,7 +37,7 @@ export default async function ToolsLayout({
   return (
     <div
       data-tools-shell
-      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-slate-100 font-mono"
+      className="h-dvh max-h-dvh flex flex-col overflow-hidden bg-[var(--bg-main)] text-[var(--foreground)] font-mono"
     >
       <ToolsHeaderNav
         homeHref={homeHref}

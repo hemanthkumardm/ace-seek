@@ -63,7 +63,7 @@ export function ToolsHeaderNav({
 
   return (
     <>
-      <header className="shrink-0 border-b-4 border-black bg-white text-slate-900 z-30 shadow-[0_4px_0_#000000]">
+      <header className="shrink-0 border-b border-[var(--bevel-shadow)] bg-[var(--surface-recessed)] text-[var(--foreground)] z-30 shadow-md">
         <div className="m-shell flex h-14 md:h-16 items-center justify-between gap-4">
           {/* ON INTRO LANDING PAGE: Show full brand chip, Open Tools Studio, API Login, Get Key */}
           {isIntroPage ? (
@@ -71,14 +71,14 @@ export function ToolsHeaderNav({
               <div className="flex items-center gap-3 min-w-0">
                 <a
                   href={homeHref}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[var(--brutal-yellow)] text-black border-3 border-black shadow-[3px_3px_0_#000000] hover:translate-x-[-1px] hover:translate-y-[-1px] transition-all shrink-0 font-black"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--accent-cyan)]/10 text-[var(--accent-cyan)] border border-[var(--accent-cyan)]/40 hover:bg-[var(--accent-cyan)]/20 transition-all shrink-0 font-black"
                 >
-                  <Boxes className="w-4 h-4 text-black shrink-0" />
+                  <Boxes className="w-4 h-4 text-[var(--accent-cyan)] shrink-0" />
                   <div className="flex flex-col">
-                    <span className="text-xs font-black tracking-tight text-black">
+                    <span className="text-xs font-black tracking-tight text-white">
                       TOOLS.ACE-SEEK.COM
                     </span>
-                    <span className="text-[9px] font-black uppercase text-black">
+                    <span className="text-[9px] font-bold uppercase text-cyan-400">
                       DEV PLATFORM
                     </span>
                   </div>
@@ -89,9 +89,9 @@ export function ToolsHeaderNav({
                 <button
                   type="button"
                   onClick={handleOpenStudio}
-                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-4 font-black flex items-center gap-1.5 uppercase shadow-[3px_3px_0_#000000]"
+                  className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-4 font-black flex items-center gap-1.5 uppercase"
                 >
-                  <Boxes className="w-4 h-4 text-black" />
+                  <Boxes className="w-4 h-4" />
                   <span>Open Tools Studio</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
@@ -101,16 +101,16 @@ export function ToolsHeaderNav({
                 <button
                   type="button"
                   onClick={() => setShowAuthModal(true)}
-                  className="brutal-btn bg-white text-black hover:bg-slate-100 !text-xs !py-1.5 !px-3 font-black"
+                  className="sk-btn sk-btn-ghost !text-xs !py-1.5 !px-3 font-bold text-slate-200"
                 >
-                  <Key className="w-3.5 h-3.5" />
+                  <Key className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
                   <span>{isAuthorized ? "API Key Active" : "API Login"}</span>
                 </button>
                 <a
                   href={signupHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="brutal-btn brutal-btn-yellow !text-xs !py-1.5 !px-3 font-black"
+                  className="sk-btn sk-btn-primary !text-xs !py-1.5 !px-3 font-bold"
                 >
                   <span>Get Key</span>
                   <ExternalLink className="w-3 h-3" />
@@ -119,7 +119,7 @@ export function ToolsHeaderNav({
                   href={mainSiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden lg:inline-flex text-[10px] font-black text-slate-600 hover:text-black underline"
+                  className="hidden lg:inline-flex text-[11px] font-bold text-slate-400 hover:text-cyan-400 underline underline-offset-2"
                   title="Main Ace-Seek site"
                 >
                   ace-seek.com
@@ -133,20 +133,20 @@ export function ToolsHeaderNav({
                 {/* Home Link to Intro Page */}
                 <a
                   href={homeHref}
-                  className="p-1.5 rounded-md bg-[var(--brutal-yellow)] text-black border-2 border-black shadow-[2px_2px_0_#000000] hover:bg-yellow-400 transition-all shrink-0 font-black flex items-center gap-1.5 px-2.5"
+                  className="p-1.5 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 hover:bg-slate-700 transition-all shrink-0 font-bold flex items-center gap-1.5 px-2.5"
                   title="Return to Tools Intro"
                 >
-                  <Home className="w-4 h-4" />
-                  <span className="text-xs font-black hidden sm:inline">TOOLS</span>
+                  <Home className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-bold hidden sm:inline">TOOLS</span>
                 </a>
 
                 {/* Studio Workstation Switcher Tabs */}
                 <a
                   href="/tools/doc-compiler"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold transition-all text-xs ${
                     pathname === "/tools/doc-compiler"
-                      ? "bg-[var(--brutal-yellow)] text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-[var(--accent-cyan)] text-black border-[var(--accent-cyan)] shadow-md"
+                      : "bg-slate-900/60 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
@@ -154,10 +154,10 @@ export function ToolsHeaderNav({
                 </a>
                 <a
                   href="/tools/diff-comparator"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold transition-all text-xs ${
                     pathname === "/tools/diff-comparator"
-                      ? "bg-[var(--brutal-cyan)] text-black shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-[var(--accent-cyan)] text-black border-[var(--accent-cyan)] shadow-md"
+                      : "bg-slate-900/60 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
                   <GitCompare className="w-3.5 h-3.5" />
@@ -165,10 +165,10 @@ export function ToolsHeaderNav({
                 </a>
                 <a
                   href="/tools/format-converter"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border-2 border-black font-black transition-all text-xs ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border font-bold transition-all text-xs ${
                     pathname === "/tools/format-converter"
-                      ? "bg-[var(--brutal-pink)] text-white shadow-[2px_2px_0_#000000]"
-                      : "bg-slate-100 text-slate-800 hover:bg-slate-200"
+                      ? "bg-[var(--accent-cyan)] text-black border-[var(--accent-cyan)] shadow-md"
+                      : "bg-slate-900/60 text-slate-300 border-slate-800 hover:bg-slate-800 hover:text-white"
                   }`}
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
