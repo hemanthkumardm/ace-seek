@@ -40,8 +40,7 @@ export default function PricingPage() {
           </h1>
 
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
-            Billing and license seat management live exclusively on <span className="font-mono text-[var(--accent-cyan)]">ace-seek.com</span>. Subdomains verify your entitlements automatically without duplicate charges or extra checkouts.
-            Max is not auto-activated — <a href="/trial" className="text-[var(--accent-cyan)] underline-offset-2 hover:underline">request a 7-day trial</a>, we verify, then email the API key.
+            Billing and license seat management live exclusively on <span className="font-mono text-[var(--accent-cyan)]">ace-seek.com</span>. Subdomains verify your entitlements automatically without duplicate charges. Instant key generation via secure checkout, or <a href="/trial" className="text-[var(--accent-cyan)] underline-offset-2 hover:underline">request a 7-day trial</a>.
           </p>
         </div>
 
