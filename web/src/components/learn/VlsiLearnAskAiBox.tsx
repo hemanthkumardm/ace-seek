@@ -13,8 +13,11 @@ import {
   ArrowRight,
   RefreshCw,
   Search,
+  Code2,
+  Terminal,
 } from "lucide-react";
 import Link from "next/link";
+import { findEdaCommand, formatEdaCommandResponse } from "@/lib/vlsi-eda-commands-db";
 
 interface QuickPrompt {
   label: string;
@@ -23,8 +26,16 @@ interface QuickPrompt {
 
 const QUICK_PROMPTS: QuickPrompt[] = [
   {
+    label: "What is command to get all macros?",
+    query: "What is the command to get all hard macros and memory blocks in Cadence Innovus and Synopsys?",
+  },
+  {
     label: "Why is hold time independent of clock period?",
     query: "Why is hold timing check independent of the clock period T_period in static timing analysis?",
+  },
+  {
+    label: "How to query all sequential flops?",
+    query: "What is the command to get all sequential registers and flip-flops using get_db and SDC?",
   },
   {
     label: "How does Inverted Temperature Dependence (ITD) work?",
@@ -41,14 +52,6 @@ const QUICK_PROMPTS: QuickPrompt[] = [
   {
     label: "What is the difference between GBA and PBA?",
     query: "Explain Graph-Based Analysis (GBA) vs Path-Based Analysis (PBA) slew propagation in Cadence Tempus.",
-  },
-  {
-    label: "How does Conformal LEC prove equivalence?",
-    query: "How does Cadence Conformal LEC map key points and use BDD/SAT solvers to prove boolean equivalence?",
-  },
-  {
-    label: "Explain Recovery & Removal for Resets",
-    query: "What is the difference between Recovery and Removal timing checks for asynchronous reset signals?",
   },
   {
     label: "How to calculate Asynchronous FIFO Depth?",
@@ -68,13 +71,60 @@ export function VlsiLearnAskAiBox() {
   >([]);
 
   const generateAnswer = (queryText: string) => {
-    const q = queryText.toLowerCase();
-
-    // Helper for whole word matches
+    const q = queryText.toLowerCase().trim();
     const hasWord = (word: string) => new RegExp(`\\b${word}\\b`, "i").test(queryText);
 
+    // 0. FIRST: Check EDA Command Database if query asks for a tool command or query syntax
+    const isCommandQuery =
+      q.includes("command") ||
+      q.includes("get_db") ||
+      q.includes("set_db") ||
+      q.includes("dbget") ||
+      q.includes("get_cells") ||
+      q.includes("get_pins") ||
+      q.includes("get_nets") ||
+      q.includes("get_ports") ||
+      q.includes("syntax") ||
+      q.includes("how to get") ||
+      q.includes("how to find") ||
+      q.includes("how to query") ||
+      q.includes("how to set") ||
+      q.includes("how to add") ||
+      q.includes("how to run") ||
+      q.includes("tcl") ||
+      q.includes("script") ||
+      q.includes("all macros") ||
+      q.includes("all flops") ||
+      q.includes("all registers") ||
+      q.includes("all clocks") ||
+      q.includes("all inputs") ||
+      q.includes("all outputs") ||
+      q.includes("report_timing") ||
+      q.includes("create_clock") ||
+      q.includes("create_generated_clock") ||
+      q.includes("set_multicycle_path") ||
+      q.includes("set_false_path") ||
+      q.includes("set_clock_groups") ||
+      q.includes("eco_add_repeater") ||
+      q.includes("add_rings") ||
+      q.includes("add_stripes") ||
+      q.includes("clock_opt_design");
+
+    if (isCommandQuery) {
+      const edaMatch = findEdaCommand(queryText);
+      if (edaMatch) {
+        return formatEdaCommandResponse(edaMatch, queryText);
+      }
+    }
+
     // 1. ELECTROMIGRATION & BLACK'S EQUATION (Evaluated early to prevent substring collisions)
-    if (q.includes("electromigration") || q.includes("black's") || q.includes("black equation") || q.includes("mttf") || (hasWord("em") && (q.includes("void") || q.includes("current density") || q.includes("density")))) {
+    if (
+      q.includes("electromigration") ||
+      q.includes("black's") ||
+      q.includes("black equation") ||
+      q.includes("mttf") ||
+      (hasWord("em") && (q.includes("void") || q.includes("current density") || q.includes("density")))
+    ) {
       return {
         a: `**Electromigration (EM)** is the physical transport of conductor metal atoms resulting from the momentum transfer between conducting electrons and lattice ions under high current densities.
 
@@ -252,7 +302,13 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
     }
 
     // 10. CONFORMAL LEC & LOGIC EQUIVALENCE (Word-boundary check on 'lec')
-    if (q.includes("conformal") || hasWord("lec") || q.includes("logic equivalence") || q.includes("formal verification") || (q.includes("equivalence") && (q.includes("golden") || q.includes("revised")))) {
+    if (
+      q.includes("conformal") ||
+      hasWord("lec") ||
+      q.includes("logic equivalence") ||
+      q.includes("formal verification") ||
+      (q.includes("equivalence") && (q.includes("golden") || q.includes("revised")))
+    ) {
       return {
         a: `**Cadence Conformal Logic Equivalence Checking (LEC)** formally proves that a Revised netlist (post-synthesis, post-scan, or post-PnR) is mathematically identical to Golden RTL without test vectors.
 
@@ -374,7 +430,7 @@ $$D_{\\text{min}} = N \\cdot F^{1/N} + \\sum p_i$$
 
 ### 1. Scan Insertion Architecture:
 - Replaces normal flip-flops with **Scan Flops (Muxed-D Flops)** that have \`SI\` (Scan In), \`SO\` (Scan Out), and \`SE\` (Scan Enable) pins.
-- Converts sequential sequential circuits into flat combinational clouds during test mode for $99.5\\%+$ test coverage.
+- Converts sequential circuits into flat combinational clouds during test mode for $99.5\\%+$ test coverage.
 
 ### 2. Fault Models:
 - **Stuck-At Faults (DC)**: Models physical wires permanently shorted to $V_{DD}$ (Stuck-at-1) or ground (Stuck-at-0).
@@ -465,7 +521,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
       setIsAnswering(false);
       const res = generateAnswer(currentQ);
       setHistory((prev) => [{ q: currentQ, a: res.a, links: res.links }, ...prev]);
-    }, 300);
+    }, 250);
   };
 
   const handleSelectQuickPrompt = (p: QuickPrompt) => {
@@ -494,29 +550,30 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
             }}
           >
             <Bot className="w-3.5 h-3.5" />
-            VLSI AI TUTOR & CONCEPT ASSISTANT
+            VLSI AI TUTOR & EDA COMMAND ASSISTANT
           </div>
           <h2
             className="text-xl font-bold tracking-tight flex items-center gap-2"
             style={{ color: "var(--ln-text)" }}
           >
-            Ask Questions If You Didn't Understand Any Concepts
+            Ask Questions If You Didn't Understand Any Concepts Or EDA Commands
           </h2>
           <p className="text-xs max-w-2xl leading-relaxed" style={{ color: "var(--ln-muted)" }}>
-            Stuck on a tricky physical design question, timing constraint, dynamic IR drop issue, or formal LEC proof? Ask your question below for instant physics derivations and EDA solutions.
+            Stuck on a tricky physical design concept, EDA tool command (Innovus, Tempus, Voltus, ICC2, SDC), dynamic IR drop formula, or formal LEC proof? Ask any question below for instant syntax, derivations, and solutions.
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
           <span
-            className="px-2.5 py-1 rounded-lg border text-[11px] font-mono"
+            className="px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5"
             style={{
               background: "var(--ln-bg-elev)",
               borderColor: "var(--ln-border)",
               color: "var(--ln-muted)",
             }}
           >
-            Available 24/7
+            <Terminal className="w-3.5 h-3.5 text-blue-400" />
+            EDA Commands & Physics DB
           </span>
         </div>
       </div>
@@ -528,7 +585,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
           style={{ color: "var(--ln-muted)" }}
         >
           <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-          Popular Questions & Interview Topics:
+          Popular EDA Commands & Interview Questions:
         </div>
         <div className="flex flex-wrap gap-2">
           {QUICK_PROMPTS.map((p, idx) => (
@@ -555,7 +612,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
           <textarea
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Type any VLSI question or concept you didn't understand (e.g. 'Why does hold slack fail at -40C?', 'Explain clock gating setup checks', 'How does Conformal LEC debug non-equivalence?')..."
+            placeholder="Type any VLSI question or EDA command (e.g. 'what is command to get all macros?', 'how to get all flops?', 'set multicycle path syntax in SDC', 'how to add power stripes in Innovus')..."
             rows={3}
             className="w-full rounded-xl border p-3.5 text-xs focus:outline-none focus:border-blue-500 font-sans leading-relaxed shadow-sm transition-all"
             style={{
@@ -576,7 +633,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
             {isAnswering ? (
               <>
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Thinking...
+                Searching DB...
               </>
             ) : (
               <>
@@ -595,7 +652,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
             className="text-xs font-mono font-bold uppercase tracking-wider flex items-center justify-between"
             style={{ color: "var(--ln-muted)" }}
           >
-            <span>Recent Explanations & Answers ({history.length}):</span>
+            <span>Recent Explanations & EDA Command Answers ({history.length}):</span>
             <button
               type="button"
               onClick={() => setHistory([])}
@@ -606,7 +663,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
             </button>
           </div>
 
-          <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+          <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
             {history.map((item, idx) => (
               <div
                 key={idx}
@@ -629,7 +686,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
                   <div className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-500 text-xs font-bold shrink-0 mt-0.5">
                     <Bot className="w-3.5 h-3.5" />
                   </div>
-                  <div className="text-xs leading-relaxed space-y-2 whitespace-pre-wrap font-sans" style={{ color: "var(--ln-muted)" }}>
+                  <div className="text-xs leading-relaxed space-y-2 whitespace-pre-wrap font-sans flex-1" style={{ color: "var(--ln-muted)" }}>
                     {item.a}
                   </div>
                 </div>
@@ -637,7 +694,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
                 {item.links && item.links.length > 0 && (
                   <div className="pt-2 border-t pl-8 flex flex-wrap items-center gap-2" style={{ borderColor: "var(--ln-border)" }}>
                     <span className="text-[10px] font-mono" style={{ color: "var(--ln-muted)" }}>
-                      Related Lessons & Labs:
+                      Related Lessons & Tools:
                     </span>
                     {item.links.map((link, lIdx) => (
                       <Link
