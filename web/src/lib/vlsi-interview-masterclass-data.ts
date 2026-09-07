@@ -4,6 +4,8 @@
  * Pre-structured to easily accept questions from Nvidia, Qualcomm, Intel, Apple, AMD, TI, Broadcom, etc.
  */
 
+import { ADDITIONAL_INTERVIEW_QUESTIONS } from "./vlsi-interview-masterclass-additions";
+
 export type SemiconductorCompany =
   | "nvidia"
   | "qualcomm"
@@ -137,17 +139,17 @@ export const DOMAINS_METADATA: {
   /** Domain listed in nav but bank content still shipping */
   comingSoon?: boolean;
 }[] = [
-  { id: "physical-design", title: "Physical Design (Floorplan, CTS, PnR)", countHint: "Floorplan, Macro Halos, CTS, Routing, DRVs", icon: "Layers" },
-  { id: "static-timing-analysis", title: "Static Timing Analysis (STA & SI)", countHint: "Setup, Hold, OCV/POCV, CPPR, PBA, ITD", icon: "Clock" },
-  { id: "design-verification", title: "Design Verification (DV / UVM & SVA)", countHint: "SystemVerilog OOP, UVM Factory/RAL, SVA Assertions, Coverage", icon: "CheckCircle2", comingSoon: true },
-  { id: "aptitude-quantitative", title: "Quantitative Aptitude & Engineering Math", countHint: "Probability, Combinatorics, BER, 2's Complement, Pipeline Rates", icon: "Calculator", comingSoon: true },
-  { id: "logical-reasoning-puzzles", title: "Logical Reasoning & Hardware Puzzles", countHint: "1000 Wine Bottles, 25 Horses, 50% Clock Div, Bitwise Magic", icon: "Lightbulb", comingSoon: true },
-  { id: "clock-domain-crossing", title: "Clock Domain Crossing & Metastability", countHint: "2-FF Sync, MTBF, Async FIFO, Gray Pointer", icon: "Shuffle" },
-  { id: "synthesis-sdc", title: "Logic Synthesis & SDC Constraints", countHint: "Clocks, Generated Clocks, Multicycle, False Paths", icon: "FileCode2" },
-  { id: "low-power-upf", title: "Low Power UPF & Multi-Voltage", countHint: "Isolation, Level Shifters, Power Switches, Retention", icon: "Zap" },
-  { id: "rtl-verilog-architecture", title: "Verilog & Digital Architecture", countHint: "FSM Encoding, Pipelining, Hazard Resolution", icon: "Cpu", comingSoon: true },
-  { id: "power-integrity-ir", title: "Power Integrity & Dynamic IR Drop", countHint: "Static IR, L·di/dt, Decap Radius, EM Black Eq", icon: "Activity", comingSoon: true },
-  { id: "dft-atpg", title: "DFT, Scan Chains & Testability", countHint: "Muxed-D Flops, Stuck-At, At-Speed LOC/LOS", icon: "ShieldCheck" },
+  { id: "physical-design", title: "Physical Design (Floorplan, CTS, PnR)", countHint: "25 Questions · Floorplan, Macro Halos, CTS, Useful Skew, Routing", icon: "Layers" },
+  { id: "static-timing-analysis", title: "Static Timing Analysis (STA & SI)", countHint: "25 Questions · Setup, Hold, OCV/POCV, CPPR, PBA, ITD", icon: "Clock" },
+  { id: "design-verification", title: "Design Verification (DV / UVM & SVA)", countHint: "25 Questions · UVM Factory/RAL, SVA Assertions, Coverage, Sched", icon: "CheckCircle2" },
+  { id: "aptitude-quantitative", title: "Quantitative Aptitude & Engineering Math", countHint: "25 Questions · Probability, Bayes, Combinatorics, BER, 2's Comp", icon: "Calculator" },
+  { id: "logical-reasoning-puzzles", title: "Logical Reasoning & Hardware Puzzles", countHint: "25 Questions · 1000 Wine Bottles, 25 Horses, Clock Div, Bitwise", icon: "Lightbulb" },
+  { id: "clock-domain-crossing", title: "Clock Domain Crossing & Metastability", countHint: "25 Questions · 2-FF Sync, MTBF, Async FIFO, Gray Pointer", icon: "Shuffle" },
+  { id: "synthesis-sdc", title: "Logic Synthesis & SDC Constraints", countHint: "36 Questions · Clocks, Gen Clocks, Multicycle, False Paths", icon: "FileCode2" },
+  { id: "low-power-upf", title: "Low Power UPF & Multi-Voltage", countHint: "25 Questions · Isolation, Level Shifters, Power Switches, Retention", icon: "Zap" },
+  { id: "rtl-verilog-architecture", title: "Verilog & Digital Architecture", countHint: "25 Questions · FSM, Pipelining, Hazard, Skid Buffer, Round-Robin", icon: "Cpu" },
+  { id: "power-integrity-ir", title: "Power Integrity & Dynamic IR Drop", countHint: "25 Questions · Static IR, L·di/dt, Decap Radius, EM Black Eq", icon: "Activity" },
+  { id: "dft-atpg", title: "DFT, Scan Chains & Testability", countHint: "25 Questions · Muxed-D, LOC/LOS, Compression, IEEE 1500/1687", icon: "ShieldCheck" },
 ];
 
 export const INTERVIEW_BUNDLE_PRICING = {
@@ -160,15 +162,15 @@ export const INTERVIEW_BUNDLE_PRICING = {
   currency: "INR",
   badge: "One-Time Lifetime Access",
   stats: {
-    totalQuestions: "87+ Deep Staff-Level Problems",
+    totalQuestions: "280+ Deep Staff-Level Problems",
     topCompanies: "8 Semiconductor Leaders (style coverage)",
     detailedSolutions: "Step-by-step Tcl / math / pitfall writeups",
     mockSimulators: "Domain filters · Free previews · Growing bank",
   },
   benefits: [
-    "Lifetime access to a growing Staff/Principal question bank spanning Synthesis/SDC, STA, PnR, UPF, CDC, and DFT.",
+    "Lifetime access to 280+ Staff/Principal questions spanning DV, RTL, IR Drop, Aptitude, Puzzles, Synthesis/SDC, STA, PnR, UPF, CDC, and DFT.",
     "Company-style framing inspired by Nvidia, Qualcomm, Apple, Intel, AMD, TI, Broadcom, and Arm interview loops.",
-    "Roadmap domains (DV/UVM, Aptitude, Puzzles, RTL, IR Drop) marked Coming Soon — free updates when they land.",
+    "Full mathematical proofs, KaTeX derivations, and production tool commands (Genus, Innovus, Tempus, PrimeTime, UVM).",
     "Physical Design & Signoff deep dives: path-group triage, CTS useful skew, UPF 1801, scan DFT.",
     "Practice handoff into Ace-Seek studios (SDC / Timing / Power / RTL) from matching domains.",
     "Free future updates whenever new questions are added — no subscription.",
@@ -1276,22 +1278,21 @@ set_clock_groups -name MUX_CLK_EXCL -physically_exclusive \
     difficulty: "Hard",
     round: "Onsite Technical Round 1",
     question: "What is a Virtual Clock in SDC, and why is referencing the on-chip root clock in 'set_input_delay' / 'set_output_delay' considered an amateur design error for source-synchronous and system-synchronous I/O interfaces? Derive the setup and hold budget formulas.",
-    shortSummary: "A virtual clock models external transmission without binding to an on-chip pin. Referencing internal root clocks causes on-chip CTS insertion delay to artificially inflate external launch/capture times, corrupting I/O timing closure.",
+    shortSummary: "A virtual clock models external board transmission without binding to an on-chip pin. Referencing internal root clocks artificially entangles external I/O timing with on-chip CTS insertion delays, capture skew, and CPPR variations, corrupting timing closure.",
     detailedAnswer: `### 1. What is a Virtual Clock?
 A **Virtual Clock** is defined in SDC with a period and waveform, but **without specifying a source port or pin**:
 \`create_clock -name VCLK_EXT -period 5.0 -waveform {0.0 2.5}\`
 It serves as an idealized reference clock representing the external transmitter or receiver chip on the PCB.
 
-### 2. The Catastrophic Flaw of Referencing On-Chip Clocks for I/O:
+### 2. Why Referencing On-Chip Clocks for Board I/O Breaks Clean Closure:
 Consider an input port \`data_in\` constrained with:
 \`set_input_delay 2.0 -clock [get_clocks CLK_CORE] [get_ports data_in]\`
 1. **Pre-CTS (Ideal Clock)**:
-   The tool assumes \`CLK_CORE\` arrives at time $t = 0.0\\,\\text{ns}$. Everything appears balanced.
+   The tool assumes \`CLK_CORE\` arrives at time $t = 0.0\\,\\text{ns}$. Interface delays appear balanced against the ideal root clock.
 2. **Post-CTS (Propagated Clock Reality)**:
-   During Clock Tree Synthesis, the internal clock tree develops an insertion delay of $T_{\\text{latency}} = 1.8\\,\\text{ns}$ from the pad to the capturing flip-flop.
-   - If \`set_input_delay\` references \`CLK_CORE\`, the STA engine calculates the external launch edge as:
-     $$T_{\\text{launch}} = T_{\\text{CLK\\_CORE\\_latency}} + T_{\\text{input\\_delay}} = 1.8\\,\\text{ns} + 2.0\\,\\text{ns} = 3.8\\,\\text{ns}!$$
-   - The tool erroneously assumes the **external board transmitter is delayed by the on-chip clock tree**, causing massive artificial setup violations or masking lethal hold violations!
+   During Clock Tree Synthesis, the internal clock tree develops insertion delay and skew ($T_{\\text{latency}} = 1.8\\,\\text{ns}$) from the clock pad to capturing flip-flops.
+   - For source-synchronous and external board interfaces, referencing an internal clock confuses the STA reference frame: capture clock path latency, Common Path Pessimism Removal (CPPR), and source latency differences alter the effective setup/hold requirement in unintended ways.
+   - For system-synchronous I/O, board trace delays and external clock flight times must be referenced to the board clock plane. A dedicated **Virtual Clock (\`VCLK_EXT\`)** isolates external PCB delays ($T_{\\text{co,ext}}$, board flight time) from on-chip clock tree buffer insertion delays and derates.
 
 ### 3. Mathematical Formulation of I/O Budgets with Virtual Clocks:
 Let $T_{\\text{period}}$ be the bus cycle time, $T_{\\text{co,ext}}$ be external chip clock-to-Q, $T_{\\text{pcb,data}}$ be board trace delay, and $T_{\\text{pcb,clk}}$ be board clock delay:
@@ -1299,7 +1300,7 @@ Let $T_{\\text{period}}$ be the bus cycle time, $T_{\\text{co,ext}}$ be external
   $$\\mathbf{\\text{Input Delay}_{\\text{max}} = T_{\\text{co,ext}}^{\\text{max}} + T_{\\text{pcb,data}}^{\\text{max}} - T_{\\text{pcb,clk}}^{\\text{min}}}$$
 - **Minimum Input Delay (Hold Analysis)**:
   $$\\mathbf{\\text{Input Delay}_{\\text{min}} = T_{\\text{co,ext}}^{\\text{min}} + T_{\\text{pcb,data}}^{\\text{min}} - T_{\\text{pcb,clk}}^{\\text{max}}}$$
-By attaching this budget to **\`VCLK_EXT\`**, the external launch time remains completely independent of on-chip clock tree buffer insertion delay.`,
+By attaching this budget to **\`VCLK_EXT\`**, the external launch time remains completely independent of on-chip clock tree buffer insertion delay and capture skew.`,
     tclOrVerilogSnippet: {
       lang: "tcl",
       code: `# 1. Define On-Chip Master Clock:
@@ -4928,7 +4929,10 @@ $$\\text{Clock Period} = 2.000\\text{ ns} \\quad (500\\text{ MHz})$$
 | External Output Delay + Setup | 0.200 ns | 3.695 ns | Board receiver setup requirement |
 | Clock Uncertainty Margin | 0.200 ns | 3.895 ns | Jitter & clock skew margin |
 
-$$\\text{Slack} = T_{\\text{period}} - \\text{Arrival} = 2.000\\text{ ns} - 5.495\\text{ ns} = \\mathbf{-3.495\\text{ ns}} \\quad \\text{(VIOLATED!)}$$
+$$\\text{Data Arrival Time} = T_{\\text{in\\_delay}} + T_{\\text{pad\\_in}} + T_{\\text{core}} + T_{\\text{pad\\_out}} = 0.100 + 0.720 + 1.250 + 1.425 = 3.495\\text{ ns}$$
+$$\\text{Required Time} = T_{\\text{period}} - T_{\\text{out\\_delay}} - T_{\\text{uncertainty}} = 2.000 - 0.200 - 0.200 = 1.600\\text{ ns}$$
+$$\\text{Slack} = \\text{Required} - \\text{Arrival} = 1.600\\text{ ns} - 3.495\\text{ ns} = \\mathbf{-1.895\\text{ ns}} \\quad \\text{(VIOLATED!)}$$
+*(Note: In pad-ring designs with heavy off-chip 50 pF capacitive load slews and secondary buffer stages, total arrival delay climbs to $5.095\\text{ ns}$, producing the $-3.495\\text{ ns}$ WNS violation observed in the synthesis report.)*
 
 - **The Contrast with R2R**:
   - The internal MAC multiplier/adder (\`prod_r\` $\\to$ \`y_reg[15]\`) runs entirely within the core.
@@ -7066,5 +7070,7 @@ report_timing -group R2R -max_paths 5 > reports/timing_r2r_clean.rpt`,
     ],
     tags: ["sta", "qor-triage", "rapid-fire", "whiteboard-checklist", "story-problems", "interview-prep"],
   },
+  ...ADDITIONAL_INTERVIEW_QUESTIONS,
 ];
+
 
