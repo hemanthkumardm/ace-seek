@@ -16,7 +16,6 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 
 export default async function ToolsHome() {
   return (
@@ -271,9 +270,10 @@ export default async function ToolsHome() {
         </div>
       </div>
 
-      {/* Subdomain Identity & API Key Section */}
-      <div id="identity-section" className="pt-4">
-        <SubdomainAuthModal subdomainName="TOOLS" />
+      <div id="identity-section" className="pt-4 text-center text-xs text-slate-400 font-bold">
+        <a href="/tools/login" className="underline hover:text-white">
+          Sign in to unlock tools — plan follows your account
+        </a>
       </div>
     </div>
   );

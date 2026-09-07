@@ -1,27 +1,36 @@
-import type { Metadata } from "next";
-import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
+import { Suspense } from "react";
+import { Route } from "lucide-react";
+import { SubdomainClerkLogin } from "@/components/SubdomainClerkLogin";
 
-export const metadata: Metadata = {
-  title: "API Key Login · openroad.ace-seek.com",
-  description: "Authorize OpenROAD PnR with your Ace-Seek API key.",
+export const metadata = {
+  title: "Sign in · openroad.ace-seek.com",
+  description: "Sign in to unlock OpenROAD studio with your Ace-Seek account.",
 };
 
 export default function OpenroadLoginPage() {
   return (
-    <div className="m-shell py-12 max-w-xl mx-auto">
-      <div className="mb-6 space-y-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">
-          openroad.ace-seek.com
-        </p>
-        <h1 className="text-2xl font-black uppercase text-slate-900">
-          API Key Login
+    <div className="m-shell py-10 md:py-16 space-y-8 font-mono max-w-2xl mx-auto">
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 brutal-badge brutal-badge-cyan">
+          <Route className="w-3.5 h-3.5" />
+          OPENROAD ACCOUNT LOGIN
+        </div>
+        <h1 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight">
+          Sign in to continue
         </h1>
-        <p className="text-xs text-slate-600 font-bold">
-          Signup and keys are on www.ace-seek.com — paste your key here to use
-          Project · Scripts · Run.
+        <p className="text-xs md:text-sm text-slate-300 font-bold">
+          Free tier unlocks with your account. Plan upgrades apply on the next
+          refresh — no API key paste required in the browser.
         </p>
       </div>
-      <SubdomainAuthModal subdomainName="OPENROAD" compact />
+      <Suspense fallback={<div className="text-center text-slate-400 text-xs">Loading…</div>}>
+        <SubdomainClerkLogin path="/openroad/login" defaultRedirect="/openroad" />
+      </Suspense>
+      <p className="text-center text-[11px] font-bold text-slate-400">
+        <a href="/openroad" className="underline hover:text-white">
+          ← Back to OpenROAD intro
+        </a>
+      </p>
     </div>
   );
 }

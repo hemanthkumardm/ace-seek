@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import {
   Boxes,
@@ -15,35 +15,17 @@ import {
   Cpu,
   Lock,
 } from "lucide-react";
-import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 import { VLSI_URL } from "@/lib/site";
 
 export default function OpenroadHome() {
   const router = useRouter();
-  const { ent, ready, loading } = useEntitlements();
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sync = () => {
-      const key = localStorage.getItem("ace_seek_api_key");
-      setIsAuthorized(Boolean(key && key.trim().length > 0));
-    };
-    sync();
-    window.addEventListener("ace_key_updated", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("ace_key_updated", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
+  const { ent, ready, loading, isSignedIn } = useEntitlements();
 
   const open = (path: string) => {
-    if (isAuthorized) router.push(path);
-    else setShowAuthModal(true);
+    if (isSignedIn) router.push(path);
+    else router.push(`/openroad/login?redirect=${encodeURIComponent(path)}`);
   };
 
   return (
@@ -140,14 +122,13 @@ export default function OpenroadHome() {
                 <span>Open Project</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-              <button
-                type="button"
-                onClick={() => setShowAuthModal(true)}
+              <a
+                href="/openroad/login"
                 className="neu-btn !text-xs font-black flex items-center gap-1.5"
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>{isAuthorized ? "API Key Active" : "API Key Login"}</span>
-              </button>
+                <span>{isSignedIn ? "Account active" : "Sign in"}</span>
+              </a>
               <a
                 href={VLSI_URL}
                 className="neu-btn !text-xs font-black flex items-center gap-1"
@@ -249,31 +230,11 @@ export default function OpenroadHome() {
           </div>
         </div>
 
-        <div id="identity-section" className="pt-2">
-          <SubdomainAuthModal subdomainName="OPENROAD" />
+        <div id="identity-section" className="pt-2 text-center text-xs text-slate-400 font-bold">
+          <a href="/openroad/login" className="underline hover:text-white">
+            Sign in to unlock OpenROAD studio
+          </a>
         </div>
-
-        {showAuthModal && (
-          <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="relative w-full max-w-xl">
-              <button
-                type="button"
-                onClick={() => setShowAuthModal(false)}
-                className="absolute -top-2 -right-2 w-8 h-8 rounded-full neu-btn font-black text-rose-600 z-10"
-              >
-                ✕
-              </button>
-              <SubdomainAuthModal
-                subdomainName="OPENROAD"
-                onAuthorize={() => {
-                  setIsAuthorized(true);
-                  setShowAuthModal(false);
-                  router.push("/openroad/project");
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

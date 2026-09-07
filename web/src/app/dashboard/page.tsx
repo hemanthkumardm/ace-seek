@@ -124,7 +124,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
 
           <div className="space-y-3">
             <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-              Active API token ({user.plan.toUpperCase()}):
+              Automation API token (optional — {user.plan.toUpperCase()}):
             </label>
             <div className="flex items-center gap-3">
               <div className="sk-lcd flex-1 py-2.5 px-4 font-mono text-sm tracking-wider flex items-center justify-between overflow-x-auto">
@@ -156,21 +156,20 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed">
             <div className="flex items-center gap-2 text-[var(--foreground)] font-bold mb-1">
               <HelpCircle className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <span>How to Authorize Subdomain Apps:</span>
+              <span>How access works now:</span>
             </div>
             <p>
-              • Step 1: Click <strong>&quot;Copy API Key&quot;</strong> above.
+              • <strong>Browser:</strong> Sign in on any Ace-Seek host (vlsi / tools /
+              openroad / www). Your <strong>{user.plan.toUpperCase()}</strong> plan
+              unlocks from the account — no paste required.
             </p>
             <p>
-              • Step 2: Open a subdomain (e.g. <code>doc.ace-seek.com</code> or{" "}
-              <code>vlsi.ace-seek.com</code>).
-            </p>
-            <p>
-              • Step 3: Paste into <strong>API Key Authorization</strong> to unlock{" "}
-              {user.plan.toUpperCase()} capabilities.
+              • <strong>Scripts / CI:</strong> Use the API token above as{" "}
+              <code>x-api-key</code> / Bearer for automation only.
             </p>
             <p className="pt-1 text-[var(--accent-cyan)]">
-              Multi-device: sign in with the same account — this key stays identical.
+              Change plan in Clerk metadata / billing — workstations pick it up on the
+              next login refresh.
             </p>
           </div>
         </div>
@@ -183,7 +182,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <span>Available Microservices &amp; Workstations</span>
             </h2>
             <span className="text-xs text-[var(--muted)] font-mono">
-              Use your API key above for instant authentication
+              Sign in on each host — plan follows your account
             </span>
           </div>
 

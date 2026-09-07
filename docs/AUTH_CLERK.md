@@ -4,62 +4,65 @@
 
 Yes for early product use. Clerk’s **Hobby** plan is free (generous MAU limit for launch; check [clerk.com/pricing](https://clerk.com/pricing) for current numbers). Paid tiers add org features, higher MAU, and advanced controls.
 
+## Access model (current)
+
+| Who | How they unlock |
+|-----|-----------------|
+| **Not logged in** | Marketing / product intros only. Studios & tools show **Sign in**. |
+| **Logged in** | Plan from Clerk `publicMetadata.plan` (`free` \| `pro` \| `max` \| `team`). Free tier works with **no API key paste**. |
+| **Scripts / CI** | Optional dashboard API token (`x-api-key`) for automation only. |
+
+**Plan is tracked from login, not from the API key string.**  
+Keys may still be derived for automation, but FeatureLock / entitlements in the browser follow the account session (`GET /api/auth/me`).
+
 ## What this gives you
 
 | Capability | Without Clerk | With Clerk |
 |------------|---------------|------------|
-| Multi-user accounts | In-memory demo only (lost on restart) | Real users in Clerk |
-| Multi-device login | No | Same email → same session anywhere |
+| Multi-user accounts | In-memory demo only | Real users in Clerk |
+| Multi-device login | No | Same email → same session |
 | Password reset / OAuth | No | Built-in |
-| Dashboard API key | Random per signup in RAM | **Deterministic** per user id + plan |
+| Plan for tools | Paste `ace_*` key | Session plan (metadata) |
 
-**Not included yet:** cloud-synced SDC/Timing projects (needs Supabase or similar next). Auth is the first step.
-
-## Setup (5 minutes)
+## Setup
 
 1. Create an app at [dashboard.clerk.com](https://dashboard.clerk.com).
-2. Copy **Publishable key** + **Secret key**.
-3. In `web/`:
-
-```bash
-cp .env.example .env.local
-# edit .env.local with your keys
-npm run dev
-```
-
-4. Clerk Dashboard → **Paths**:
+2. Copy **Publishable key** + **Secret key** into `web/.env.local`.
+3. Clerk Dashboard → **Paths**:
    - Sign-in: `/login`
    - Sign-up: `/signup`
-   - After sign-in / sign-up: `/dashboard`
+   - After sign-in / sign-up: `/dashboard` (apex) or product redirect
+4. **Domains** (required for subdomain login without bouncing to apex):
+   - Primary: `ace-seek.com` + Frontend API `clerk.ace-seek.com`
+   - Add satellites / allowed apps: `tools.ace-seek.com`, `vlsi.ace-seek.com`, `openroad.ace-seek.com`
 
-5. For production domains, add `ace-seek.com` and subdomains under Clerk **Domains**.
+## Plan metadata
 
-## Local without keys
-
-If keys are missing:
-
-- Host routing still works
-- Login/signup use the **legacy** demo user (`engineer@company.com` / `password123`)
-- Engine verify (`npm run verify`) does not need Clerk
-
-## Plan metadata (Pro / Team)
-
-Default plan is **free**. To mark a user Pro/Team in Clerk Dashboard → Users → Public metadata:
+Default plan is **free**. Clerk Dashboard → Users → Public metadata:
 
 ```json
 { "plan": "pro" }
 ```
 
-API keys embed the plan prefix (`ace_pro_usr_…`). Changing plan regenerates the key formula (same pepper + new plan).
+Values: `free` | `pro` | `max` | `team`.
 
-## Subdomain API keys
+Changing plan updates entitlements on the next `/api/auth/me` refresh — users do **not** need a new key paste in the browser.
 
-Dashboard shows a stable key: `ace_{free|pro|team}_usr_<id>_<hmac>`.
+## API keys (automation only)
 
-Paste into tools / VLSI “API Key Authorization”. Verification uses HMAC (`ACE_API_KEY_PEPPER` or `CLERK_SECRET_KEY`).
+Dashboard still shows a derived token `ace_{plan}_usr_…` for scripts.  
+Browser workstations should **sign in**, not paste this key.
 
-## Next (multi-device **projects**)
+## Local without keys
 
-1. **Done:** localStorage auto-restore on SDC remount  
-2. **Done:** Supabase `sdc_projects` + API — see `CLOUD_STACK.md`  
-3. Later: MMMC/UPF cloud, Stripe plan → `profiles.plan`  
+If Clerk env keys are missing:
+
+- Host routing still works
+- Login widgets show a configure hint
+- Prefer Development `pk_test_` / `sk_test_` for localhost
+
+## Related code
+
+- `useEntitlements` → session via `/api/auth/me`
+- `WorkstationAuthGuard` → requires signed-in account
+- `SubdomainClerkLogin` → Clerk on vlsi / tools / openroad `/login`

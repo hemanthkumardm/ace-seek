@@ -11,47 +11,126 @@ export type PublicEnt = ReturnType<typeof publicEntitlements>;
 
 /**
  * Always start as **guest** so SSR HTML matches the first client paint.
- * Dev “team” default and localStorage keys apply only after mount (useEffect).
- * That avoids PlanPill / gate hydration mismatches (Guest vs Team/Crown).
+ * Plan is resolved from Clerk **login session** (`/api/auth/me`), not from pasted API keys.
  */
 function guestEnt(): PublicEnt {
   return publicEntitlements(entitlementsForPlan("guest"));
 }
 
-function isLocalDevClient(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    process.env.NODE_ENV === "development" ||
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  );
+function applyPlanToState(
+  plan: Entitlements["tier"],
+  extra?: { email?: string; name?: string; entitlements?: PublicEnt }
+): PublicEnt {
+  if (
+    extra?.entitlements &&
+    extra.entitlements.tier &&
+    extra.entitlements.tier !== "guest" &&
+    extra.entitlements.tier === plan
+  ) {
+    return {
+      ...extra.entitlements,
+      email: extra.email ?? extra.entitlements.email,
+      name: extra.name ?? extra.entitlements.name,
+    };
+  }
+  const base = publicEntitlements(entitlementsForPlan(plan));
+  return {
+    ...base,
+    email: extra?.email,
+    name: extra?.name,
+  };
 }
 
 export function useEntitlements() {
   const [apiKey, setApiKey] = useState("");
-  // SSR + first client paint: always guest (hydration-safe)
   const [ent, setEnt] = useState<PublicEnt>(guestEnt);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  /** True after first client entitlement resolution (key or default) */
   const [ready, setReady] = useState(false);
+  const [authSource, setAuthSource] = useState<"guest" | "session" | "legacy-key">("guest");
+  const [isSignedIn, setIsSignedIn] = useState(false);
 
-  const applyDefaultPlan = useCallback(() => {
-    // Dev convenience only after mount — never in useState initializer
-    const plan = isLocalDevClient() ? "team" : "guest";
-    setEnt(publicEntitlements(entitlementsForPlan(plan)));
+  const setGuest = useCallback(() => {
+    setEnt(guestEnt());
     setApiKey("");
+    setAuthSource("guest");
+    setIsSignedIn(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(PLAN_STORAGE);
+    }
   }, []);
 
-  const refreshFromKey = useCallback(
-    async (key: string) => {
-      const trimmed = key.trim();
-      if (!trimmed) {
-        applyDefaultPlan();
+  /** Resolve plan from Clerk session via /api/auth/me */
+  const refreshFromSession = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/auth/me", { credentials: "include" });
+      if (!res.ok) {
+        setGuest();
         setLoading(false);
         setReady(true);
         return false;
       }
+      const data = await res.json();
+      if (!data.authenticated || !data.user) {
+        setGuest();
+        setLoading(false);
+        setReady(true);
+        return false;
+      }
+
+      const plan = (data.user.plan || "free") as Entitlements["tier"];
+      setEnt(
+        applyPlanToState(plan, {
+          email: data.user.email,
+          name: data.user.name,
+        })
+      );
+      setAuthSource("session");
+      setIsSignedIn(true);
+      localStorage.setItem(PLAN_STORAGE, plan);
+
+      // Silently sync derived key for API routes that still expect x-api-key.
+      // Users never paste this — plan always comes from the login session.
+      if (typeof data.user.apiKey === "string" && data.user.apiKey.trim()) {
+        const key = data.user.apiKey.trim();
+        setApiKey(key);
+        localStorage.setItem(KEY_STORAGE, key);
+        window.dispatchEvent(new Event("ace_key_updated"));
+      }
+
+      setLoading(false);
+      setReady(true);
+      return true;
+    } catch {
+      setError("Could not load account");
+      setGuest();
+      setLoading(false);
+      setReady(true);
+      return false;
+    }
+  }, [setGuest]);
+
+  /**
+   * Legacy paste path (automation / emergency).
+   * When a session exists, session plan wins over key-encoded plan.
+   */
+  const refreshFromKey = useCallback(
+    async (key: string) => {
+      const trimmed = key.trim();
+      if (!trimmed) {
+        return refreshFromSession();
+      }
+
+      // Prefer session if logged in
+      const sessionOk = await refreshFromSession();
+      if (sessionOk) {
+        localStorage.setItem(KEY_STORAGE, trimmed);
+        setApiKey(trimmed);
+        return true;
+      }
+
       setLoading(true);
       setError("");
       try {
@@ -63,9 +142,7 @@ export function useEntitlements() {
         const data = await res.json();
         if (!res.ok || !data.valid) {
           setError(data.error || "Invalid API key");
-          applyDefaultPlan();
-          localStorage.removeItem(KEY_STORAGE);
-          localStorage.removeItem(PLAN_STORAGE);
+          setGuest();
           setLoading(false);
           setReady(true);
           return false;
@@ -74,73 +151,59 @@ export function useEntitlements() {
         localStorage.setItem(KEY_STORAGE, trimmed);
         const plan = (data.plan || data.tier || "free") as Entitlements["tier"];
         localStorage.setItem(PLAN_STORAGE, plan);
-        if (
-          data.entitlements &&
-          data.entitlements.tier &&
-          data.entitlements.tier !== "guest" &&
-          data.entitlements.tier === plan
-        ) {
-          setEnt(data.entitlements as PublicEnt);
-        } else {
-          const base = publicEntitlements(entitlementsForPlan(plan));
-          setEnt({
-            ...base,
+        setEnt(
+          applyPlanToState(plan, {
             email: data.email,
             name: data.name,
-          });
-        }
+            entitlements: data.entitlements,
+          })
+        );
+        setAuthSource("legacy-key");
+        setIsSignedIn(false);
         setLoading(false);
         setReady(true);
         return true;
       } catch {
         setError("Could not validate API key");
-        applyDefaultPlan();
+        setGuest();
         setLoading(false);
         setReady(true);
         return false;
       }
     },
-    [applyDefaultPlan]
+    [refreshFromSession, setGuest]
   );
 
   useEffect(() => {
-    const handleKeyChange = () => {
-      const saved =
-        localStorage.getItem(KEY_STORAGE) || localStorage.getItem("ace_api_key");
-      if (saved) {
-        void refreshFromKey(saved);
-      } else {
-        applyDefaultPlan();
-        setLoading(false);
-        setReady(true);
-      }
+    void refreshFromSession();
+
+    const onBump = () => {
+      void refreshFromSession();
     };
-    handleKeyChange();
-    window.addEventListener("storage", handleKeyChange);
-    window.addEventListener("ace_key_updated", handleKeyChange);
+    window.addEventListener("ace_seek_auth_updated", onBump);
+    window.addEventListener("storage", onBump);
     return () => {
-      window.removeEventListener("storage", handleKeyChange);
-      window.removeEventListener("ace_key_updated", handleKeyChange);
+      window.removeEventListener("ace_seek_auth_updated", onBump);
+      window.removeEventListener("storage", onBump);
     };
-  }, [refreshFromKey, applyDefaultPlan]);
+  }, [refreshFromSession]);
 
   const clearKey = useCallback(() => {
     localStorage.removeItem(KEY_STORAGE);
     localStorage.removeItem("ace_api_key");
     localStorage.removeItem(PLAN_STORAGE);
-    applyDefaultPlan();
-    setError("");
-    setReady(true);
-  }, [applyDefaultPlan]);
+    void refreshFromSession();
+  }, [refreshFromSession]);
 
   return {
     apiKey,
     ent,
     loading,
-    /** Entitlements resolved on client (use for PlanPill to avoid flash/mismatch) */
     ready,
     error,
+    authSource,
     refreshFromKey,
+    refreshFromSession,
     clearKey,
     isGuest: ent.tier === "guest",
     isFree: ent.tier === "free",
@@ -149,5 +212,6 @@ export function useEntitlements() {
     isTeam: ent.tier === "team",
     isPremium: ent.tier === "pro" || ent.tier === "max" || ent.tier === "team",
     isUnlocked: ent.tier === "max" || ent.tier === "team",
+    isSignedIn,
   };
 }

@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "@clerk/nextjs";
 import {
   Cpu,
   Activity,
@@ -19,7 +18,6 @@ import {
   Boxes,
   Lock,
 } from "lucide-react";
-import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 import {
@@ -71,32 +69,14 @@ function StudioCardAction({
 
 export default function VlsiHome() {
   const router = useRouter();
-  const { isSignedIn } = useAuth();
-  const { ent, ready, loading: entLoading } = useEntitlements();
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
-  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const { ent, ready, loading: entLoading, isSignedIn } = useEntitlements();
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const sync = () => {
-      const key = localStorage.getItem("ace_seek_api_key");
-      setIsAuthorized(Boolean(key && key.trim().length > 0));
-    };
-    sync();
-    window.addEventListener("ace_key_updated", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("ace_key_updated", sync);
-      window.removeEventListener("storage", sync);
-    };
-  }, []);
-
-  /** Open studios only after validated API key is present */
+  /** Open studios after account login (plan from session) */
   const handleOpenStudio = () => {
-    if (isAuthorized) {
+    if (isSignedIn) {
       router.push("/vlsi/reports");
     } else {
-      setShowAuthModal(true);
+      router.push("/vlsi/login?redirect=/vlsi/reports");
     }
   };
 
@@ -199,14 +179,13 @@ export default function VlsiHome() {
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => setShowAuthModal(true)}
+            <a
+              href="/vlsi/login"
               className="sk-btn sk-btn-ghost !text-xs font-bold text-slate-200"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>{isAuthorized ? "API Key Active" : "API Key Login"}</span>
-            </button>
+              <span>{isSignedIn ? "Account active" : "Sign in"}</span>
+            </a>
             <a
               href="https://www.ace-seek.com/pricing"
               target="_blank"
@@ -454,33 +433,11 @@ export default function VlsiHome() {
         </div>
       </div>
 
-      {/* Subdomain Auth Section */}
-      <div id="identity-section" className="pt-4">
-        <SubdomainAuthModal subdomainName="VLSI" />
+      <div id="identity-section" className="pt-4 text-center text-xs text-slate-400 font-bold">
+        <a href="/vlsi/login" className="underline hover:text-white">
+          Sign in to unlock VLSI studios — plan follows your account
+        </a>
       </div>
-
-      {/* Pop-up Auth Modal when OPEN VLSI STUDIO is clicked without being logged in */}
-      {showAuthModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="relative w-full max-w-xl">
-            <button
-              type="button"
-              onClick={() => setShowAuthModal(false)}
-              className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-rose-500 text-white font-black border-2 border-black shadow-[2px_2px_0_#000000] flex items-center justify-center z-10 hover:bg-rose-600"
-            >
-              ✕
-            </button>
-            <SubdomainAuthModal
-              subdomainName="VLSI"
-              onAuthorize={() => {
-                setIsAuthorized(true);
-                setShowAuthModal(false);
-                router.push("/vlsi/reports");
-              }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
