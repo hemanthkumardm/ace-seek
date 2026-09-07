@@ -2,19 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser, createClerkClient } from "@clerk/nextjs/server";
 import { getSessionData } from "@/lib/user-store";
 import { apiKeyForUserId } from "@/lib/api-keys";
-import { planFromClerkMetadata } from "@/lib/clerk-config";
+import { planFromClerkMetadata, isClerkConfigured } from "@/lib/clerk-config";
+import { subscriptionSnapshotFromMetadata } from "@/lib/subscription-plan";
 import { getUserKeysFromDb, saveApiKeyToDb } from "@/lib/supabase-keys";
 
-function clerkEnabled(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
-      process.env.CLERK_SECRET_KEY?.trim()
-  );
-}
-
 export async function GET(req: NextRequest) {
-  // Prefer Clerk multi-device session
-  if (clerkEnabled()) {
+  if (isClerkConfigured()) {
     try {
       const { userId } = await auth();
       if (!userId) {
@@ -27,8 +20,8 @@ export async function GET(req: NextRequest) {
 
       const meta = {
         ...(user.publicMetadata || {}),
-        ...(user.privateMetadata || {}),
       } as Record<string, unknown>;
+      const snapshot = subscriptionSnapshotFromMetadata(meta);
       const plan = planFromClerkMetadata(meta);
       const email =
         user.primaryEmailAddress?.emailAddress ||
@@ -40,6 +33,7 @@ export async function GET(req: NextRequest) {
         email ||
         "Engineer";
 
+      // Automation token mirrors effective plan (not for browser unlock UX)
       const activeKey = apiKeyForUserId(userId, plan);
 
       if (email && !meta.welcome_sent) {
@@ -55,12 +49,14 @@ export async function GET(req: NextRequest) {
               });
             }
             try {
-              const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+              const clerk = createClerkClient({
+                secretKey: process.env.CLERK_SECRET_KEY,
+              });
               await clerk.users.updateUserMetadata(userId, {
                 privateMetadata: { welcome_sent: true },
               });
             } catch {
-              // ignore metadata write error
+              /* ignore */
             }
           })
           .catch(() => {});
@@ -74,6 +70,10 @@ export async function GET(req: NextRequest) {
           email,
           name,
           plan,
+          planStatus: snapshot.planStatus,
+          planPeriod: snapshot.planPeriod,
+          planRenewsAt: snapshot.planRenewsAt,
+          hasInterviewMasterclass: snapshot.hasInterviewMasterclass,
           apiKey: activeKey,
         },
       });
@@ -82,7 +82,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Legacy cookie session (local demo without Clerk keys)
   const token = req.cookies.get("ace_seek_session")?.value;
   if (!token) {
     return NextResponse.json({ authenticated: false }, { status: 401 });
@@ -101,6 +100,10 @@ export async function GET(req: NextRequest) {
       email: session.email,
       name: session.name,
       plan: session.plan,
+      planStatus: "active",
+      planPeriod: session.plan === "free" ? "none" : "monthly",
+      planRenewsAt: null,
+      hasInterviewMasterclass: false,
       apiKey: session.apiKey,
     },
   });

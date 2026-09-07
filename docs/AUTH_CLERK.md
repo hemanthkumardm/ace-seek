@@ -36,17 +36,23 @@ Keys may still be derived for automation, but FeatureLock / entitlements in the 
    - Primary: `ace-seek.com` + Frontend API `clerk.ace-seek.com`
    - Add satellites / allowed apps: `tools.ace-seek.com`, `vlsi.ace-seek.com`, `openroad.ace-seek.com`
 
-## Plan metadata
+## Plan metadata (subscriptions)
 
-Default plan is **free**. Clerk Dashboard → Users → Public metadata:
+Default plan is **free**. **Paid upgrades are written automatically** by Razorpay verify + webhook via `applyPlanToUser()` — see `docs/SUBSCRIPTIONS.md`.
+
+Manual override (support): Clerk Dashboard → Users → Public metadata:
 
 ```json
-{ "plan": "pro" }
+{
+  "plan": "pro",
+  "planStatus": "active",
+  "planPeriod": "monthly",
+  "planRenewsAt": "2026-10-07T00:00:00.000Z"
+}
 ```
 
-Values: `free` | `pro` | `max` | `team`.
-
-Changing plan updates entitlements on the next `/api/auth/me` refresh — users do **not** need a new key paste in the browser.
+Values: `free` | `pro` | `max` | `team`.  
+`planStatus` must be `active` or `trialing` for paid entitlements (expired/canceled → Free).
 
 ## API keys (automation only)
 

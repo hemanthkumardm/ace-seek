@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { PRICING } from "@/lib/site";
-import { Sparkles, CheckCircle2, ArrowRight } from "lucide-react";
+import { Sparkles, CheckCircle2, ArrowRight, LogIn } from "lucide-react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { useAuth } from "@clerk/nextjs";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { PlanPill } from "@/components/FeatureLock";
 
 export function PricingClient() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
+  const { ent, ready } = useEntitlements();
   const [selectedPlan, setSelectedPlan] = useState<{
     id: string;
     name: string;
@@ -16,6 +20,29 @@ export function PricingClient() {
 
   return (
     <>
+      {isLoaded && isSignedIn && ready && (
+        <div className="sk-panel p-4 md:p-5 flex flex-wrap items-center justify-between gap-3 border border-cyan-500/30 bg-cyan-950/20">
+          <div className="flex items-center gap-3">
+            <PlanPill tier={ent.tier} ready={ready} />
+            <div>
+              <p className="text-xs font-bold text-white">
+                Signed in · current plan follows your account
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Buy Pro / Max / Team below — unlocks instantly on every Ace-Seek host.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard"
+            className="sk-btn sk-btn-ghost !text-xs !py-1.5 !px-3 inline-flex items-center gap-1"
+          >
+            Dashboard
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4 font-mono">
         {PRICING.map((tier) => (
           <li key={tier.id}>
@@ -71,22 +98,36 @@ export function PricingClient() {
 
               {tier.id === "free" ? (
                 isSignedIn ? (
-                  <a
+                  <Link
                     href="/dashboard"
                     className="sk-btn text-xs w-full justify-center sk-btn-ghost"
                   >
                     <span>Go to Dashboard</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 ) : (
-                  <a
-                    href={tier.ctaHref}
+                  <Link
+                    href={tier.ctaHref || "/signup"}
                     className="sk-btn text-xs w-full justify-center sk-btn-ghost"
                   >
                     <span>{tier.cta}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 )
+              ) : !isSignedIn ? (
+                <Link
+                  href={`/login?redirect=${encodeURIComponent("/pricing")}`}
+                  className={`sk-btn text-xs w-full justify-center inline-flex items-center gap-1.5 ${
+                    tier.highlighted ? "sk-btn-primary" : "sk-btn-ghost"
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign in to buy {tier.name}</span>
+                </Link>
+              ) : ent.tier === tier.id ? (
+                <div className="sk-btn text-xs w-full justify-center sk-btn-ghost opacity-80 cursor-default">
+                  Current plan
+                </div>
               ) : (
                 <button
                   type="button"

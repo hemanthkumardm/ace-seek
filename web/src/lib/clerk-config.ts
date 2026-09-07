@@ -1,8 +1,8 @@
 /**
  * Clerk is enabled when publishable + secret keys are present.
- * Free Hobby tier is enough for early multi-user / multi-device auth.
- * https://clerk.com/pricing
  */
+
+import { effectivePlanFromMetadata } from "@/lib/subscription-plan";
 
 export function isClerkConfigured(): boolean {
   return Boolean(
@@ -11,15 +11,9 @@ export function isClerkConfigured(): boolean {
   );
 }
 
-/** Plan from Clerk publicMetadata.plan | privateMetadata.plan (default free) */
+/** Effective SaaS plan from Clerk metadata (respects status + renewsAt). */
 export function planFromClerkMetadata(
   meta: Record<string, unknown> | null | undefined
 ): "free" | "pro" | "max" | "team" {
-  const raw = meta?.plan || meta?.tier;
-  if (meta?.trialExpiresAt || meta?.trial_expires_at) {
-    if (raw === "pro" || raw === "team") return raw;
-    return "free";
-  }
-  if (raw === "pro" || raw === "max" || raw === "team" || raw === "free") return raw;
-  return "free";
+  return effectivePlanFromMetadata(meta);
 }

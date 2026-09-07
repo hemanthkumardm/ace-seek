@@ -3,15 +3,49 @@
 -- Paste this script into your Supabase Dashboard SQL Editor to initialize or update.
 -- ==============================================================================
 
--- 1. Profiles (Clerk Users)
+-- 1. Profiles (Clerk Users) — plan mirrors Clerk publicMetadata.plan
 create table if not exists public.profiles (
   id text primary key,
   email text,
   name text,
-  plan text not null default 'free' check (plan in ('free', 'pro', 'team')),
+  plan text not null default 'free' check (plan in ('free', 'pro', 'max', 'team')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Migrate existing installs that lack max
+do $$ begin
+  alter table public.profiles drop constraint if exists profiles_plan_check;
+  alter table public.profiles add constraint profiles_plan_check
+    check (plan in ('free', 'pro', 'max', 'team'));
+exception when others then null;
+end $$;
+
+-- 1b. Account subscriptions (AI-tool style billing ledger)
+create table if not exists public.subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id text not null references public.profiles (id) on delete cascade,
+  plan text not null check (plan in ('pro', 'max', 'team')),
+  status text not null default 'active'
+    check (status in ('active', 'past_due', 'canceled', 'trialing', 'expired')),
+  provider text not null default 'razorpay',
+  provider_payment_id text,
+  provider_order_id text,
+  provider_subscription_id text,
+  current_period_end timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists subscriptions_provider_payment_uidx
+  on public.subscriptions (provider_payment_id)
+  where provider_payment_id is not null;
+
+create index if not exists subscriptions_user_id_idx
+  on public.subscriptions (user_id);
+
+create index if not exists subscriptions_user_status_idx
+  on public.subscriptions (user_id, status);
 
 -- 2. User API Keys & Subdomain Access Management
 create table if not exists public.user_api_keys (

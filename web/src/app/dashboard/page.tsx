@@ -10,12 +10,13 @@ import {
   Key,
   Zap,
   Boxes,
-  Copy,
-  Check,
-  HelpCircle,
   LogOut,
   User,
   Loader2,
+  Sparkles,
+  Calendar,
+  ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
 
 type UserProfile = {
@@ -23,20 +24,24 @@ type UserProfile = {
   email: string;
   name: string;
   plan: "free" | "pro" | "max" | "team";
-  apiKey: string;
+  planStatus?: string;
+  planPeriod?: string;
+  planRenewsAt?: string | null;
+  hasInterviewMasterclass?: boolean;
+  apiKey?: string;
 };
 
 const clerkPk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => void }) {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  const handleCopy = (keyStr: string, label: string) => {
-    if (!keyStr) return;
-    navigator.clipboard.writeText(keyStr);
-    setCopiedKey(label);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
+  const renewLabel = user.planRenewsAt
+    ? new Date(user.planRenewsAt).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+  const status = (user.planStatus || "active").toLowerCase();
 
   return (
     <div className="min-h-full flex flex-col">
@@ -50,75 +55,119 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                 <User className="w-4 h-4 text-[var(--accent-cyan)]" />
               </div>
               <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-                Authenticated User Control Deck
+                Your account
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
               Welcome back, {user.name}
             </h1>
             <p className="text-xs md:text-sm text-[var(--muted)] font-mono">
-              Account: {user.email} &bull; ID: {user.id}
+              {user.email}
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <div className="text-right space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-bold text-[var(--muted)] font-mono">
-                  CURRENT TIER:
-                </span>
-                <span
-                  className={`sk-badge ${
-                    user.plan === "team"
-                      ? "border-purple-500 text-purple-400 bg-purple-950/30"
-                      : user.plan === "pro"
-                      ? "border-emerald-500 text-emerald-400 bg-emerald-950/30"
-                      : "border-slate-700 text-slate-300 bg-slate-800"
-                  }`}
-                >
-                  {user.plan.toUpperCase()} PLAN
-                </span>
-              </div>
-              <p className="text-[10px] text-[var(--muted)] font-mono">
-                AUTH: <span className="text-[#10b981] font-bold">&bull; SECURE</span>
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {user.plan === "free" && (
-                <a
-                  href="/pricing"
-                  className="sk-btn sk-btn-primary !text-xs !py-2.5 flex items-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Upgrade Plan</span>
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={onLogout}
-                className="sk-btn sk-btn-ghost !text-xs !py-2.5"
-                title="Log out"
+          <div className="flex items-center gap-2">
+            {user.plan === "free" ? (
+              <a
+                href="/pricing"
+                className="sk-btn sk-btn-primary !text-xs !py-2.5 flex items-center gap-1.5"
               >
-                <LogOut className="w-3 h-3 text-red-400" />
-              </button>
-            </div>
+                <Zap className="w-3.5 h-3.5" />
+                <span>Upgrade</span>
+              </a>
+            ) : (
+              <a
+                href="/pricing"
+                className="sk-btn sk-btn-ghost !text-xs !py-2.5 flex items-center gap-1.5"
+              >
+                <span>Manage plan</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="sk-btn sk-btn-ghost !text-xs !py-2.5"
+              title="Log out"
+            >
+              <LogOut className="w-3 h-3 text-red-400" />
+            </button>
           </div>
         </div>
 
-        <div className="sk-panel p-6 md:p-8 space-y-4 border-[var(--accent-cyan)]/50 shadow-cyan-950/20">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h2 className="text-base font-bold">Account access</h2>
-              <p className="text-xs text-[var(--muted)] max-w-xl leading-relaxed">
-                Sign in on <strong className="text-[var(--foreground)]">vlsi</strong>,{" "}
-                <strong className="text-[var(--foreground)]">tools</strong>, or{" "}
-                <strong className="text-[var(--foreground)]">openroad</strong> — your{" "}
-                <span className="font-mono uppercase text-[var(--accent-cyan)]">{user.plan}</span>{" "}
-                plan unlocks automatically. Upgrade anytime from Pricing.
+        {/* Subscription card — AI-tool style */}
+        <div className="sk-panel p-6 md:p-8 space-y-5 border-[var(--accent-cyan)]/50">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="sk-icon-well w-11 h-11">
+                {user.plan === "max" || user.plan === "team" ? (
+                  <Sparkles className="w-5 h-5 text-[var(--accent-cyan)]" />
+                ) : (
+                  <ShieldCheck className="w-5 h-5 text-[var(--accent-cyan)]" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-lg font-black tracking-tight">
+                  {user.plan.toUpperCase()} plan
+                </h2>
+                <p className="text-xs text-[var(--muted)]">
+                  Attached to this account — unlocks on vlsi / tools / openroad when you sign in.
+                </p>
+              </div>
+            </div>
+            <span
+              className={`sk-badge ${
+                status === "active" || status === "trialing"
+                  ? "border-emerald-500 text-emerald-400 bg-emerald-950/30"
+                  : status === "past_due"
+                    ? "border-amber-500 text-amber-400 bg-amber-950/30"
+                    : "border-slate-600 text-slate-300"
+              }`}
+            >
+              {status.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-3 text-xs">
+            <div className="sk-recessed p-3 space-y-1">
+              <p className="text-[10px] uppercase font-bold text-[var(--muted)]">Period</p>
+              <p className="font-mono font-bold text-[var(--foreground)]">
+                {(user.planPeriod || (user.plan === "free" ? "none" : "monthly")).toUpperCase()}
               </p>
             </div>
-            <a href="/pricing" className="sk-btn sk-btn-primary !text-xs !py-2 !px-4 shrink-0">
-              View plans
+            <div className="sk-recessed p-3 space-y-1">
+              <p className="text-[10px] uppercase font-bold text-[var(--muted)] flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                Renews / ends
+              </p>
+              <p className="font-mono font-bold text-[var(--foreground)]">
+                {user.plan === "free" ? "—" : renewLabel || "Active"}
+              </p>
+            </div>
+            <div className="sk-recessed p-3 space-y-1">
+              <p className="text-[10px] uppercase font-bold text-[var(--muted)]">Add-ons</p>
+              <p className="font-mono font-bold text-[var(--foreground)]">
+                {user.hasInterviewMasterclass ? "Interview Masterclass" : "None"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 pt-1">
+            <a href="/pricing" className="sk-btn sk-btn-primary !text-xs !py-2 !px-4">
+              {user.plan === "free" ? "Upgrade to Pro / Max" : "Change plan"}
+            </a>
+            <a
+              href="https://vlsi.ace-seek.com"
+              className="sk-btn sk-btn-ghost !text-xs !py-2 !px-4 inline-flex items-center gap-1"
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              Open VLSI
+            </a>
+            <a
+              href="https://tools.ace-seek.com"
+              className="sk-btn sk-btn-ghost !text-xs !py-2 !px-4 inline-flex items-center gap-1"
+            >
+              <Boxes className="w-3.5 h-3.5" />
+              Open Tools
             </a>
           </div>
         </div>
@@ -250,7 +299,7 @@ export default function DashboardPage() {
         <div className="space-y-2 max-w-sm">
           <h2 className="text-xl font-bold">Authentication Required</h2>
           <p className="text-xs text-[var(--muted)]">
-            Please log in to access your Ace-Seek API keys and EDA workstations.
+            Please sign in to manage your Ace-Seek plan and open workstations.
           </p>
         </div>
         <div className="flex gap-4">

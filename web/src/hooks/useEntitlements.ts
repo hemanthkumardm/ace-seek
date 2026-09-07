@@ -49,15 +49,20 @@ export function useEntitlements() {
   const [ready, setReady] = useState(false);
   const [authSource, setAuthSource] = useState<"guest" | "session" | "legacy-key">("guest");
   const [isSignedIn, setIsSignedIn] = useState(false);
+  const [planStatus, setPlanStatus] = useState<string>("active");
+  const [planRenewsAt, setPlanRenewsAt] = useState<string | null>(null);
+  const [hasInterviewMasterclass, setHasInterviewMasterclass] = useState(false);
 
   const setGuest = useCallback(() => {
     setEnt(guestEnt());
     setApiKey("");
     setAuthSource("guest");
     setIsSignedIn(false);
+    setPlanStatus("active");
+    setPlanRenewsAt(null);
+    setHasInterviewMasterclass(false);
     if (typeof window !== "undefined") {
       localStorage.removeItem(PLAN_STORAGE);
-      // Never leave a stale key that could confuse tool pages after sign-out
       localStorage.removeItem(KEY_STORAGE);
       localStorage.removeItem("ace_api_key");
     }
@@ -90,6 +95,11 @@ export function useEntitlements() {
           name: data.user.name,
         })
       );
+      setPlanStatus(String(data.user.planStatus || "active"));
+      setPlanRenewsAt(
+        typeof data.user.planRenewsAt === "string" ? data.user.planRenewsAt : null
+      );
+      setHasInterviewMasterclass(Boolean(data.user.hasInterviewMasterclass));
       setAuthSource("session");
       setIsSignedIn(true);
       localStorage.setItem(PLAN_STORAGE, plan);
@@ -216,5 +226,8 @@ export function useEntitlements() {
     isPremium: ent.tier === "pro" || ent.tier === "max" || ent.tier === "team",
     isUnlocked: ent.tier === "max" || ent.tier === "team",
     isSignedIn,
+    planStatus,
+    planRenewsAt,
+    hasInterviewMasterclass,
   };
 }
