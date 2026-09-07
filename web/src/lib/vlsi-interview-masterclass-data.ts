@@ -194,6 +194,13 @@ export function studioPracticeForInterviewDomain(
       return { href: "/vlsi/mmmc-studio", label: "Open MMMC Studio" };
     case "rtl-verilog-architecture":
       return { href: "/vlsi/rtl-lab", label: "Practice in RTL Lab" };
+    case "design-verification":
+      return { href: "/vlsi/learn", label: "Related DV courses in Learn Hub" };
+    case "dft-atpg":
+      return { href: "/vlsi/learn", label: "Related DFT courses in Learn Hub" };
+    case "aptitude-quantitative":
+    case "logical-reasoning-puzzles":
+      return null;
     default:
       return { href: "/vlsi/learn", label: "Related Learn Hub courses" };
   }
@@ -397,13 +404,14 @@ report_qor > reports/qor_post_opt.rpt`,
   set_false_path -from [get_clocks CLK_A] -to [get_clocks CLK_B]
   \`\`\`
   This only disables the forward path ($A \\rightarrow B$). Engineers frequently forget the reverse direction ($B \\rightarrow A$), creating asymmetry and leaving clock-to-data reconvergence unmanaged.
-- **Why 'set_clock_groups -asynchronous' is Mandatory for CDC**:
+- **Why 'set_clock_groups -asynchronous' is the preferred CDC exception (not the only legal one)**:
   \`\`\`tcl
   set_clock_groups -asynchronous -group [get_clocks CLK_A] -group [get_clocks CLK_B]
   \`\`\`
-  1. **Bidirectional**: Disables timing symmetrically in both directions ($A \\leftrightarrow B$).
-  2. **Interacts with CDC Lint**: Allows formal CDC tools (Cadence JasperGold / SpyGlass) to recognise asynchronous clock boundaries and verify that 2-FF or async FIFO synchronizers are physically instantiated.
-  3. **Preserves Internal Checks**: Disables only inter-domain paths without touching intra-clock paths inside CLK_A or CLK_B.`,
+  1. **Bidirectional**: Disables timing symmetrically in both directions ($A \\leftrightarrow B$) in one construct.
+  2. **Cleaner than one-way false paths**: Piecemeal \`set_false_path\` / \`set_max_delay\` methodologies also exist, but they are easier to get asymmetric or incomplete — prefer clock_groups unless your methodology standard says otherwise.
+  3. **Preserves Internal Checks**: Disables only inter-domain paths without touching intra-clock paths inside CLK_A or CLK_B.
+  4. **CDC lint is independent**: Jasper/SpyGlass prove synchronizer structure from RTL/netlist connectivity; they do **not** require clock_groups to detect CDC, but SDC exceptions must still match the real async architecture.`,
     tclOrVerilogSnippet: {
       lang: "tcl",
       code: `# Correct Asynchronous Clock Domain SDC:
@@ -1054,14 +1062,15 @@ check_timing
 report_timing -unconstrained -max_paths 50`,
     },
     commonPitfalls: [
-      "Using -asynchronous on clock muxes instead of -logically_exclusive.",
+      "Using -asynchronous on a muxed single clock net — use -physically_exclusive when only one waveform exists electrically on that pin/net (see also clk-02).",
+      "Using -logically_exclusive for true async domains (wrong SI / exception semantics).",
       "Forgetting to check both directions (A->B and B->A) when auditing cross-domain timing.",
     ],
     interviewerFollowups: [
       "What happens if you omit set_clock_groups between two asynchronous clocks in Genus synthesis?",
       "Why should generated clocks derived from a common master PLL NOT be marked asynchronous to the master?",
     ],
-    tags: ["genus", "sdc", "clock-groups", "asynchronous", "logically-exclusive"],
+    tags: ["genus", "sdc", "clock-groups", "asynchronous", "physically-exclusive", "logically-exclusive"],
   },
 
   {
@@ -1277,8 +1286,8 @@ set_clock_groups -name MUX_CLK_EXCL -physically_exclusive \
     role: "Senior RTL-to-GDS / Synthesis & STA Engineer",
     difficulty: "Hard",
     round: "Onsite Technical Round 1",
-    question: "What is a Virtual Clock in SDC, and why is referencing the on-chip root clock in 'set_input_delay' / 'set_output_delay' considered an amateur design error for source-synchronous and system-synchronous I/O interfaces? Derive the setup and hold budget formulas.",
-    shortSummary: "A virtual clock models external board transmission without binding to an on-chip pin. Referencing internal root clocks artificially entangles external I/O timing with on-chip CTS insertion delays, capture skew, and CPPR variations, corrupting timing closure.",
+    question: "What is a Virtual Clock in SDC, and when should you prefer it over referencing the on-chip root clock in 'set_input_delay' / 'set_output_delay' for source-synchronous and system-synchronous I/O? Derive the setup and hold budget formulas.",
+    shortSummary: "A virtual clock models external board transmission without binding to an on-chip pin — best practice for clean I/O budgets. Using the on-chip root clock can work for simple system-synchronous cases if source latency is modeled carefully, but it easily entangles board timing with CTS insertion delay, capture skew, and CPPR.",
     detailedAnswer: `### 1. What is a Virtual Clock?
 A **Virtual Clock** is defined in SDC with a period and waveform, but **without specifying a source port or pin**:
 \`create_clock -name VCLK_EXT -period 5.0 -waveform {0.0 2.5}\`
@@ -1321,8 +1330,9 @@ set_output_delay -clock VCLK_EXT -max 1.800 [get_ports pad_data_out*]
 set_output_delay -clock VCLK_EXT -min -0.400 [get_ports pad_data_out*]`,
     },
     commonPitfalls: [
-      "Using the internal on-chip clock name for 'set_input_delay', causing CTS clock tree insertion delay to be erroneously applied to external launch flops.",
+      "Mixing board flight-time budgets with on-chip propagated capture latency without a clear source-latency / virtual-clock reference — post-CTS I/O WNS then looks 'random'.",
       "Omitting negative output delays when the external receiving chip requires long hold times.",
+      "Treating 'always use chip clock' or 'always use virtual clock' as dogma instead of matching the board timing diagram.",
     ],
     interviewerFollowups: [
       "How do you constrain a Source-Synchronous interface (like DDR4 or RGMII) where the clock and data are transmitted together?",
@@ -1562,8 +1572,9 @@ Simulation testbenches often run at nominal or reduced frequencies to conserve w
 - Suppose an RTL simulation was executed with a clock period of $T_{\\text{sim}} = 10.0\\,\\text{ns}$ ($100\\,\\text{MHz}$).
 - In Genus synthesis, the target SDC clock constraint is defined as $T_{\\text{sdc}} = 2.0\\,\\text{ns}$ ($500\\,\\text{MHz}$).
 - **The Pitfall**: Without scaling, a net toggling 10 million times in the 100 MHz sim is calculated as $10\\,\\text{MHz}$ toggle rate in the 500 MHz implementation, **underestimating dynamic power by $5\\times$!**
-- **The Solution**: The \`-scale_to_sdc_frequency\` switch instructs Genus to normalize the activity counts relative to the clock periods declared in SDC:
-  $$\\alpha_{\\text{sdc}} = \\alpha_{\\text{sim}} \\times \\frac{f_{\\text{sdc}}}{f_{\\text{sim}}}$$
+- **The Solution**: \`-scale_to_sdc_frequency\` renormalizes **time-based / absolute activity rates** from the simulation timeline onto the SDC clock frequencies used for power:
+  - If SAIF stores toggles-per-second (or equivalent absolute rates), scaling by $f_{\\text{sdc}}/f_{\\text{sim}}$ corrects under-clocked sims.
+  - If you already have a dimensionless per-cycle toggle density $\\alpha$ and power uses $P \\propto \\alpha C V^{2} f$, **do not** also multiply $\\alpha$ by $f_{\\text{sdc}}/f_{\\text{sim}}$ — that double-counts frequency. Keep one convention.
 
 ### 2. Instance Scope Mapping:
 In testbench environments, the design under test (DUT) is typically instantiated under a top-level verification wrapper:
@@ -2155,9 +2166,11 @@ report_logic_levels_histogram`,
     difficulty: "Staff / Principal",
     round: "Onsite Deep-Dive",
     question: "Walk through the complete industrial 15-stage RTL-to-GDSII digital synthesis and physical handoff flow in Cadence Genus. Explain the chronological dependencies between logic elaboration, SDC linting, MMMC multi-view setup, DFT scan insertion, clock gating (LP), physical iSpatial optimization, and formal LEC / SDF signoff. What are the fatal blockers at each stage gate?",
-    shortSummary: "A production synthesis flow progresses across 15 structured gates: Environment Setup -> RTL Elaboration -> SDC Lint -> Generic Opt -> Power/LP Intent -> MMMC Setup -> DFT Scan -> Tech Mapping -> Physical iSpatial -> Netlist Sanitization -> Signoff Audit -> Handoff DB.",
+    shortSummary: "A production Genus flow progresses: Environment → RTL elaborate → SDC lint → syn_generic → LP/ICG → MMMC → syn_map → DFT convert_to_scan → further syn_opt / iSpatial → sanitize → LEC → write_db -common. Scan conversion belongs after technology mapping.",
     detailedAnswer: `### 1. The 15-Stage Cadence Genus Industrial Synthesis Flow:
-Modern deep-submicron SoC synthesis is not a single \`compile\` command. It is a strictly sequenced 15-stage architectural pipeline where each gate must pass automated assertions before downstream compilation:
+Modern deep-submicron SoC synthesis is not a single \`compile\` command. It is a strictly sequenced pipeline where each gate must pass automated assertions before downstream compilation.
+
+**Canonical DFT placement (matches dft-01):** \`syn_generic\` → \`syn_map\` → \`convert_to_scan\` / scan chain build → further \`syn_opt\` (including physical). Do **not** convert to scan before technology mapping.
 
 \`\`\`
 [1. Units & Libs] ──> [2. RTL Read & Elaborate] ──> [3. Structural check_design]
@@ -2166,10 +2179,10 @@ Modern deep-submicron SoC synthesis is not a single \`compile\` command. It is a
 [6. Generic Opt (syn_generic)] <── [5. SDC Lint (check_timing)] <── [4. SDC Ingestion]
          │
          ▼
-[7. LP & Clock Gating (ICG)] ──> [8. MMMC Active Views] ──> [9. DFT Scan Insertion]
+[7. LP & Clock Gating (ICG)] ──> [8. MMMC Active Views] ──> [9. Tech Mapping (syn_map)]
                                                                     │
                                                                     ▼
-[12. Netlist Sanitization] <── [11. Physical iSpatial (syn_opt)] <── [10. Tech Mapping (syn_map)]
+[12. Netlist Sanitization] <── [11. Physical iSpatial (syn_opt)] <── [10. DFT convert_to_scan]
          │
          ▼
 [13. Signoff check_design] ──> [14. LEC Golden Handoff] ──> [15. write_db -common (Innovus)]
@@ -2192,12 +2205,12 @@ Modern deep-submicron SoC synthesis is not a single \`compile\` command. It is a
    - Ingests simulation activity (SAIF/VCD) with \`-scale_to_sdc_frequency\` and inserts Integrated Clock Gating cells (ICGs).
 8. **Stage 8: Multi-Mode Multi-Corner (MMMC) Setup (\`set_analysis_view\`)**:
    - Activates setup views (Slow Corner SSG / 125°C) and hold views (Fast Corner FFG / -40°C).
-9. **Stage 9: Design-for-Test (DFT) & Scan Configuration (\`define_test_clock\`)**:
-   - Replaces functional flip-flops with scan-equivalent flops (Scan-DFF) and defines scan chain architecture.
-10. **Stage 10: Technology Library Mapping (\`syn_map\`)**:
-    - Maps generic gates to target foundry standard cells while respecting \`dont_use\` restrictions.
+9. **Stage 9: Technology Library Mapping (\`syn_map\`)**:
+    - Maps generic gates to target foundry standard cells while respecting \`dont_use\` restrictions. **Scan conversion needs real sequential Liberty cells.**
+10. **Stage 10: Design-for-Test (DFT) & Scan (\`convert_to_scan\` / chain build)**:
+    - Replaces mapped flip-flops with scan-equivalent cells and builds scan chains / lockups as configured.
 11. **Stage 11: Physical-Aware iSpatial Optimization (\`syn_opt -physical\`)**:
-    - Uses floorplan DEF and placement congestion models to guide buffer insertion and gate sizing.
+    - Uses floorplan DEF and placement congestion models to guide buffer insertion and gate sizing after scan structure exists.
 12. **Stage 12: Netlist Sanitization**:
     - Executes \`remove_assigns_without_opt\` (replacing wire aliases with physical buffers) and inserts TIEHI/TIELO cells via \`add_tieoffs\`.
 13. **Stage 13: Final Signoff Verification Gate**:
@@ -2208,7 +2221,7 @@ Modern deep-submicron SoC synthesis is not a single \`compile\` command. It is a
     - Writes out shared Innovus/Tempus database for seamless zero-loss place-and-route handoff.`,
     tclOrVerilogSnippet: {
       lang: "tcl",
-      code: `# Complete 15-Stage Cadence Genus Master Synthesis Flow:
+      code: `# Complete Cadence Genus Master Synthesis Flow (DFT after syn_map):
 # 1. Setup & Environment
 report_units
 set_db library [list $STD_LIB $IO_LIB $SRAM_LIB]
@@ -2235,9 +2248,12 @@ read_saif -instance tb_top/u_core -scale_to_sdc_frequency sim/workload.saif
 # 6. MMMC Active Views
 set_analysis_view -setup [list av_func_slow] -hold [list av_func_fast]
 
-# 7. Synthesis Compilation Layers
+# 7. Synthesis layers — map BEFORE scan conversion
 syn_generic
 syn_map
+# DFT: configure test clocks / scan style, then:
+# convert_to_scan
+# define_scan_chain ...   ;# project-specific
 syn_opt -physical
 
 # 8. Netlist Sanitization & Cleanup
@@ -2255,7 +2271,7 @@ write_sdc > outputs/soc_top_mapped.sdc
 write_db -common -design soc_top db/soc_top_innovus.db`,
     },
     commonPitfalls: [
-      "Inserting DFT scan chains prior to generic logic optimization, which disrupts arithmetic sharing.",
+      "Calling convert_to_scan before syn_map — scan needs mapped sequential Liberty cells (see dft-01).",
       "Executing physical iSpatial synthesis without linking technology LEF rules, causing invalid placement assumptions.",
       "Omitting 'remove_assigns_without_opt' prior to Innovus physical handoff.",
     ],
@@ -4902,8 +4918,8 @@ check_design > reports/check_design_pad_top.rpt`,
     role: "Principal Timing Closure & ASIC Architect",
     difficulty: "Staff / Principal",
     round: "Onsite Deep-Dive",
-    question: "The I2O Path Dilemma: In a 500 MHz (2.0 ns period) Advanced FinFET design with pads, why does internal register-to-register (R2R) timing meet slack comfortably (+0.97 ns) while input-to-output (I2O) timing suffers catastrophic violations (-3.5 ns)? Walk through the physical delay breakdown of bidirectional pad cells and explain why path grouping ('define_cost_group') alone cannot fix WNS.",
-    shortSummary: "Bidirectional IO pad cells introduce massive physical delays: an input receiver adds ~0.7 ns while an output driver adds ~1.4 ns, consuming 2.1 ns (105% of a 2.0 ns clock period) before core logic delay is even accounted for. R2R paths stay entirely on fast internal core wires and gates, meeting timing cleanly (+0.97 ns). Path grouping (define_cost_group) merely classifies and weights paths during optimization; it cannot defy physical physics. Fixing I2O requires architectural pipelining (registering boundary signals) or relaxing interface periods.",
+    question: "The I2O Path Dilemma: In a 500 MHz (2.0 ns period) Advanced FinFET design with pads, why does internal register-to-register (R2R) timing meet slack comfortably (+0.97 ns) while input-to-output (I2O) timing suffers catastrophic violations (about −1.9 ns with typical pad arcs, worse with heavy board C_load)? Walk through the physical delay breakdown of bidirectional pad cells and explain why path grouping ('define_cost_group') alone cannot fix WNS.",
+    shortSummary: "Bidirectional IO pad cells introduce massive physical delays: an input receiver adds ~0.7 ns while an output driver adds ~1.4 ns — already most of a 2.0 ns period before core logic. With typical external delays the I2O slack is about −1.9 ns (worse under heavy board C_load). R2R paths stay on fast core wires/gates (+0.97 ns). Path grouping only reweights optimization; it cannot defy pad physics. Fix I2O with boundary pipelining or a realistic interface period/MCP.",
     detailedAnswer: `### 1. The Physics of the Pad Delay Discrepancy:
 In modern FinFET nodes, standard cell combinational gates switch in **10 to 30 picoseconds**. However, chip I/O pads operate under entirely different physical constraints:
 - **Core Standard Cells**:
@@ -4932,7 +4948,8 @@ $$\\text{Clock Period} = 2.000\\text{ ns} \\quad (500\\text{ MHz})$$
 $$\\text{Data Arrival Time} = T_{\\text{in\\_delay}} + T_{\\text{pad\\_in}} + T_{\\text{core}} + T_{\\text{pad\\_out}} = 0.100 + 0.720 + 1.250 + 1.425 = 3.495\\text{ ns}$$
 $$\\text{Required Time} = T_{\\text{period}} - T_{\\text{out\\_delay}} - T_{\\text{uncertainty}} = 2.000 - 0.200 - 0.200 = 1.600\\text{ ns}$$
 $$\\text{Slack} = \\text{Required} - \\text{Arrival} = 1.600\\text{ ns} - 3.495\\text{ ns} = \\mathbf{-1.895\\text{ ns}} \\quad \\text{(VIOLATED!)}$$
-*(Note: In pad-ring designs with heavy off-chip 50 pF capacitive load slews and secondary buffer stages, total arrival delay climbs to $5.095\\text{ ns}$, producing the $-3.495\\text{ ns}$ WNS violation observed in the synthesis report.)*
+
+**Accounting note (avoid double-counting):** External output delay and uncertainty belong in **required time**, not in a second “cumulative arrival” column. The table’s last two rows are budget terms for $T_{\\text{req}}$, not additive path delay. Under heavier board $C_{\\text{load}}$, $T_{\\text{pad\\_out}}$ grows and slack gets **more negative** — but quote one consistent equation set in interviews.
 
 - **The Contrast with R2R**:
   - The internal MAC multiplier/adder (\`prod_r\` $\\to$ \`y_reg[15]\`) runs entirely within the core.
@@ -4947,7 +4964,7 @@ $$\\text{Slack} = \\text{Required} - \\text{Arrival} = 1.600\\text{ ns} - 3.495\
   \`set_path_group_options I2O -effort_level high -weight 10\`
 - **The Reality**:
   - Cost grouping alters the optimizer's priority weighting, preventing a failing I2O path from masking internal R2R paths.
-  - However, **no synthesis tool can squeeze a 3.5 ns pad delay into a 2.0 ns clock cycle**!
+  - However, **no synthesis tool can squeeze a ~3.5 ns pad-dominated arrival into a 2.0 ns period with a 1.6 ns required time**.
 - **The True Engineering Solutions**:
   1. **Architectural Pipelining**: Register inputs immediately after the input pad, and register outputs immediately before the output pad (transforming I2O into I2R and R2O).
   2. **Multi-Cycle Path Exception**: Apply \`set_multicycle_path -setup 3\` if the external board protocol allows multiple clock periods for handshaking.

@@ -3,7 +3,7 @@
 **Source:** `web/src/lib/vlsi-interview-masterclass-data.ts` → `INTERVIEW_QUESTIONS_BANK`  
 **Date:** 2026-09-07  
 **Scope:** Technical correctness of questions + answers (STA math, CDC, UPF, SDC, DFT, PnR, Tcl)  
-**Action:** Docs-only. **Do not treat this file as applied code fixes** — wire corrections when you edit the TS bank.
+**Action:** Critical/medium items below were **applied in code after `9b15fcb`** (`chip-02`, `clk-03`, `cdc-04`, `idx-01`, `syn-04`, `pwr-02`). Remaining nits can be cleaned opportunistically.
 
 ---
 

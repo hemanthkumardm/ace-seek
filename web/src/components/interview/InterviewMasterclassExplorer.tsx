@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
-  Building2,
   Layers,
   Clock,
   Shuffle,
@@ -29,6 +28,7 @@ import {
   Unlock,
   Check,
   ArrowRight,
+  Dices,
 } from "lucide-react";
 import {
   COMPANIES_METADATA,
@@ -53,6 +53,8 @@ const IS_DEV = process.env.NODE_ENV === "development";
 export function InterviewMasterclassExplorer() {
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
     INTERVIEW_QUESTIONS_BANK[0]?.id || ""
@@ -82,19 +84,21 @@ export function InterviewMasterclassExplorer() {
     };
   }, []);
 
-  // Filter questions purely by technical domain, difficulty, and query
+  // Filter questions by domain, difficulty, free/bookmarks, and query
   const filteredQuestions = useMemo(() => {
     return INTERVIEW_QUESTIONS_BANK.filter((q) => {
       if (selectedDomain !== "all" && q.domain !== selectedDomain) return false;
       if (selectedDifficulty !== "all" && q.difficulty !== selectedDifficulty) return false;
+      if (freeOnly && !q.isFreeSample) return false;
+      if (bookmarkedOnly && !bookmarkedIds[q.id]) return false;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchText = `${q.question} ${q.shortSummary} ${q.detailedAnswer} ${q.domainName} ${q.tags.join(" ")}`.toLowerCase();
+        const matchText = `${q.question} ${q.shortSummary} ${q.detailedAnswer} ${q.domainName} ${q.tags.join(" ")} ${q.companyName || ""}`.toLowerCase();
         if (!matchText.includes(query)) return false;
       }
       return true;
     });
-  }, [selectedDomain, selectedDifficulty, searchQuery]);
+  }, [selectedDomain, selectedDifficulty, freeOnly, bookmarkedOnly, bookmarkedIds, searchQuery]);
 
   // Keep selected question in sync with filtered list
   useEffect(() => {
@@ -130,6 +134,13 @@ export function InterviewMasterclassExplorer() {
     if (activeQuestionIndex > 0) {
       setSelectedQuestionId(filteredQuestions[activeQuestionIndex - 1].id);
     }
+  };
+
+  const handleRandomDrill = () => {
+    const pool = filteredQuestions.filter((q) => isUnlocked || q.isFreeSample);
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (pick) setSelectedQuestionId(pick.id);
   };
 
   const toggleBookmark = (id: string) => {
@@ -337,6 +348,41 @@ export function InterviewMasterclassExplorer() {
                   {diff === "all" ? "All Levels" : diff}
                 </button>
               ))}
+            </div>
+
+            {/* Access / drill chips */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <button
+                type="button"
+                onClick={() => setFreeOnly((v) => !v)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                  freeOnly
+                    ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black"
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Free previews ({freePreviewCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setBookmarkedOnly((v) => !v)}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                  bookmarkedOnly
+                    ? "bg-amber-500 border-amber-400 text-slate-950 font-black"
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Bookmarks
+              </button>
+              <button
+                type="button"
+                onClick={handleRandomDrill}
+                className="ml-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold whitespace-nowrap transition-all cursor-pointer border bg-slate-900 border-purple-500/40 text-purple-300 hover:bg-purple-500/20"
+                title="Pick a random accessible question from the current filter"
+              >
+                <Dices className="w-3.5 h-3.5" />
+                Random drill
+              </button>
             </div>
           </div>
 

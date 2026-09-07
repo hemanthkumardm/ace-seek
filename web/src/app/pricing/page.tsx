@@ -93,8 +93,8 @@ export default function PricingPage() {
               <p className="text-slate-300 text-[11px]">Exact formulas, circuit physics, and Tcl scripts.</p>
             </div>
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-cyan-400 font-mono">Mock Exam Simulators</span>
-              <p className="text-slate-300 text-[11px]">Timed technical rounds & instant scorecard breakdown.</p>
+              <span className="text-[10px] font-bold uppercase text-cyan-400 font-mono">Domain Drill Mode</span>
+              <p className="text-slate-300 text-[11px]">Filter by domain/difficulty, free previews, random drill, bookmarks.</p>
             </div>
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
               <span className="text-[10px] font-bold uppercase text-purple-400 font-mono">Lifetime Updates</span>

@@ -22,8 +22,7 @@ export function InterviewMathSolutionRenderer({
 
     let processed = content;
 
-    // 1. Replace Block Math $$...$$ with placeholders
-    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_match, math) => {
+    const storeBlock = (math: string) => {
       const key = `MATHBLOCKPLACEHOLDER${mathIndex++}XYZ`;
       try {
         const rendered = katex.renderToString(math.trim(), {
@@ -35,10 +34,9 @@ export function InterviewMathSolutionRenderer({
         mathStore[key] = `<div class="my-2 p-3 rounded-lg bg-slate-950 border border-amber-500/30 font-mono text-amber-300 text-center">${math}</div>`;
       }
       return `\n\n${key}\n\n`;
-    });
+    };
 
-    // 2. Replace Inline Math $...$ with placeholders
-    processed = processed.replace(/\$([^\$\n]+?)\$/g, (_match, math) => {
+    const storeInline = (math: string) => {
       const key = `MATHINLINEPLACEHOLDER${mathIndex++}XYZ`;
       try {
         const rendered = katex.renderToString(math.trim(), {
@@ -50,7 +48,18 @@ export function InterviewMathSolutionRenderer({
         mathStore[key] = `<code class="px-1.5 py-0.5 rounded bg-slate-900 text-cyan-300 font-mono text-xs">${math}</code>`;
       }
       return key;
-    });
+    };
+
+    // 1. Block math: $$...$$ and \[...\]
+    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_m, math) => storeBlock(math));
+    processed = processed.replace(/\\\[([\s\S]+?)\\\]/g, (_m, math) => storeBlock(math));
+
+    // 2. Inline math: $...$ and \(...\)  (LaTeX delimiters used heavily in aptitude/DV packs)
+    processed = processed.replace(/\\\(([\s\S]+?)\\\)/g, (_m, math) => storeInline(math));
+    processed = processed.replace(/\$([^\$\n]+?)\$/g, (_m, math) => storeInline(math));
+
+    // 3. Un-indent GFM tables so marked parses them (MD→JSON often left leading spaces)
+    processed = processed.replace(/(^|\n)[ \t]+(\|[^\n]+\|)/g, "$1$2");
 
     // 3. Configure marked and parse markdown
     marked.setOptions({
