@@ -69,7 +69,7 @@ export function FeatureLock({
             {title || `${need} feature`}
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            Upgrade to <strong className="text-cyan-400">{need}</strong> (or higher) and activate your API key to unlock.
+            Upgrade to <strong className="text-cyan-400">{need}</strong> (or higher) on your account to unlock.
           </p>
           <a
             href={mainPricingHref()}

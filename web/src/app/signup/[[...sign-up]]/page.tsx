@@ -19,7 +19,7 @@ export default function SignupPage() {
             <a href="/trial" className="text-[var(--accent-cyan)] hover:underline">
               request access
             </a>
-            , we verify, then email your API key.
+            , we verify, then unlock Max on your account.
           </p>
         </div>
         <div className="w-full max-w-md flex justify-center">

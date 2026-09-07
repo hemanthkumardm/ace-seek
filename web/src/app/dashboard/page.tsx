@@ -105,72 +105,21 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
           </div>
         </div>
 
-        <div className="sk-panel p-6 md:p-8 space-y-6 border-[var(--accent-cyan)]/50 shadow-cyan-950/20">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--bevel-shadow)] pb-4">
-            <div className="flex items-center gap-3">
-              <div className="sk-icon-well w-10 h-10">
-                <Key className="w-5 h-5 text-[var(--accent-cyan)]" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold">Your plan API license key</h2>
-                <p className="text-xs text-[var(--muted)]">
-                  Use this key on VLSI and tools workstations for your{" "}
-                  <span className="font-mono uppercase text-[var(--accent-cyan)]">{user.plan}</span> plan.
-                </p>
-              </div>
+        <div className="sk-panel p-6 md:p-8 space-y-4 border-[var(--accent-cyan)]/50 shadow-cyan-950/20">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-bold">Account access</h2>
+              <p className="text-xs text-[var(--muted)] max-w-xl leading-relaxed">
+                Sign in on <strong className="text-[var(--foreground)]">vlsi</strong>,{" "}
+                <strong className="text-[var(--foreground)]">tools</strong>, or{" "}
+                <strong className="text-[var(--foreground)]">openroad</strong> — your{" "}
+                <span className="font-mono uppercase text-[var(--accent-cyan)]">{user.plan}</span>{" "}
+                plan unlocks automatically. Upgrade anytime from Pricing.
+              </p>
             </div>
-            <span className="sk-badge sk-badge-live">PERSONAL KEY</span>
-          </div>
-
-          <div className="space-y-3">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-              Automation API token (optional — {user.plan.toUpperCase()}):
-            </label>
-            <div className="flex items-center gap-3">
-              <div className="sk-lcd flex-1 py-2.5 px-4 font-mono text-sm tracking-wider flex items-center justify-between overflow-x-auto">
-                <span className="truncate">{user.apiKey}</span>
-                <span className="text-xs opacity-75 text-[var(--accent-cyan)] font-sans font-semibold ml-2 shrink-0">
-                  {user.plan.toUpperCase()}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleCopy(user.apiKey, "plan")}
-                className="sk-btn sk-btn-primary !text-xs !py-2.5 !px-5 shrink-0"
-              >
-                {copiedKey === "plan" ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    <span>Copy API Key</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          <div className="sk-recessed p-4 text-xs text-[var(--muted)] space-y-2 leading-relaxed">
-            <div className="flex items-center gap-2 text-[var(--foreground)] font-bold mb-1">
-              <HelpCircle className="w-4 h-4 text-[var(--accent-cyan)]" />
-              <span>How access works now:</span>
-            </div>
-            <p>
-              • <strong>Browser:</strong> Sign in on any Ace-Seek host (vlsi / tools /
-              openroad / www). Your <strong>{user.plan.toUpperCase()}</strong> plan
-              unlocks from the account — no paste required.
-            </p>
-            <p>
-              • <strong>Scripts / CI:</strong> Use the API token above as{" "}
-              <code>x-api-key</code> / Bearer for automation only.
-            </p>
-            <p className="pt-1 text-[var(--accent-cyan)]">
-              Change plan in Clerk metadata / billing — workstations pick it up on the
-              next login refresh.
-            </p>
+            <a href="/pricing" className="sk-btn sk-btn-primary !text-xs !py-2 !px-4 shrink-0">
+              View plans
+            </a>
           </div>
         </div>
 

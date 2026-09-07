@@ -33,7 +33,7 @@ type Props = {
 
 /**
  * Full-page plan gate for VLSI workstations.
- * Relies on validate-key entitlements (same API key as WorkstationAuthGuard).
+ * Relies on session entitlements from useEntitlements (Clerk account plan).
  */
 export function VlsiStudioGate({
   studio,
@@ -89,7 +89,7 @@ export function VlsiStudioGate({
         </h2>
         <p className="mt-2.5 text-xs font-bold text-slate-600 leading-relaxed">
           Your current plan ({ent.label}) does not include this workstation.
-          Upgrade to <strong className="text-sky-700 font-black">{need}</strong> or higher and activate your API key
+          Upgrade to <strong className="text-sky-700 font-black">{need}</strong> or higher on your Ace-Seek account
           on the VLSI dashboard.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

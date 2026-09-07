@@ -15,7 +15,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Ace-Seek plans — Free, Pro, Max, and Team. Feature locks via API key.",
+  description: "Ace-Seek plans — Free, Pro, Max, and Team. Features unlock from your account plan.",
 };
 
 export default function PricingPage() {
@@ -151,7 +151,7 @@ export default function PricingPage() {
 
         <section className="space-y-4">
           <p className="text-xs text-[var(--muted)] max-w-2xl">
-            Subdomain tools read your API key and enable or lock features for that plan.
+            Sign in on any Ace-Seek host — features unlock from your account plan.
           </p>
           <PlanFeatureTable />
         </section>

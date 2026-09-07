@@ -83,7 +83,7 @@ export function platformHomeHref(
     : "/tools";
 }
 
-/** Login page for platform (API key only). */
+/** Login page for platform (Clerk account). */
 export function platformLoginHref(
   platform: PlatformId,
   host?: string | null
@@ -280,7 +280,7 @@ export const PRICING: PricingTier[] = [
     name: "Free",
     price: "$0",
     period: "forever",
-    blurb: "Explore core tools, standard calculators, and textbook-grade VLSI foundations with API key access.",
+    blurb: "Explore core tools, standard calculators, and textbook-grade VLSI foundations with a Free account.",
     cta: "Get started",
     ctaHref: "/signup?plan=free",
     features: [
@@ -344,7 +344,7 @@ export const PRICING: PricingTier[] = [
     features: [
       "Everything in Max for all organization seats",
       "Shared ASIC project workspace & netlist vaults",
-      "Centralized license seat delegation & team API keys",
+      "Centralized license seat delegation & team admin",
       "Custom PDK integration & dedicated runner instances",
       "Corporate GST invoicing & purchase order (PO) support",
       "Enterprise SSO / SAML & priority engineering SLA",

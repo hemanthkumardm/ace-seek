@@ -20,7 +20,7 @@ export default function OpenroadLoginPage() {
         </h1>
         <p className="text-xs md:text-sm text-slate-300 font-bold">
           Free tier unlocks with your account. Plan upgrades apply on the next
-          refresh — no API key paste required in the browser.
+          refresh.
         </p>
       </div>
       <Suspense fallback={<div className="text-center text-slate-400 text-xs">Loading…</div>}>

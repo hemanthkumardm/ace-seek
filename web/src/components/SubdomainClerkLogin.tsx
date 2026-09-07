@@ -104,8 +104,8 @@ export function SubdomainClerkLogin({
       )}
 
       <p className="text-[10px] text-slate-500 font-mono text-center max-w-sm">
-        Your plan (Free / Pro / Max / Team) is attached to this account — no API key paste
-        needed in the browser. Path hint: {path}
+        Your Free / Pro / Max / Team plan is attached to this account and unlocks
+        automatically after sign-in.
       </p>
     </div>
   );

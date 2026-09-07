@@ -16,7 +16,7 @@ import {
 } from "@/lib/formats";
 import { hostCapabilities, which, enrichedPath } from "@/lib/compile-job";
 import { isPremiumPlan } from "@/lib/entitlements";
-import { entitlementsFromApiKeyAsync } from "@/lib/entitlements-server";
+import { resolveRequestEntitlements } from "@/lib/resolve-request-entitlements";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -265,7 +265,18 @@ export async function POST(req: NextRequest) {
       Math.min(400, Number(formData.get("exactDpi") ?? 300) || 300)
     );
     const apiKey = String(formData.get("apiKey") ?? formData.get("api_key") ?? "").trim();
-    const entitlements = await entitlementsFromApiKeyAsync(apiKey || null);
+    const resolved = await resolveRequestEntitlements({ apiKey: apiKey || null });
+    const entitlements = resolved.entitlements;
+    if (resolved.source === "guest") {
+      return NextResponse.json(
+        {
+          error: "Sign in required",
+          details: "Log in with your Ace-Seek account to convert documents.",
+          code: "AUTH_REQUIRED",
+        },
+        { status: 401 }
+      );
+    }
 
     // --- Daily limit rate check (5 docs/day for Free, 3 for Guest) ---
     const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] || "anon";

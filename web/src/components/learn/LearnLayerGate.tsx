@@ -39,15 +39,15 @@ export function LearnLayerGate({
           {meta.label} layer · {meta.plan}
         </p>
         <p className="text-sm mt-1 max-w-sm" style={{ color: "var(--ln-muted)" }}>
-          Beginner and Standard are free. Expert is Pro. Master is Max. Activate a {need} API key
-          to open this lesson.
+          Beginner and Standard are free. Expert needs Pro. Master needs Max. Upgrade
+          your account to {need} to open this lesson.
         </p>
         <div className="flex gap-2 mt-4">
           <a href="/pricing" className="ln-btn ln-btn-primary">
             View plans
           </a>
-          <a href="/vlsi" className="ln-btn">
-            API login in Studio
+          <a href="/vlsi/login" className="ln-btn">
+            Sign in
           </a>
         </div>
       </div>

@@ -109,7 +109,7 @@ export default function OpenroadHome() {
             <div className="flex items-center gap-2 text-xs font-bold text-[var(--neu-text-muted)]">
               <Sparkles className="w-4 h-4 text-sky-600" />
               <span>
-                API key required · Pro scripts · Max PnR studio
+                Sign in required · Pro scripts · Max PnR studio
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3">

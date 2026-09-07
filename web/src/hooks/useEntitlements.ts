@@ -57,6 +57,9 @@ export function useEntitlements() {
     setIsSignedIn(false);
     if (typeof window !== "undefined") {
       localStorage.removeItem(PLAN_STORAGE);
+      // Never leave a stale key that could confuse tool pages after sign-out
+      localStorage.removeItem(KEY_STORAGE);
+      localStorage.removeItem("ace_api_key");
     }
   }, []);
 

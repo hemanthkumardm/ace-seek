@@ -24,8 +24,8 @@ export default function VlsiLoginPage() {
           Sign in to continue
         </h1>
         <p className="text-xs md:text-sm text-slate-300 font-bold">
-          Free tier unlocks automatically after login. No API key paste required in
-          the browser — your plan lives on your account.
+          Free tier unlocks automatically after login. Your plan lives on your
+          account across Ace-Seek hosts.
         </p>
       </div>
       <Suspense fallback={<div className="text-center text-slate-400 text-xs">Loading…</div>}>

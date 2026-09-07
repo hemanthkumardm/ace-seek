@@ -78,7 +78,7 @@ export function WorkstationAuthGuard({ children }: Props) {
                 Sign in required
               </h2>
               <p className="text-[11px] font-bold text-rose-400">
-                Free tier unlocks with your account — no API key paste
+                Sign in to unlock Free tier on this host
               </p>
             </div>
           </div>

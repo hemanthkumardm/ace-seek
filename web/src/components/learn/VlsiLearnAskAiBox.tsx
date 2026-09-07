@@ -1089,62 +1089,35 @@ Explore the interactive studios below for live waveform analysis, SDC constraint
                 <Key className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Enter Pro / Max API Key</h3>
-                <p className="text-xs text-slate-400">Unlock full access to the VLSI AI Assistant</p>
+                <h3 className="text-base font-bold text-white">Pro / Max required</h3>
+                <p className="text-xs text-slate-400">
+                  Ask AI unlocks on Pro, Max, or Team accounts. Upgrade your plan, then refresh.
+                </p>
               </div>
             </div>
 
-            <form onSubmit={handleKeySubmit} className="space-y-3 pt-2">
-              <div>
-                <input
-                  type="password"
-                  value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
-                  placeholder="Paste your API key (or 'pro' / 'max' in dev)..."
-                  className="w-full rounded-xl border px-3.5 py-2.5 text-xs font-mono bg-slate-950 border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
-                  autoFocus
-                />
-              </div>
-
-              {keyErrorMsg && (
-                <div className="text-xs text-red-400 flex items-center gap-1.5 font-mono">
-                  <span>⚠️</span> {keyErrorMsg}
-                </div>
-              )}
-
-              {keyStatus === "success" && (
-                <div className="text-xs text-emerald-400 flex items-center gap-1.5 font-mono">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> License validated! Unlocking AI Assistant...
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowKeyModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-mono text-slate-300 hover:bg-white/5 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!keyInput.trim() || keyStatus === "validating"}
-                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-mono font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                >
-                  {keyStatus === "validating" ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Validating...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Validate & Unlock
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+            <div className="flex items-center justify-end gap-2 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowKeyModal(false)}
+                className="px-4 py-2 rounded-xl text-xs font-mono text-slate-300 hover:bg-white/5 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <a
+                href="/vlsi/login"
+                className="px-4 py-2 rounded-xl border border-slate-600 text-slate-200 text-xs font-mono font-bold hover:bg-white/5"
+              >
+                Sign in
+              </a>
+              <a
+                href="/pricing"
+                className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-mono font-bold transition-all inline-flex items-center gap-1.5"
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                View plans
+              </a>
+            </div>
           </div>
         </div>
       )}

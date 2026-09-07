@@ -213,7 +213,7 @@ export function SiteFooter() {
             <span className="font-bold text-base tracking-tight">Ace-Seek</span>
           </div>
           <p className="text-xs text-[var(--muted)] leading-relaxed max-w-xs">
-            Apex SaaS Portal for user pricing, dashboard API keys, promotions, and enterprise advertising.
+            Apex SaaS portal for pricing, account plans, promotions, and enterprise advertising.
           </p>
         </div>
 
@@ -229,7 +229,7 @@ export function SiteFooter() {
             Request 7-day Max trial
           </a>
           <a href="/dashboard" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            User Dashboard & API Keys
+            User Dashboard
           </a>
           <a href="https://www.ace-seek.com/offers" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Promotions & Offers

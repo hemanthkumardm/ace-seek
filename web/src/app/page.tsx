@@ -76,15 +76,18 @@ export default function CommandCenterHome() {
             <div className="max-w-3xl space-y-6">
               <div className="sk-badge sk-badge-live">
                 <Sparkles className="w-3 h-3 text-[var(--accent-cyan)]" />
-                <span>Central SaaS Portal & API Key Management</span>
+                <span>Central SaaS Portal · Account-based plans</span>
               </div>
 
               <h1 className="text-3xl md:text-5xl lg:text-[3.25rem] font-black tracking-tight leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400">
-                One subscription. API license keys for all tool subdomains.
+                One account. Free / Pro / Max / Team across every Ace-Seek host.
               </h1>
 
               <p className="text-base md:text-lg text-[var(--muted)] leading-relaxed">
-                <span className="text-[var(--accent-cyan)] font-mono font-semibold">ace-seek.com</span> is the central SaaS portal for user pricing, special team offers, advertising, and user dashboard. When you subscribe, your dashboard generates an API License Key to paste into subdomain websites (like <span className="font-mono text-[var(--accent-cyan)]">openroad.ace-seek.com</span>) to unlock Pro features.
+                <span className="text-[var(--accent-cyan)] font-mono font-semibold">ace-seek.com</span> is the command center for pricing, offers, and your dashboard.
+                Sign in on any subdomain (<span className="font-mono text-[var(--accent-cyan)]">vlsi</span>,{" "}
+                <span className="font-mono text-[var(--accent-cyan)]">tools</span>,{" "}
+                <span className="font-mono text-[var(--accent-cyan)]">openroad</span>) — your plan unlocks automatically.
               </p>
             </div>
 
@@ -102,7 +105,7 @@ export default function CommandCenterHome() {
 
               <a href="/dashboard" className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5">
                 <Key className="w-4 h-4 text-[var(--accent-cyan)]" />
-                <span>Dashboard & API Keys</span>
+                <span>Open Dashboard</span>
               </a>
 
               <a href={PORTAL_URL} className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5 border-amber-500/40 text-amber-300 hover:bg-amber-950/30">
@@ -131,9 +134,9 @@ export default function CommandCenterHome() {
               </p>
             </div>
 
-            <a href="/dashboard" className="sk-btn sk-btn-ghost !text-xs">
+            <a href="/login" className="sk-btn sk-btn-ghost !text-xs">
               <Key className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-              <span>Get API Key in Dashboard →</span>
+              <span>Sign in to unlock →</span>
             </a>
           </div>
 
@@ -293,9 +296,9 @@ export default function CommandCenterHome() {
                   <span className="text-xs font-bold font-mono text-[var(--accent-cyan)]">FEATURED PROMO</span>
                   <span className="sk-badge sk-badge-live">SAVE 20%</span>
                 </div>
-                <h3 className="text-base font-bold">Annual Pro & Team API Keys</h3>
+                <h3 className="text-base font-bold">Annual Pro & Team plans</h3>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  Upgrade your identity to Pro or Team annual billing and get 2 months free API key authorization.
+                  Upgrade to Pro or Team annual billing and get 2 months free on your account plan.
                 </p>
                 <div className="sk-recessed p-3 flex items-center justify-between text-xs font-mono">
                   <span>PROMO CODE:</span>
@@ -340,10 +343,10 @@ export default function CommandCenterHome() {
 
             <div className="space-y-2">
               <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                Create Your Account & Generate API Keys
+                Create your account · unlock every host
               </h2>
               <p className="text-xs md:text-sm text-[var(--muted)] max-w-lg mx-auto leading-relaxed">
-                Subscribe on ace-seek.com, get your API license key, and activate Pro mode on all subdomain websites.
+                Sign up on ace-seek.com, then sign in on vlsi / tools / openroad — your plan unlocks automatically.
               </p>
             </div>
 
