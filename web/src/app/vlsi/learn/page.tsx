@@ -284,8 +284,7 @@ export default function VlsiLearnHub() {
             Top Semiconductor Company Interview Prep Masterclass
           </h2>
           <p className="text-xs sm:text-sm max-w-xl leading-relaxed text-slate-200">
-            87+ Staff/Principal problems (SDC, STA, PnR, UPF, CDC, DFT) with Tcl/math solutions and free previews.
-            DV / Aptitude / Puzzles shipping next — free updates for lifetime buyers. One-time ₹2,499 / $29.
+            280+ Staff/Principal problems across all 11 domains (DV/UVM, SDC, STA, PnR, UPF, CDC, DFT, RTL, IR Drop, Aptitude & Puzzles) with step-by-step math derivations and free previews. One-time ₹2,499 / $29 lifetime access.
           </p>
         </div>
 

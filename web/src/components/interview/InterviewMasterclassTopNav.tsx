@@ -109,22 +109,25 @@ export function InterviewMasterclassTopNav({
             All Questions ({INTERVIEW_QUESTIONS_BANK.length})
           </button>
 
-          {/* Individual Domain Buttons — live domains first, then Coming Soon */}
+          {/* Individual Domain Buttons — All 11 Domains Live */}
           {[
             { id: "synthesis-sdc", label: "Logic Synthesis & SDC", color: "#eab308" },
-            { id: "clock-domain-crossing", label: "CDC & Metastability", color: "#a855f7" },
             { id: "static-timing-analysis", label: "Static Timing (STA)", color: "#38bdf8" },
+            { id: "design-verification", label: "DV / UVM", color: "#14b8a6" },
             { id: "physical-design", label: "Physical Design (PnR)", color: "#10b981" },
+            { id: "clock-domain-crossing", label: "CDC & Metastability", color: "#a855f7" },
             { id: "low-power-upf", label: "Low Power UPF", color: "#84cc16" },
             { id: "dft-atpg", label: "DFT & Scan", color: "#6366f1" },
-            { id: "design-verification", label: "DV / UVM", color: "#14b8a6", soon: true },
-            { id: "rtl-verilog-architecture", label: "RTL Arch", color: "#22d3ee", soon: true },
+            { id: "rtl-verilog-architecture", label: "RTL Architecture", color: "#22d3ee" },
+            { id: "power-integrity-ir", label: "Power Integrity & IR", color: "#f97316" },
+            { id: "aptitude-quantitative", label: "Quantitative Aptitude", color: "#ec4899" },
+            { id: "logical-reasoning-puzzles", label: "Puzzles & Logic", color: "#8b5cf6" },
           ].map((dom) => {
             const count = INTERVIEW_QUESTIONS_BANK.filter(
               (q) => q.domain === dom.id
             ).length;
             const active = selectedDomain === dom.id;
-            const soon = Boolean(dom.soon) || count === 0;
+            const soon = count === 0;
 
             return (
               <button

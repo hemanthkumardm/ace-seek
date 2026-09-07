@@ -272,7 +272,7 @@ export default function VlsiHome() {
               </div>
               <h3 className="text-base font-bold uppercase text-white">Interview Masterclass</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                87+ Staff-level problems (SDC, STA, PnR, UPF, CDC, DFT) with Tcl/math solutions — free previews, then lifetime unlock. Practice handoff into studios.
+                280+ Staff-level problems across all 11 domains (DV/UVM, SDC, STA, PnR, UPF, CDC, DFT, RTL, IR Drop, Aptitude & Puzzles) with step-by-step solutions — free previews, then lifetime unlock.
               </p>
             </div>
             <Link
