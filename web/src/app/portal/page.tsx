@@ -1297,7 +1297,14 @@ export default function PortalLandingPage() {
                 Business Automation
               </a>
               <a href="#pricing" className="hover:text-cyan-400 transition-colors">
-                Pricing Plans
+                Project packages
+              </a>
+              <a
+                href="https://vlsi.ace-seek.com/vlsi/learn"
+                className="hover:text-amber-300 transition-colors"
+                title="Self-serve VLSI curriculum (separate from portal project packages)"
+              >
+                VLSI Learn Hub
               </a>
               <a href="#contact" className="hover:text-cyan-400 transition-colors">
                 Request a Quote

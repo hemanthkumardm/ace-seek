@@ -105,16 +105,17 @@ export default function VlsiLearnHub() {
   return (
     <div className="max-w-5xl mx-auto px-5 md:px-10 py-10 md:py-14 space-y-12">
       {/* Header */}
-      <header className="max-w-2xl space-y-3">
+      <header className="max-w-3xl space-y-4">
         <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--ln-accent)" }}>
-          Course catalog
+          Course catalog · Learn Hub
         </p>
         <h1 className="text-3xl md:text-[2.4rem] font-semibold tracking-tight leading-tight" style={{ color: "var(--ln-text)" }}>
           Learn VLSI the way you read a good book
         </h1>
         <p className="text-[15px] leading-relaxed" style={{ color: "var(--ln-muted)" }}>
-          Pick a subject. Each course opens its own tutorial — Digital Design is only Digital Design,
-          Tcl is only Tcl — with a left-hand index like a textbook.
+          Start free with foundations, unlock Expert on Pro, then Master Cadence / Synopsys / Open-Source
+          suites on Max. Each course has a textbook-style left index — and <strong style={{ color: "var(--ln-text)" }}>Practice in Studio</strong> links
+          when you are ready to author real SDC, STA, MMMC, or UPF.
         </p>
         <ul className="flex flex-wrap gap-2 pt-1 text-[12px]">
           {[
@@ -133,8 +134,100 @@ export default function VlsiLearnHub() {
             </li>
           ))}
         </ul>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {[
+            ["New to VLSI", "/vlsi/learn/c/digital", "Start Digital"],
+            ["STA engineer", "/vlsi/learn/c/sta", "Static timing"],
+            ["Constraints", "/vlsi/learn/c/sdc", "SDC course"],
+            ["Interview prep", "/vlsi/interview-masterclass", "Interview Masterclass"],
+            ["Practice studio", "/vlsi/sdc-studio", "SDC Studio"],
+          ].map(([label, href, cta]) => (
+            <Link
+              key={href}
+              href={href}
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-semibold transition hover:brightness-110"
+              style={{
+                background: "var(--ln-bg-elev, rgba(255,255,255,0.04))",
+                color: "var(--ln-text)",
+                border: "1px solid var(--ln-border)",
+              }}
+              title={cta}
+            >
+              {label}
+              <ArrowRight className="w-3 h-3 opacity-60" />
+            </Link>
+          ))}
+        </div>
       </header>
 
+      {/* Core Foundational Courses */}
+      <div className="space-y-10">
+        <div className="space-y-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--ln-accent)" }}>
+            Foundations & Languages
+          </p>
+          <h2 className="text-xl font-bold tracking-tight" style={{ color: "var(--ln-text)" }}>
+            Core VLSI Knowledge Tracks
+          </h2>
+        </div>
+
+        {coreGroups.map((group) => {
+          const tracks = tracksForGroup(group.id);
+          if (!tracks.length) return null;
+          return (
+            <section key={group.id} className="space-y-4">
+              <div>
+                <h3 className="text-base font-semibold tracking-tight" style={{ color: "var(--ln-text)" }}>
+                  {group.title}
+                </h3>
+                <p className="text-sm" style={{ color: "var(--ln-muted)" }}>
+                  {group.blurb}
+                </p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {tracks.map((track) => {
+                  const sessions = orderedSessionsForTrack(track.id);
+                  const n = sessions.filter((s) => done.includes(s.slug)).length;
+                  const pct = sessions.length ? Math.round((n / sessions.length) * 100) : 0;
+                  return (
+                    <Link
+                      key={track.id}
+                      href={learnCourseHref(track.id)}
+                      className="ln-card p-5 flex flex-col gap-3 hover:brightness-[1.02] transition"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="font-semibold text-[15px]" style={{ color: "var(--ln-text)" }}>
+                            {track.title}
+                          </h4>
+                          <p className="text-[13px] leading-relaxed mt-1" style={{ color: "var(--ln-muted)" }}>
+                            {track.blurb}
+                          </p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 shrink-0 mt-1" style={{ color: "var(--ln-muted)" }} />
+                      </div>
+                      <div className="mt-auto">
+                        <div
+                          className="h-1 rounded-full overflow-hidden"
+                          style={{ background: "var(--ln-hover)" }}
+                        >
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${pct}%`, background: "var(--ln-accent)" }}
+                          />
+                        </div>
+                        <p className="text-[11px] mt-1.5" style={{ color: "var(--ln-muted)" }}>
+                          {sessions.length} lessons · {n} done
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
       {/* 🧮 Featured VLSI Production Calculators Hub */}
       <div
         className="rounded-2xl p-6 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden transition-all"
@@ -165,7 +258,12 @@ export default function VlsiLearnHub() {
 
         <Link
           href="/vlsi/learn/c/cadence-pnr/vlsi-calculators"
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-bold shadow-lg shadow-indigo-600/30 transition-all shrink-0 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs font-mono font-bold transition-all shrink-0 cursor-pointer hover:brightness-110"
+          style={{
+            background: "var(--ln-accent)",
+            color: "#0b1020",
+            boxShadow: "0 10px 24px -12px var(--ln-accent)",
+          }}
         >
           <Calculator className="w-4 h-4" />
           Launch Calculator Hub
@@ -199,9 +297,6 @@ export default function VlsiLearnHub() {
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>
-
-      {/* 💬 Ask AI Box: Questions & Concepts Clarification */}
-      <VlsiLearnAskAiBox />
 
       {/* 🚀 EDA Tool Ecosystems Section (3-Button Switcher, Master MAX Only) */}
       <section
@@ -355,74 +450,9 @@ export default function VlsiLearnHub() {
         </div>
       </section>
 
-      {/* Core Foundational Courses */}
-      <div className="space-y-10">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--ln-accent)" }}>
-            Foundations & Languages
-          </p>
-          <h2 className="text-xl font-bold tracking-tight" style={{ color: "var(--ln-text)" }}>
-            Core VLSI Knowledge Tracks
-          </h2>
-        </div>
+      {/* 💬 Ask AI Box: Questions & Concepts Clarification */}
+      <VlsiLearnAskAiBox />
 
-        {coreGroups.map((group) => {
-          const tracks = tracksForGroup(group.id);
-          if (!tracks.length) return null;
-          return (
-            <section key={group.id} className="space-y-4">
-              <div>
-                <h3 className="text-base font-semibold tracking-tight" style={{ color: "var(--ln-text)" }}>
-                  {group.title}
-                </h3>
-                <p className="text-sm" style={{ color: "var(--ln-muted)" }}>
-                  {group.blurb}
-                </p>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {tracks.map((track) => {
-                  const sessions = orderedSessionsForTrack(track.id);
-                  const n = sessions.filter((s) => done.includes(s.slug)).length;
-                  const pct = sessions.length ? Math.round((n / sessions.length) * 100) : 0;
-                  return (
-                    <Link
-                      key={track.id}
-                      href={learnCourseHref(track.id)}
-                      className="ln-card p-5 flex flex-col gap-3 hover:brightness-[1.02] transition"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h4 className="font-semibold text-[15px]" style={{ color: "var(--ln-text)" }}>
-                            {track.title}
-                          </h4>
-                          <p className="text-[13px] leading-relaxed mt-1" style={{ color: "var(--ln-muted)" }}>
-                            {track.blurb}
-                          </p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 shrink-0 mt-1" style={{ color: "var(--ln-muted)" }} />
-                      </div>
-                      <div className="mt-auto">
-                        <div
-                          className="h-1 rounded-full overflow-hidden"
-                          style={{ background: "var(--ln-hover)" }}
-                        >
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${pct}%`, background: "var(--ln-accent)" }}
-                          />
-                        </div>
-                        <p className="text-[11px] mt-1.5" style={{ color: "var(--ln-muted)" }}>
-                          {sessions.length} lessons · {n} done
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-      </div>
       <LegalDisclaimer />
     </div>
   );

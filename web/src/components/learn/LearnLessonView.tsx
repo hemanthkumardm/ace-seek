@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, PlayCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Cpu, PlayCircle } from "lucide-react";
 import {
   LEARN_KIND_META,
   learnCourseHref,
@@ -20,10 +20,12 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { DigitalVisualizer } from "@/components/learn/visuals/DigitalVisualizer";
 import { FormattedProse, formatInlineText } from "@/components/learn/FormattedProse";
 import { LegalDisclaimer } from "@/components/LegalDisclaimer";
+import { studioForLearnTrack } from "@/lib/vlsi-studio-learn-bridge";
 
 export function LearnLessonView({ session }: { session: LearnSession }) {
   const { ent } = useEntitlements();
   const [done, setDone] = useState(false);
+  const practice = studioForLearnTrack(session.track);
 
   useEffect(() => {
     const update = () => setDone(loadLearnProgress().completed.includes(session.slug));
@@ -64,6 +66,23 @@ export function LearnLessonView({ session }: { session: LearnSession }) {
         <p className="text-[0.95em]" style={{ color: "var(--ln-muted)" }}>
           {session.summary}
         </p>
+        {practice && (
+          <div className="not-prose mt-4 mb-2">
+            <Link
+              href={practice.href}
+              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition"
+              style={{
+                background: "var(--ln-accent-soft)",
+                color: "var(--ln-accent)",
+                border: "1px solid var(--ln-border)",
+              }}
+            >
+              <Cpu className="w-3.5 h-3.5" />
+              {practice.label}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
       </article>
 
       <LearnLayerGate layer={layer} locked={!unlocked}>

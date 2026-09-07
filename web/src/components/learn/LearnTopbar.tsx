@@ -20,12 +20,16 @@ import { trackById } from "@/lib/vlsi-curriculum";
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { planLabel } from "@/lib/entitlements";
 import { LearnProgressTracker } from "@/components/learn/LearnProgressTracker";
+import { studioForLearnTrack } from "@/lib/vlsi-studio-learn-bridge";
 
 export function LearnTopbar({ activeTrack, catalog }: { activeTrack?: string; catalog?: boolean }) {
   const { theme, setTheme, font, setFont, focus, setFocus, sidebarOpen, setSidebarOpen } =
     useLearnPrefs();
   const { ent } = useEntitlements();
   const track = activeTrack ? trackById(activeTrack) : undefined;
+  const practice = activeTrack ? studioForLearnTrack(activeTrack) : null;
+  const studioHref = practice?.href || "/vlsi";
+  const studioTitle = practice?.label || "VLSI Studio workstations";
 
   return (
     <header
@@ -137,7 +141,7 @@ export function LearnTopbar({ activeTrack, catalog }: { activeTrack?: string; ca
       {/* Advanced Progress Tracker */}
       <LearnProgressTracker />
 
-      <Link href="/vlsi" className="ln-btn !px-2" title="VLSI Studio workstations">
+      <Link href={studioHref} className="ln-btn !px-2" title={studioTitle}>
         <Cpu className="w-4 h-4" />
         <span className="hidden lg:inline text-xs">Studio</span>
       </Link>

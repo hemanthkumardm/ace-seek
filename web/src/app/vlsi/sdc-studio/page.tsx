@@ -90,6 +90,7 @@ import {
   saveSdcProject,
 } from "@/lib/cloud-projects";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 
 function InteractiveSdcStudioPage() {
   const [state, setState] = useState<SdcStudioState>(() =>
@@ -3526,6 +3527,7 @@ Slack:= -0.085`}
 export default function InteractiveSdcStudioPageGate() {
   return (
     <VlsiStudioGate studio="sdc">
+      <StudioLearnPanel studio="sdc" />
       <InteractiveSdcStudioPage />
     </VlsiStudioGate>
   );

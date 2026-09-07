@@ -5,6 +5,7 @@ import { Play, Cpu, Terminal } from "lucide-react";
 import { RTL_EXAMPLES } from "@/lib/rtl-lab-examples";
 import { VcdWaveform } from "@/components/VcdWaveform";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 
 function RtlLabBody() {
   const [exId, setExId] = useState(RTL_EXAMPLES[0].id);
@@ -137,6 +138,7 @@ function RtlLabBody() {
 export default function RtlLabPage() {
   return (
     <VlsiStudioGate studio="rtl">
+      <StudioLearnPanel studio="rtl" />
       <div className="relative">
         <div className="absolute left-4 top-4 hidden md:flex items-center gap-1 text-[10px] font-black text-slate-500">
           <Cpu className="w-3 h-3" /> RTL

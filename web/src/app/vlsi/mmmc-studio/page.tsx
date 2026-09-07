@@ -69,6 +69,7 @@ import {
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 
 type TabId =
   | "configure"
@@ -1823,6 +1824,7 @@ function MmmcStudioPage() {
 export default function MmmcStudioPageGate() {
   return (
     <VlsiStudioGate studio="mmmc">
+      <StudioLearnPanel studio="mmmc" />
       <MmmcStudioPage />
     </VlsiStudioGate>
   );

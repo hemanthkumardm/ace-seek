@@ -12,6 +12,16 @@ The **Ace-Seek Platform** (covering `www.ace-seek.com`, `vlsi.ace-seek.com`, and
 
 All 4 major architectural areas—**Security**, **Plans & Monetization**, **Core Functionality**, and **Ops & Reliability**—have been audited, resolved, and verified.
 
+### Learn Hub / Portal clarification (2026-08-12)
+
+| Surface | Role | Do not confuse with |
+|---------|------|---------------------|
+| **VLSI Learn Hub** (`vlsi…/learn`) | Self-serve curriculum (Free→Pro→Max Master EDA) | Portal project packages |
+| **VLSI Studios** | Interactive SDC / Timing / MMMC / Power / Reports | Learn theory pages |
+| **Portal packages** | Thesis / Inventor / Business **services** quotes | SaaS Max plan / Master tracks |
+
+Open UX depth items (cross-links, calculator route, Master card soft-locks) live in `PRODUCT_STATUS_AND_LEFTOVERS.md` §3.2 / P2.9+.
+
 ---
 
 ## 🛡️ 1. Security Matrix Audit

@@ -51,6 +51,7 @@ import {
   loadHubTransfer,
 } from "@/lib/report-hub-engine";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 
 type TabId = "configure" | "strategies" | "states" | "diagram" | "script" | "lint";
 
@@ -1981,6 +1982,7 @@ function PowerStudioPage() {
 export default function PowerStudioPageGate() {
   return (
     <VlsiStudioGate studio="power">
+      <StudioLearnPanel studio="power" />
       <PowerStudioPage />
     </VlsiStudioGate>
   );

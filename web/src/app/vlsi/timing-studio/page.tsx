@@ -121,6 +121,7 @@ import {
 } from "@/lib/report-hub-engine";
 import Link from "next/link";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 import { FeatureLock } from "@/components/FeatureLock";
 import { useEntitlements } from "@/hooks/useEntitlements";
 
@@ -3480,6 +3481,7 @@ Endpoint: u_core/reg_b (rising edge-triggered flip-flop clocked by clk)
 export default function InteractiveTimingStudioPageGate() {
   return (
     <VlsiStudioGate studio="timing">
+      <StudioLearnPanel studio="timing" />
       <InteractiveTimingStudioPage />
     </VlsiStudioGate>
   );

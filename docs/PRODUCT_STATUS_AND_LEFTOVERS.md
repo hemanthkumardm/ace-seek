@@ -1,9 +1,11 @@
 # Ace-Seek — Final product verify, gaps & leftover work
 
-**Date:** 2026-08-11  
-**Branch:** `vlsi.ace-seek` (local **ahead of origin by 2 commits** + large uncommitted working tree)  
-**Engines suite:** `npm run verify` → **403/403 assertions PASSED**  
-**Typecheck:** `tsc --noEmit` → **clean** (no errors reported at verify time)
+**Date:** 2026-08-12 (updated after Learn Hub / Master EDA / Studio cross-link pass)  
+**Branch:** `vlsi.ace-seek` / `main` (synced to origin after FeatureLock + Learn polish)  
+**Engines suite:** `npm run verify` → **403/403 assertions PASSED** (prior)  
+**Typecheck:** re-run after UI polish  
+
+> **Note vs `PRODUCTION_STATUS_REPORT.md`:** that report marks many SaaS/ops items ✅ for the *shipped* monetization/security path (Razorpay, key gates, etc.). This leftovers doc still tracks **product depth & UX open loops** (Learn↔Studio, cloud for MMMC/UPF, ECO placeholders). Both can be true: production hardening ≠ every roadmap pillar closed.
 
 Related docs:
 
@@ -79,16 +81,26 @@ Covers (non-exhaustive):
 
 | Surface | Status | Gaps |
 |---------|--------|------|
-| Brutalism intro | Done | — |
+| Dark-carbon intro + Learn→Studio→Signoff story | Done (2026-08-12 polish) | Keep CTAs distinct (Learn primary / Studios secondary) |
 | API key login page | Done (`/vlsi/login`) | Optional harden: block workstation without key consistently |
-| Workstation auth guard | Present in layout | Clerk session vs API key dual path; offline `ace_*` fallback is loose |
-| SDC Studio | Strong | Cloud save if Supabase+Clerk; else localStorage; no project switcher UI |
-| Timing Studio | Strong | ECO vendor scripts; uses last SDC from storage for pack; no cloud session |
-| MMMC Studio | Strong configurator | **No cloud save**; local transfer only |
-| Power Studio (UPF) | Strong configurator | **No cloud save** |
-| Report Hub | Done (browser) | **localStorage only** (~1.2MB); no Storage |
+| Workstation auth guard | Present in layout | Clerk session vs API key dual path |
+| **Learn Hub** (`/vlsi/learn`) | **Strong** — foundations + Master Cadence/Synopsys/Open-Source, Ask AI, 34 calculators, layer gates | Calculators still nested under `cadence-pnr` slug; dedicated `/learn/calculators` optional |
+| Studio ↔ Learn cross-links | **Done** — `StudioLearnPanel` on SDC/Timing/MMMC/Power/Reports + Practice CTA on lessons | Expand map for synthesis / OpenROAD tracks |
+| SDC Studio | Strong | Cloud save if Supabase+Clerk; else localStorage; project switcher UX |
+| Timing Studio | Strong | ECO Max-gated; other vendors thinner than Genus |
+| MMMC Studio | Strong configurator | Cloud save depth varies |
+| Power Studio (UPF) | Strong configurator | Cloud save depth varies |
+| Report Hub | Done (browser) | Prefer Storage for large history |
+| RTL Lab | Done | Keep discoverable from Learn Verilog/SV |
 | Genus ECO + full flow | Done | Other vendors still have PLACEHOLDERs |
 | Brand → VLSI home | Fixed | Verify on live DNS |
+
+### 3.2b Portal (`portal.ace-seek.com` → `/portal`)
+
+| Surface | Status | Notes |
+|---------|--------|------|
+| Academic / business **project packages** | Live marketing + quote API | **Not** VLSI SaaS Max / Master curriculum — do not conflate with Learn Hub |
+| Footer → VLSI Learn Hub | Added soft link | Self-serve learning vs paid engineering packages |
 
 ### 3.3 Tools platform (`tools.ace-seek.com` → `/tools`)
 
@@ -150,6 +162,10 @@ Ordered by **user impact** and **dependency**.
 | P2.6 | Roadmap **B5–B8** (RTL CDC, SPEF SI, DFT, physical lite) | Optional product pillars |
 | P2.7 | Refresh **VLSI_PRODUCT_ROADMAP.md** inventory table (still says UPF/Liberty “Planned”) | Docs drift |
 | P2.8 | Remove dead paths (`sdc-studio/page-v1.tsx` if unused) | Hygiene |
+| P2.9 | Dedicated Learn calculators route (not only under `cadence-pnr`) | Catalog clarity |
+| P2.10 | Soft-lock Master EDA cards on Learn hub when plan &lt; Max | Upgrade UX |
+| P2.11 | ~~Studio ↔ Learn cross-links~~ | **Done 2026-08-12** (`StudioLearnPanel` + lesson Practice CTAs) |
+| P2.12 | ~~Broken Ask-AI / commands DB Learn hrefs~~ (`cadence-genus`, `dft`, `physical-verif`) | **Fixed 2026-08-12** |
 
 ### P3 — Nice later
 

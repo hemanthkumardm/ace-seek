@@ -34,6 +34,7 @@ import {
 } from "@/lib/report-hub-engine";
 import { MOCK_STA_REPORTS } from "@/lib/timing-engine";
 import { VlsiStudioGate } from "@/components/VlsiStudioGate";
+import { StudioLearnPanel } from "@/components/StudioLearnPanel";
 
 const inputCls =
   "w-full bg-white text-slate-900 font-mono text-xs font-bold border-2 border-black rounded px-2 py-1.5 outline-none focus:ring-2 focus:ring-indigo-400";
@@ -646,6 +647,7 @@ function ReportHubPage() {
 export default function ReportHubPageGate() {
   return (
     <VlsiStudioGate studio="reports">
+      <StudioLearnPanel studio="reports" />
       <ReportHubPage />
     </VlsiStudioGate>
   );

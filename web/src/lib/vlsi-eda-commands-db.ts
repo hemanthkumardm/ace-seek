@@ -68,7 +68,7 @@ puts "Total Sequential Registers: [llength $all_flops]"`,
     description: "Queries all combinational logic gates (AND, OR, NAND, XOR, MUX, Inverters, Buffers) excluding flops and macros.",
     exampleScript: `# Get all combinational buffers in design
 set comb_cells [get_db insts -if {.is_combinational == true}]`,
-    relatedLink: { title: "VLSI Synthesis Lab", href: "/vlsi/learn/c/cadence-genus" },
+    relatedLink: { title: "Cadence Genus Synthesis (Master)", href: "/vlsi/learn/c/cadence-synthesis" },
   },
 
   // 4. CLOCKS & CLOCK NETS
@@ -357,7 +357,7 @@ report_verification`,
 verify_connectivity -type all -error 1000 -report reports/connectivity.rpt
 verify_drc -limit 1000 -report reports/drc.rpt
 verify_process_antenna -report reports/antenna.rpt`,
-    relatedLink: { title: "Physical Verification Lab", href: "/vlsi/learn/c/physical-verif" },
+    relatedLink: { title: "Innovus Physical Verification & DFM", href: "/vlsi/learn/c/cadence-pnr/innovus-physical-verification-dfm" },
   },
 
   // 18. CADENCE GENUS SYNTHESIS FLOW

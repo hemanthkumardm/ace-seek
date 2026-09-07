@@ -723,7 +723,7 @@ $$D_{\\text{min}} = N \\cdot F^{1/N} + \\sum p_i$$
 - **Transition Faults (At-Speed AC)**: Models slow-to-rise and slow-to-fall defects using **Launch-on-Capture (LOC)** or **Launch-on-Shift (LOS)** clock pulsing.
 - **Cadence Modus / Synopsys TestMax**: Generates compressed scan vectors for ATE manufacturing testers.`,
         links: [
-          { title: "DFT & Scan Chain Architecture Lab", href: "/vlsi/learn/c/dft" },
+          { title: "DFT & Scan Chains (Digital Master)", href: "/vlsi/learn/c/digital/digital-master-dft" },
           { title: "Cadence Innovus PnR Flow", href: "/vlsi/learn/c/cadence-pnr/innovus-practical-lab" },
         ],
       });
@@ -763,7 +763,7 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
    - Validates well bias ties (N-well to VDD, P-sub to VSS), floating gates, and substrate tap latchup rules.
 - **Signoff Engines**: **Cadence Pegasus** / **Siemens Calibre**.`,
         links: [
-          { title: "Physical Verification DRC/LVS Lab", href: "/vlsi/learn/c/physical-verif" },
+          { title: "Innovus DRC/LVS & DFM Lab", href: "/vlsi/learn/c/cadence-pnr/innovus-physical-verification-dfm" },
           { title: "Innovus PnR Practical Lab", href: "/vlsi/learn/c/cadence-pnr/innovus-practical-lab" },
         ],
       });

@@ -125,48 +125,51 @@ export default function VlsiHome() {
 
         <div className="max-w-4xl space-y-4">
           <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-[1.1] text-white uppercase">
-            MULTI-MODE MULTI-CORNER, TIMING, SDC &{" "}
+            LEARN → AUTHOR →{" "}
             <span className="text-[var(--accent-cyan)] bg-cyan-950/40 px-2.5 py-0.5 rounded border border-cyan-500/30 inline-block">
-              POWER INTENT (UPF)
+              SIGNOFF
             </span>
           </h1>
           <p className="text-xs md:text-base text-slate-200 leading-relaxed max-w-3xl">
-            Author ASIC constraints and timing on VLSI — then download{" "}
-            <span className="text-emerald-300 font-bold">OpenROAD-format</span> SDC /
-            corners packs and continue on{" "}
+            Textbook-style VLSI Learn Hub (Digital → SDC → STA → Master Cadence / Synopsys / OpenROAD),
+            then interactive studios for constraints, timing, MMMC, and UPF — hand off{" "}
+            <span className="text-emerald-300 font-bold">OpenROAD-format</span> packs to{" "}
             <a href={OPENROAD_URL} className="text-emerald-300 underline font-bold">
               openroad.ace-seek.com
-            </a>{" "}
-            for Pro scripts or Max runs.
+            </a>
+            .
           </p>
         </div>
 
-        {/* Feature Pill Matrix */}
-        <div className="grid gap-4 sm:grid-cols-3 pt-2">
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-amber-500/30 shadow-lg space-y-1.5">
+        {/* Product journey strip */}
+        <div className="grid gap-3 sm:grid-cols-3 pt-2">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-amber-950/60 to-slate-900/80 border border-amber-500/40 shadow-lg space-y-1.5 relative overflow-hidden">
+            <span className="absolute top-2 right-3 text-[10px] font-black text-amber-500/80">01</span>
             <p className="text-xs font-bold uppercase flex items-center gap-1.5 text-amber-400">
-              <Zap className="w-4 h-4" /> SDC Studio
+              <GraduationCap className="w-4 h-4" /> Foundations → Master EDA
             </p>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Interactive constraint generator with real-time waveform visualization.
+              Free beginner tracks, Pro expert labs, Max Cadence / Synopsys / Open-Source suites + Ask AI + 34 calculators.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-cyan-500/30 shadow-lg space-y-1.5">
+          <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-950/60 to-slate-900/80 border border-cyan-500/40 shadow-lg space-y-1.5 relative overflow-hidden">
+            <span className="absolute top-2 right-3 text-[10px] font-black text-cyan-500/80">02</span>
             <p className="text-xs font-bold uppercase flex items-center gap-1.5 text-cyan-400">
-              <Activity className="w-4 h-4" /> Timing Studio
+              <Cpu className="w-4 h-4" /> Interactive studios
             </p>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Parse PrimeTime & Tempus reports with multi-path ECO recommendations.
+              SDC waveforms, STA ECO, MMMC views, UPF intent — practice what you just studied.
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-900/80 border border-purple-500/30 shadow-lg space-y-1.5">
-            <p className="text-xs font-bold uppercase flex items-center gap-1.5 text-purple-400">
-              <GitMerge className="w-4 h-4" /> MMMC Studio
+          <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-950/60 to-slate-900/80 border border-emerald-500/40 shadow-lg space-y-1.5 relative overflow-hidden">
+            <span className="absolute top-2 right-3 text-[10px] font-black text-emerald-500/80">03</span>
+            <p className="text-xs font-bold uppercase flex items-center gap-1.5 text-emerald-400">
+              <Zap className="w-4 h-4" /> Signoff & OpenROAD
             </p>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Multi-mode corner matrix configuration & Cadence/Synopsys TCL generation.
+              Export TCL / SDC packs, classify reports, continue physical flow on OpenROAD.
             </p>
           </div>
         </div>
@@ -175,24 +178,24 @@ export default function VlsiHome() {
         <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[var(--bevel-shadow)]">
           <div className="flex items-center gap-2 text-xs text-slate-300">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Click below to open the VLSI workstation suite (API Key authorization required).</span>
+            <span>Start free in Learn — unlock studios with your API license key.</span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <a
               href="/vlsi/learn"
-              className="sk-btn sk-btn-primary !text-sm !py-2.5 !px-5 font-bold uppercase flex items-center gap-2"
+              className="sk-btn sk-btn-primary !text-sm !py-2.5 !px-5 font-bold uppercase flex items-center gap-2 shadow-[0_0_24px_rgba(245,158,11,0.25)]"
             >
               <GraduationCap className="w-5 h-5" />
-              <span>VLSI Learn</span>
+              <span>Start Learn (Free)</span>
               <ArrowRight className="w-4 h-4" />
             </a>
             <button
               type="button"
               onClick={handleOpenStudio}
-              className="sk-btn sk-btn-primary !text-sm !py-2.5 !px-5 font-bold uppercase flex items-center gap-2"
+              className="sk-btn sk-btn-ghost !text-sm !py-2.5 !px-5 font-bold uppercase flex items-center gap-2 border border-cyan-500/40 text-cyan-100"
             >
               <Cpu className="w-5 h-5" />
-              <span>Open VLSI Studio</span>
+              <span>Open Studios</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -245,9 +248,9 @@ export default function VlsiHome() {
                 </div>
                 <span className="sk-badge text-amber-300 border-amber-500/30">OPEN</span>
               </div>
-              <h3 className="text-base font-bold uppercase text-white">VLSI Learn</h3>
+              <h3 className="text-base font-bold uppercase text-white">VLSI Learn Hub</h3>
               <p className="text-xs text-slate-300 leading-relaxed">
-                Digital design, Verilog, SystemVerilog, synthesis, UVM — a readable course index, not a studio. RTL Lab stays in VLSI Studio.
+                Foundations (Free) → Expert (Pro) → Master Cadence / Synopsys / OpenROAD (Max). Ask AI, 34 calculators, then Practice in Studio.
               </p>
             </div>
             <Link
