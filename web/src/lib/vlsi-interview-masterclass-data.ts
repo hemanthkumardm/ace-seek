@@ -129,45 +129,73 @@ export const COMPANIES_METADATA: CompanyInfo[] = [
   },
 ];
 
-export const DOMAINS_METADATA: { id: InterviewDomain; title: string; countHint: string; icon: string }[] = [
+export const DOMAINS_METADATA: {
+  id: InterviewDomain;
+  title: string;
+  countHint: string;
+  icon: string;
+  /** Domain listed in nav but bank content still shipping */
+  comingSoon?: boolean;
+}[] = [
   { id: "physical-design", title: "Physical Design (Floorplan, CTS, PnR)", countHint: "Floorplan, Macro Halos, CTS, Routing, DRVs", icon: "Layers" },
   { id: "static-timing-analysis", title: "Static Timing Analysis (STA & SI)", countHint: "Setup, Hold, OCV/POCV, CPPR, PBA, ITD", icon: "Clock" },
-  { id: "design-verification", title: "Design Verification (DV / UVM & SVA)", countHint: "SystemVerilog OOP, UVM Factory/RAL, SVA Assertions, Coverage", icon: "CheckCircle2" },
-  { id: "aptitude-quantitative", title: "Quantitative Aptitude & Engineering Math", countHint: "Probability, Combinatorics, BER, 2's Complement, Pipeline Rates", icon: "Calculator" },
-  { id: "logical-reasoning-puzzles", title: "Logical Reasoning & Hardware Puzzles", countHint: "1000 Wine Bottles, 25 Horses, 50% Clock Div, Bitwise Magic", icon: "Lightbulb" },
+  { id: "design-verification", title: "Design Verification (DV / UVM & SVA)", countHint: "SystemVerilog OOP, UVM Factory/RAL, SVA Assertions, Coverage", icon: "CheckCircle2", comingSoon: true },
+  { id: "aptitude-quantitative", title: "Quantitative Aptitude & Engineering Math", countHint: "Probability, Combinatorics, BER, 2's Complement, Pipeline Rates", icon: "Calculator", comingSoon: true },
+  { id: "logical-reasoning-puzzles", title: "Logical Reasoning & Hardware Puzzles", countHint: "1000 Wine Bottles, 25 Horses, 50% Clock Div, Bitwise Magic", icon: "Lightbulb", comingSoon: true },
   { id: "clock-domain-crossing", title: "Clock Domain Crossing & Metastability", countHint: "2-FF Sync, MTBF, Async FIFO, Gray Pointer", icon: "Shuffle" },
   { id: "synthesis-sdc", title: "Logic Synthesis & SDC Constraints", countHint: "Clocks, Generated Clocks, Multicycle, False Paths", icon: "FileCode2" },
   { id: "low-power-upf", title: "Low Power UPF & Multi-Voltage", countHint: "Isolation, Level Shifters, Power Switches, Retention", icon: "Zap" },
-  { id: "rtl-verilog-architecture", title: "Verilog & Digital Architecture", countHint: "FSM Encoding, Pipelining, Hazard Resolution", icon: "Cpu" },
-  { id: "power-integrity-ir", title: "Power Integrity & Dynamic IR Drop", countHint: "Static IR, L·di/dt, Decap Radius, EM Black Eq", icon: "Activity" },
+  { id: "rtl-verilog-architecture", title: "Verilog & Digital Architecture", countHint: "FSM Encoding, Pipelining, Hazard Resolution", icon: "Cpu", comingSoon: true },
+  { id: "power-integrity-ir", title: "Power Integrity & Dynamic IR Drop", countHint: "Static IR, L·di/dt, Decap Radius, EM Black Eq", icon: "Activity", comingSoon: true },
   { id: "dft-atpg", title: "DFT, Scan Chains & Testability", countHint: "Muxed-D Flops, Stuck-At, At-Speed LOC/LOS", icon: "ShieldCheck" },
 ];
 
 export const INTERVIEW_BUNDLE_PRICING = {
   id: "interview_masterclass_lifetime",
   title: "VLSI Top-Tier Semiconductor Interview Masterclass Bundle",
-  tagline: "One-Time Payment · Lifetime Access · Real Questions from Nvidia, Qualcomm, Intel, Apple & AMD",
+  tagline: "One-Time Payment · Lifetime Access · Staff-level depth from Nvidia, Qualcomm, Intel, Apple & AMD style rounds",
   originalPrice: "₹6,999",
   offerPrice: "₹2,499",
   offerPriceUsd: "$29",
   currency: "INR",
   badge: "One-Time Lifetime Access",
   stats: {
-    totalQuestions: "250+ Curated Problems",
-    topCompanies: "12 Global Semiconductor Leaders",
-    detailedSolutions: "100% Step-by-Step with Tcl, SV, C & Math",
-    mockSimulators: "8 Timed Technical Rounds",
+    totalQuestions: "87+ Deep Staff-Level Problems",
+    topCompanies: "8 Semiconductor Leaders (style coverage)",
+    detailedSolutions: "Step-by-step Tcl / math / pitfall writeups",
+    mockSimulators: "Domain filters · Free previews · Growing bank",
   },
   benefits: [
-    "Lifetime access to 12+ Top Semiconductor Company Question Banks (Nvidia, Qualcomm, Apple, Intel, AMD, TI, Broadcom, Arm).",
-    "Complete screening package: Quantitative Aptitude, Probability, Bitwise Tricks, and Hardware Logic Puzzles.",
-    "Comprehensive Design Verification (DV) tracks: SystemVerilog OOP, UVM Factory, Virtual Sequences, RAL, SVA Assertions, and Coverage.",
-    "Physical Design & Signoff deep dives: STA Slack Derivations, CTS Useful Skew, Dynamic IR, UPF 1801, and Conformal LEC.",
-    "Full Mock Technical Interview Simulator with timed rounds and scorecards.",
-    "Free future updates whenever new company interview questions are added.",
-    "1-Click Printable PDF Cheatsheets for fast revision before onsite interviews.",
+    "Lifetime access to a growing Staff/Principal question bank spanning Synthesis/SDC, STA, PnR, UPF, CDC, and DFT.",
+    "Company-style framing inspired by Nvidia, Qualcomm, Apple, Intel, AMD, TI, Broadcom, and Arm interview loops.",
+    "Roadmap domains (DV/UVM, Aptitude, Puzzles, RTL, IR Drop) marked Coming Soon — free updates when they land.",
+    "Physical Design & Signoff deep dives: path-group triage, CTS useful skew, UPF 1801, scan DFT.",
+    "Practice handoff into Ace-Seek studios (SDC / Timing / Power / RTL) from matching domains.",
+    "Free future updates whenever new questions are added — no subscription.",
   ],
 };
+
+/** Map interview domains → VLSI studio practice */
+export function studioPracticeForInterviewDomain(
+  domain: InterviewDomain
+): { href: string; label: string } | null {
+  switch (domain) {
+    case "synthesis-sdc":
+    case "clock-domain-crossing":
+      return { href: "/vlsi/sdc-studio", label: "Practice in SDC Studio" };
+    case "static-timing-analysis":
+      return { href: "/vlsi/timing-studio", label: "Practice in Timing Studio" };
+    case "low-power-upf":
+    case "power-integrity-ir":
+      return { href: "/vlsi/power-studio", label: "Practice in Power Studio" };
+    case "physical-design":
+      return { href: "/vlsi/mmmc-studio", label: "Open MMMC Studio" };
+    case "rtl-verilog-architecture":
+      return { href: "/vlsi/rtl-lab", label: "Practice in RTL Lab" };
+    default:
+      return { href: "/vlsi/learn", label: "Related Learn Hub courses" };
+  }
+}
 
 /**
  * Question Bank (Continuously extendable across all companies and domains!)

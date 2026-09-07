@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import {
   Building2,
   Layers,
@@ -27,12 +28,14 @@ import {
   Lock,
   Unlock,
   Check,
+  ArrowRight,
 } from "lucide-react";
 import {
   COMPANIES_METADATA,
   DOMAINS_METADATA,
   INTERVIEW_BUNDLE_PRICING,
   INTERVIEW_QUESTIONS_BANK,
+  studioPracticeForInterviewDomain,
 } from "@/lib/vlsi-interview-masterclass-data";
 import {
   isMasterclassUnlocked,
@@ -43,6 +46,9 @@ import {
 import { InterviewMasterclassTopNav } from "./InterviewMasterclassTopNav";
 import { InterviewMathSolutionRenderer } from "./InterviewMathSolutionRenderer";
 import { InterviewMasterclassPaywallModal } from "./InterviewMasterclassPaywallModal";
+
+const BOOKMARK_KEY = "ace_seek_interview_bookmarks";
+const IS_DEV = process.env.NODE_ENV === "development";
 
 export function InterviewMasterclassExplorer() {
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
@@ -56,10 +62,16 @@ export function InterviewMasterclassExplorer() {
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
 
-  // Sync unlock state from storage / event
+  // Sync unlock state + bookmarks from storage
   useEffect(() => {
     const checkState = () => {
       setIsUnlocked(isMasterclassUnlocked());
+      try {
+        const raw = localStorage.getItem(BOOKMARK_KEY);
+        if (raw) setBookmarkedIds(JSON.parse(raw) as Record<string, boolean>);
+      } catch {
+        /* ignore */
+      }
     };
     checkState();
     window.addEventListener("ace_seek_interview_access_updated", checkState);
@@ -121,8 +133,29 @@ export function InterviewMasterclassExplorer() {
   };
 
   const toggleBookmark = (id: string) => {
-    setBookmarkedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+    setBookmarkedIds((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
   };
+
+  const liveDomains = useMemo(
+    () =>
+      DOMAINS_METADATA.filter((d) =>
+        INTERVIEW_QUESTIONS_BANK.some((q) => q.domain === d.id)
+      ),
+    []
+  );
+
+  const freePreviewCount = useMemo(
+    () => INTERVIEW_QUESTIONS_BANK.filter((q) => q.isFreeSample).length,
+    []
+  );
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -146,6 +179,9 @@ export function InterviewMasterclassExplorer() {
 
   const activeQuestionIsFree = activeQuestion ? isQuestionFreePreview(activeQuestion.id) : false;
   const activeQuestionHasAccess = isUnlocked || activeQuestionIsFree;
+  const practiceLink = activeQuestion
+    ? studioPracticeForInterviewDomain(activeQuestion.domain)
+    : null;
 
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col selection:bg-cyan-500 selection:text-black">
@@ -170,7 +206,13 @@ export function InterviewMasterclassExplorer() {
             </span>
             <span className="text-slate-500 hidden sm:inline">•</span>
             <span className="text-slate-300 hidden sm:inline">
-              {filteredQuestions.length} Questions Available
+              {filteredQuestions.length} of {INTERVIEW_QUESTIONS_BANK.length} deep problems
+              {freePreviewCount > 0 && !isUnlocked
+                ? ` · ${freePreviewCount} free previews`
+                : ""}
+            </span>
+            <span className="text-slate-500 hidden md:inline">
+              · {COMPANIES_METADATA.length} company styles · {liveDomains.length} live domains
             </span>
           </div>
 
@@ -181,13 +223,15 @@ export function InterviewMasterclassExplorer() {
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Lifetime Access Active
                 </span>
-                <button
-                  type="button"
-                  onClick={() => lockMasterclassForTesting()}
-                  className="text-[10px] text-slate-500 hover:text-amber-400 underline cursor-pointer"
-                >
-                  [Dev: Lock]
-                </button>
+                {IS_DEV && (
+                  <button
+                    type="button"
+                    onClick={() => lockMasterclassForTesting()}
+                    className="text-[10px] text-slate-500 hover:text-amber-400 underline cursor-pointer"
+                  >
+                    [Dev: Lock]
+                  </button>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -202,13 +246,15 @@ export function InterviewMasterclassExplorer() {
                   <CreditCard className="w-3 h-3" />
                   <span>Unlock All</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => unlockMasterclass("dev_test_payment", "dev@ace-seek.com")}
-                  className="text-[10px] text-slate-500 hover:text-emerald-400 underline cursor-pointer"
-                >
-                  [Dev: Unlock]
-                </button>
+                {IS_DEV && (
+                  <button
+                    type="button"
+                    onClick={() => unlockMasterclass("dev_test_payment", "dev@ace-seek.com")}
+                    className="text-[10px] text-slate-500 hover:text-emerald-400 underline cursor-pointer"
+                  >
+                    [Dev: Unlock]
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -259,6 +305,13 @@ export function InterviewMasterclassExplorer() {
                   const count = INTERVIEW_QUESTIONS_BANK.filter(
                     (q) => q.domain === dom.id
                   ).length;
+                  if (count === 0 || dom.comingSoon) {
+                    return (
+                      <option key={dom.id} value={dom.id} disabled>
+                        {dom.title} · Coming soon
+                      </option>
+                    );
+                  }
                   return (
                     <option key={dom.id} value={dom.id}>
                       {dom.title} ({count})
@@ -417,7 +470,17 @@ export function InterviewMasterclassExplorer() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {practiceLink && (
+                      <Link
+                        href={practiceLink.href}
+                        className="px-3 py-1.5 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-xs font-mono font-bold flex items-center gap-1.5 hover:bg-cyan-500/20 transition-all"
+                      >
+                        <Cpu className="w-3.5 h-3.5" />
+                        <span>{practiceLink.label}</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={() => toggleBookmark(activeQuestion.id)}

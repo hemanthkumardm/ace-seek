@@ -19,6 +19,7 @@ import {
   BookOpen,
   PlayCircle,
   ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { LEARN_KIND_META, isLearnKind } from "@/lib/vlsi-curriculum";
 import { SubdomainAuthModal } from "@/components/SubdomainAuthModal";
@@ -115,6 +116,14 @@ export function VlsiHeaderNav({
                 >
                   <GraduationCap className="w-4 h-4" />
                   <span>Learn</span>
+                </Link>
+                <Link
+                  href="/vlsi/interview-masterclass"
+                  className="sk-btn sk-btn-ghost !text-xs !py-1.5 !px-3 font-bold flex items-center gap-1.5 uppercase border border-amber-500/40 text-amber-200"
+                  title="Interview Prep Masterclass"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  <span className="hidden md:inline">Interview</span>
                 </Link>
                 <button
                   type="button"

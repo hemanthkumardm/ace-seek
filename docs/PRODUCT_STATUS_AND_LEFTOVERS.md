@@ -166,6 +166,11 @@ Ordered by **user impact** and **dependency**.
 | P2.10 | Soft-lock Master EDA cards on Learn hub when plan &lt; Max | Upgrade UX |
 | P2.11 | ~~Studio ↔ Learn cross-links~~ | **Done 2026-08-12** (`StudioLearnPanel` + lesson Practice CTAs) |
 | P2.12 | ~~Broken Ask-AI / commands DB Learn hrefs~~ (`cadence-genus`, `dft`, `physical-verif`) | **Fixed 2026-08-12** |
+| P2.13 | Interview Masterclass bank depth | **Live: 87 Staff-level Q** across SDC/STA/PnR/UPF/CDC/DFT; marketing previously claimed 250+ / 12 companies — corrected 2026-09-07 |
+| P2.14 | Interview domains Coming Soon | DV/UVM, Aptitude, Puzzles, RTL Arch, IR Drop — marked in nav; need content fill |
+| P2.15 | Synopsys / Open-Source **Learn** Master quizzes still ~3 Q each (Cadence exams are 16–20) | Expand before calling Learn Master “complete” |
+| P2.16 | Interview mock timed rounds / PDF cheatsheets | Claimed in early benefits copy — not shipped yet (removed from honest benefits) |
+| P2.17 | ~~Interview → Studio practice CTAs~~ | **Done 2026-09-07** (`studioPracticeForInterviewDomain`) |
 
 ### P3 — Nice later
 

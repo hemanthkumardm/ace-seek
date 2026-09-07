@@ -262,6 +262,28 @@ export default function VlsiHome() {
             </Link>
           </div>
 
+          <div className="sk-panel p-6 flex flex-col justify-between space-y-4 bg-gradient-to-br from-amber-950/40 to-[var(--surface-panel)] border border-amber-500/40 shadow-xl hover:border-amber-400 transition-all">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-lg bg-amber-400/15 border border-amber-400/40 flex items-center justify-center text-amber-300">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <span className="sk-badge text-amber-200 border-amber-400/40">₹2,499 · LIFE</span>
+              </div>
+              <h3 className="text-base font-bold uppercase text-white">Interview Masterclass</h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                87+ Staff-level problems (SDC, STA, PnR, UPF, CDC, DFT) with Tcl/math solutions — free previews, then lifetime unlock. Practice handoff into studios.
+              </p>
+            </div>
+            <Link
+              href="/vlsi/interview-masterclass"
+              className="sk-btn sk-btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !text-xs w-full justify-between font-black"
+            >
+              <span>Explore Interview Prep</span>
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+
           <div className="sk-panel p-6 flex flex-col justify-between space-y-4 bg-[var(--surface-panel)] border border-[var(--bevel-highlight)] shadow-xl hover:border-[var(--accent-cyan)] transition-all">
             <div className="space-y-3">
               <div className="flex items-center justify-between">

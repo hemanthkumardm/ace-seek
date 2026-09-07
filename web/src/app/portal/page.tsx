@@ -1306,6 +1306,13 @@ export default function PortalLandingPage() {
               >
                 VLSI Learn Hub
               </a>
+              <a
+                href="https://vlsi.ace-seek.com/vlsi/interview-masterclass"
+                className="hover:text-amber-300 transition-colors"
+                title="Standalone Interview Prep Masterclass"
+              >
+                Interview Masterclass
+              </a>
               <a href="#contact" className="hover:text-cyan-400 transition-colors">
                 Request a Quote
               </a>

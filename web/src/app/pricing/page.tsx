@@ -85,8 +85,8 @@ export default function PricingPage() {
 
           <div className="grid sm:grid-cols-4 gap-3 pt-2 border-t border-amber-500/20 text-xs">
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">12+ Top Companies</span>
-              <p className="text-slate-300 text-[11px]">Nvidia, Qualcomm, Intel, Apple, AMD, TI, Broadcom.</p>
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">87+ Deep Problems</span>
+              <p className="text-slate-300 text-[11px]">Staff/Principal depth across SDC, STA, PnR, UPF, CDC, DFT.</p>
             </div>
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
               <span className="text-[10px] font-bold uppercase text-emerald-400 font-mono">Step-by-Step Solutions</span>

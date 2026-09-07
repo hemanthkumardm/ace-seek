@@ -109,37 +109,50 @@ export function InterviewMasterclassTopNav({
             All Questions ({INTERVIEW_QUESTIONS_BANK.length})
           </button>
 
-          {/* Individual Domain Buttons */}
+          {/* Individual Domain Buttons — live domains first, then Coming Soon */}
           {[
             { id: "synthesis-sdc", label: "Logic Synthesis & SDC", color: "#eab308" },
             { id: "clock-domain-crossing", label: "CDC & Metastability", color: "#a855f7" },
             { id: "static-timing-analysis", label: "Static Timing (STA)", color: "#38bdf8" },
             { id: "physical-design", label: "Physical Design (PnR)", color: "#10b981" },
             { id: "low-power-upf", label: "Low Power UPF", color: "#84cc16" },
-            { id: "design-verification", label: "Design Verification", color: "#14b8a6" },
+            { id: "dft-atpg", label: "DFT & Scan", color: "#6366f1" },
+            { id: "design-verification", label: "DV / UVM", color: "#14b8a6", soon: true },
+            { id: "rtl-verilog-architecture", label: "RTL Arch", color: "#22d3ee", soon: true },
           ].map((dom) => {
             const count = INTERVIEW_QUESTIONS_BANK.filter(
               (q) => q.domain === dom.id
             ).length;
             const active = selectedDomain === dom.id;
+            const soon = Boolean(dom.soon) || count === 0;
 
             return (
               <button
                 key={dom.id}
                 type="button"
-                onClick={() => onSelectDomain(dom.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border flex items-center gap-1.5 ${
-                  active
-                    ? "bg-purple-600 border-purple-400 text-white shadow-md shadow-purple-950/40 font-black"
-                    : "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"
+                onClick={() => {
+                  if (!soon) onSelectDomain(dom.id);
+                }}
+                disabled={soon}
+                title={soon ? "Coming soon — free update for lifetime buyers" : dom.label}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all border flex items-center gap-1.5 ${
+                  soon
+                    ? "bg-slate-950/80 border-slate-800 text-slate-500 cursor-not-allowed opacity-70"
+                    : active
+                      ? "bg-purple-600 border-purple-400 text-white shadow-md shadow-purple-950/40 font-black cursor-pointer"
+                      : "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white cursor-pointer"
                 }`}
               >
                 <span
                   className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: dom.color }}
+                  style={{ backgroundColor: soon ? "#475569" : dom.color }}
                 />
                 <span>{dom.label}</span>
-                {count > 0 && (
+                {soon ? (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 uppercase tracking-wide">
+                    Soon
+                  </span>
+                ) : (
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                       active
