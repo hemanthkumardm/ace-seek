@@ -22,7 +22,22 @@ export function VlsiFrame({
 }: Props) {
   const pathname = usePathname();
   const isLearn = pathname.startsWith("/vlsi/learn");
+  const isInterview = pathname.startsWith("/vlsi/interview-masterclass");
   const isIntro = pathname === "/" || pathname === "/vlsi";
+
+  // Interview Masterclass: Dedicated dark standalone page with company navbar
+  if (isInterview) {
+    return (
+      <div
+        data-vlsi-shell
+        className="min-h-screen flex flex-col bg-[#070b14] text-[#f8fafc] selection:bg-cyan-500 selection:text-black"
+      >
+        <main className="relative flex-1 min-h-0 flex flex-col">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   // Learn Portal: uses its own LearnShell reader theme
   if (isLearn) {

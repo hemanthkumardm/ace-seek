@@ -15,9 +15,18 @@ import {
   Search,
   Code2,
   Terminal,
+  Lock,
+  Crown,
+  Key,
+  ExternalLink,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { findEdaCommand, formatEdaCommandResponse } from "@/lib/vlsi-eda-commands-db";
+import { classifyVlsiQuery } from "@/lib/vlsi-ai-nlp";
+import { useEntitlements } from "@/hooks/useEntitlements";
+import { aiAccessUnlocked } from "@/lib/vlsi-learn-access";
 
 interface QuickPrompt {
   label: string;
@@ -61,21 +70,90 @@ const QUICK_PROMPTS: QuickPrompt[] = [
     label: "Explain Electromigration & Black's Equation",
     query: "Explain electromigration Black's equation, current density limits, and void failure modes.",
   },
+  {
+    label: "How to fix check_design & timing lint issues?",
+    query: "How to diagnose and resolve issues in check_design and check_timing during synthesis?",
+  },
 ];
 
 export function VlsiLearnAskAiBox() {
+  const { ent, ready, refreshFromKey } = useEntitlements();
   const [question, setQuestion] = useState("");
   const [isAnswering, setIsAnswering] = useState(false);
   const [history, setHistory] = useState<
     { q: string; a: string; links?: { title: string; href: string }[] }[]
   >([]);
 
+  // Key activation modal state
+  const [showKeyModal, setShowKeyModal] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [keyStatus, setKeyStatus] = useState<"idle" | "validating" | "success" | "error">("idle");
+  const [keyErrorMsg, setKeyErrorMsg] = useState("");
+
+  // Dev simulation state: allows testing locked Free/Guest tier vs unlocked Pro/Max tier
+  const [devSimulateFree, setDevSimulateFree] = useState(false);
+
+  // Compute entitlement access: Pro, Max, and Team
+  const isAllowed = !devSimulateFree && (ready ? aiAccessUnlocked(ent.tier) : false);
+
+  const handleKeySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!keyInput.trim()) return;
+    setKeyStatus("validating");
+    setKeyErrorMsg("");
+
+    const success = await refreshFromKey(keyInput.trim());
+    if (success) {
+      setKeyStatus("success");
+      setDevSimulateFree(false);
+      setTimeout(() => {
+        setShowKeyModal(false);
+        setKeyStatus("idle");
+        setKeyInput("");
+      }, 750);
+    } else {
+      setKeyStatus("error");
+      setKeyErrorMsg("Invalid API key. For testing, enter 'pro' or 'max'.");
+    }
+  };
+
   const generateAnswer = (queryText: string) => {
+    // 1. Run Intelligent NLP Classification with Typo Auto-Correction
+    const nlp = classifyVlsiQuery(queryText);
+    const topIntent = nlp.topIntent;
+    const corrections = nlp.normalized.corrections;
+    const correctedQuery = nlp.normalized.tokens
+      .map((t) => {
+        const c = corrections.find((cor) => cor.original === t);
+        return c ? c.corrected : t;
+      })
+      .join(" ");
+
+    // Prepend auto-correction badge when spelling or typography mismatches were repaired
+    const badge =
+      corrections.length > 0
+        ? `> 🔍 **Interpreted query:** *"${correctedQuery}"* *(Auto-corrected: ${corrections
+            .map((c) => `\`${c.original}\` → \`${c.corrected}\``)
+            .join(", ")})*\n\n`
+        : "";
+
     const q = queryText.toLowerCase().trim();
-    const hasWord = (word: string) => new RegExp(`\\b${word}\\b`, "i").test(queryText);
+    const qCorrected = correctedQuery.toLowerCase().trim();
+    const hasWord = (word: string) =>
+      new RegExp(`\\b${word}\\b`, "i").test(queryText) ||
+      new RegExp(`\\b${word}\\b`, "i").test(correctedQuery);
+
+    const wrap = (res: { a: string; links?: { title: string; href: string }[] }) => ({
+      a: badge + res.a,
+      links: res.links,
+    });
 
     // 0. FIRST: Check EDA Command Database if query asks for a tool command or query syntax
     const isCommandQuery =
+      nlp.normalized.canonicalTokens.has("command") ||
+      nlp.normalized.canonicalTokens.has("syntax") ||
+      nlp.normalized.canonicalTokens.has("script") ||
+      nlp.normalized.canonicalTokens.has("tcl") ||
       q.includes("command") ||
       q.includes("get_db") ||
       q.includes("set_db") ||
@@ -111,21 +189,191 @@ export function VlsiLearnAskAiBox() {
       q.includes("clock_opt_design");
 
     if (isCommandQuery) {
-      const edaMatch = findEdaCommand(queryText);
+      const edaMatch = findEdaCommand(queryText) || findEdaCommand(correctedQuery);
       if (edaMatch) {
-        return formatEdaCommandResponse(edaMatch, queryText);
+        const resp = formatEdaCommandResponse(edaMatch, queryText);
+        return {
+          a: badge + resp.a,
+          links: resp.links,
+        };
+      }
+    }
+
+    // 0A. UNRESOLVED MODULES & REFERENCES IN SYNTHESIS (check_design -unresolved)
+    if (
+      topIntent?.intentId === "CHECK_DESIGN_UNRESOLVED" ||
+      q.includes("unresolved") ||
+      qCorrected.includes("unresolved") ||
+      (qCorrected.includes("missing") && (qCorrected.includes("module") || qCorrected.includes("cell") || qCorrected.includes("blackbox") || qCorrected.includes("black box") || qCorrected.includes("macro")))
+    ) {
+      return {
+        a: badge + `### How to Resolve \`check_design -unresolved\` Issues in Synthesis
+
+An **unresolved reference** means the synthesis compiler (Cadence Genus, Synopsys DC, OpenROAD) encountered an instantiated sub-module, memory, or cell in the RTL that has **no definition** in the loaded source files or technology libraries.
+
+---
+
+### Step 1: Diagnose the Exact Missing Blocks & Hierarchy
+
+Run the targeted unresolved query to isolate the missing module names:
+\`\`\`tcl
+# In Cadence Genus (Stylus CUI):
+check_design -unresolved > reports/unresolved.rpt
+
+# List all unresolved design instances from the root database:
+set unresolved_mods [get_db [get_db designs -if {.is_unresolved == true}] .name]
+puts "Missing definitions: $unresolved_mods"
+
+# Query the parent instances that instantiate these missing blocks:
+get_db [get_db insts -if {.design.is_unresolved == true}] .name
+\`\`\`
+
+\`\`\`tcl
+# In Synopsys Design Compiler:
+check_design
+link
+# Look for warnings: "Unable to resolve reference 'xyz' in 'top'. (UID-401)"
+\`\`\`
+
+---
+
+### Step 2: Determine the Root Cause & Apply the Fix
+
+#### Fix A: Missing Synthesizable RTL Sub-Modules
+- **Cause:** Sub-module files (e.g., \`u_fifo\`, \`u_alu\`, \`u_crypto\`) were omitted from the \`read_hdl\` command, or directory search paths were not set.
+- **Fix:** Ingest missing files in dependency order (packages $\\to$ interfaces $\\to$ leaf modules $\\to$ top):
+\`\`\`tcl
+set_db init_hdl_search_path [list . ../rtl ../rtl/packages ../rtl/submodules ../include]
+read_hdl -sv [glob ../rtl/packages/*.sv]
+read_hdl -sv [glob ../rtl/submodules/*.sv]
+read_hdl -sv ../rtl/soc_top.sv
+elaborate soc_top
+check_design -unresolved
+\`\`\`
+
+#### Fix B: Missing Hard Macro (SRAM, ROM, PLL, PHY) Liberty Models
+- **Cause:** Memory compiler or analog IP \`.lib\` timing models were not loaded into \`set_db library\`.
+- **Fix:** Append the macro Liberty files to the target library list before elaboration:
+\`\`\`tcl
+set STD_LIBS   [glob ../lib/stdcells_*.lib]
+set MACRO_LIBS [list ../lib/sram_1024x32.lib ../lib/pll_top.lib ../lib/io_pads.lib]
+set_db library [concat $STD_LIBS $MACRO_LIBS]
+elaborate soc_top
+check_design -unresolved
+\`\`\`
+
+#### Fix C: Case Sensitivity & Typo Mismatches
+- **Cause:** SystemVerilog is strictly case-sensitive. If the module is defined as \`module fifo_ctrl (...)\` but instantiated as \`FIFO_CTRL u_fifo (...)\`, it will report as unresolved.
+- **Fix:** Correct the instantiation name in the RTL or wrapper.
+
+#### Fix D: Intentional Analog / Third-Party Black-Boxes
+- **Cause:** Analog blocks (ADC, LDO, Bandgap) or encrypted third-party IP without a gate-level model.
+- **Fix:**
+  1. Create an empty Verilog interface shell declaring port directions.
+  2. Protect the instance: \`set_db [get_db modules analog_adc] .preserve true\`.
+  3. In formal equivalence (Conformal LEC), declare: \`add black box analog_adc -module\`.
+
+---
+
+### Downstream Signoff Risk If Ignored:
+- **Innovus Place & Route**: Fatal error abort due to missing LEF cell definitions.
+- **Conformal LEC**: Massive false non-equivalence points across unmapped logic cones.
+- **Gate-Level Simulation (GLS)**: Outputs float to high-impedance \`'bz\` or \`'bx\`, causing catastrophic X-propagation.`,
+        links: [
+          { title: "Cadence Synthesis Curriculum: check_design & Timing Lint", href: "/vlsi/learn/c/cadence-synthesis/genus-check-design-timing-lint" },
+          { title: "Synthesis Studio: Scenarios & Diagnosis", href: "/vlsi/timing-studio" },
+          { title: "Interview Masterclass: Structural Netlist Playbook", href: "/vlsi/interview-masterclass" },
+        ],
+      };
+    }
+
+    // CHECK_DESIGN & TIMING LINT (check_timing) TROUBLESHOOTING
+    if (
+      topIntent?.intentId === "CHECK_DESIGN_GENERAL" ||
+      topIntent?.intentId === "CHECK_TIMING_LINT" ||
+      topIntent?.intentId === "CHECK_DESIGN_MULTIPLE_DRIVER" ||
+      topIntent?.intentId === "CHECK_DESIGN_COMBO_LOOPS" ||
+      topIntent?.intentId === "CHECK_DESIGN_ASSIGNS" ||
+      topIntent?.intentId === "CHECK_DESIGN_TIEOFFS" ||
+      q.includes("check_design") ||
+      q.includes("check design") ||
+      qCorrected.includes("check design") ||
+      q.includes("timing lint") ||
+      qCorrected.includes("timing lint") ||
+      q.includes("check_timing") ||
+      q.includes("check timing") ||
+      qCorrected.includes("check timing") ||
+      (q.includes("lint") && (q.includes("design") || q.includes("structure") || q.includes("undriven") || q.includes("assigns")))
+    ) {
+      return wrap({
+        a: `### Solving Issues in \`check_design\` (Structural Netlist Lint) & \`check_timing\` (Constraint Lint)
+
+In digital synthesis, **structural integrity** and **constraint hygiene** are mandatory prerequisites before any setup/hold timing slacks can be trusted.
+
+---
+
+### 1. \`check_design\` Issue Resolution Matrix:
+
+| \`check_design\` Flag | Severity | Physical Hazard | How to Fix / Resolve |
+| :--- | :--- | :--- | :--- |
+| **\`-unresolved\`** | **Fatal** | Missing module or unmapped library black-box. Downstream PnR/LEC fails. | Ingest missing RTL (\`read_hdl\`) or add missing standard cell / macro \`.lib\` to \`set_db library\`. |
+| **\`-multiple_driver\`** | **Fatal** | Bus contention: 2 outputs driving 1 wire cause destructive crowbar current and unknown states. | Fix RTL for single driver per net; resolve tri-state busses into multiplexers. |
+| **\`-combo_loops\`** | **Fatal** | Combinational cycle ($A \\to B \\to C \\to A$) breaks STA and hangs gate simulation. | Break loop in RTL by inserting a flip-flop, or surgically apply \`set_disable_timing\`. |
+| **\`-undriven\`** | **High** | High-Z floating gate oxide prone to ESD rupture and floating oscillations. | Connect in RTL, or if static tie use \`connect -constant 0|1\`, then insert tie cells. |
+| **\`-assigns\`** | **PnR Blocker** | Continuous assigns (\`assign b = a;\`) cause raw wire shorts and LVS failures in PnR. | \`set_remove_assign_options -buffer_or_inverter BUFX2 -design <top>\`<br>\`remove_assigns_without_opt -design <top> -verbose\` (or \`set_db remove_assigns true\`). |
+| **\`-constant\`** | **Normal on Pads** | Leaf pins tied to 1'b0 / 1'b1 (e.g. pad configuration pins). | Finding ~350 constant pins on a pad-ring top is **normal and expected**. **Do NOT delete them.** |
+| **\`-through_tie_cell\`** | **Signoff Gate** | Constant pins tied directly to raw VDD/VSS rails (gate oxide rupture risk). | Map constants to ESD tie cells:<br>\`add_tieoffs -high TIEHI_X1 -low TIELO_X1 -max_fanout 8 <top>\`<br>Verify with \`check_design -through_tie_cell\`. |
+| **\`-unloaded\`** | **Medium** | Dead flip-flops or unused ports. | Purge cleanly with \`delete_unloaded_undriven <top>\` (or preserve scan with \`set_db .preserve true\`). |
+
+---
+
+### 2. \`check_timing\` Constraint Hygiene Failures:
+
+1. **Clock Pins Without Waveform (Must Be 0)**:
+   - Registers have no clock. Fix by defining primary clock (\`create_clock\`), derived clocks (\`create_generated_clock\`), or unmasking gated clocks.
+2. **Inputs / Outputs Without External Delays**:
+   - Unconstrained boundary paths. Apply \`set_input_delay -max ... -clock CLK\` and \`set_output_delay -max ... -clock CLK\`.
+3. **Inputs Without Driver / Transition (Optimism Trap)**:
+   - Tool assumes ideal 0 ps input slew, injecting 60–100 ps of non-linear delay optimism. Fix via \`set_driving_cell -lib_cell BUFX4 [all_inputs]\` or \`set_input_transition 0.200\`.
+4. **Outputs Without External Load (Under-sizing Trap)**:
+   - Tool assumes 0 pF load and undersizes drivers for real PCB traces. Fix via \`set_load 0.050 [all_outputs]\`.
+
+---
+
+### 3. Interactive Fast SDC Update Loop (No Full Re-Optimization):
+\`\`\`tcl
+set_interactive_constraint_modes [all_constraint_modes -active]
+read_sdc -echo ../sdc/top.sdc
+check_timing -verbose
+report_timing -unconstrained -max_paths 20
+\`\`\``,
+        links: [
+          { title: "Cadence Synthesis Curriculum: check_design & Timing Lint", href: "/vlsi/learn/c/cadence-synthesis/genus-check-design-timing-lint" },
+          { title: "Synthesis Studio: Structural & Timing Scenarios", href: "/vlsi/timing-studio" },
+          { title: "Interview Masterclass: Signoff Check Playbook", href: "/vlsi/interview-masterclass" },
+        ],
+      });
+    }
+
+    if (isCommandQuery) {
+      const edaMatch = findEdaCommand(queryText) || findEdaCommand(correctedQuery);
+      if (edaMatch) {
+        return wrap(formatEdaCommandResponse(edaMatch, queryText));
       }
     }
 
     // 1. ELECTROMIGRATION & BLACK'S EQUATION (Evaluated early to prevent substring collisions)
     if (
+      topIntent?.intentId === "ELECTROMIGRATION" ||
       q.includes("electromigration") ||
+      qCorrected.includes("electromigration") ||
       q.includes("black's") ||
       q.includes("black equation") ||
       q.includes("mttf") ||
+      qCorrected.includes("mttf") ||
       (hasWord("em") && (q.includes("void") || q.includes("current density") || q.includes("density")))
     ) {
-      return {
+      return wrap({
         a: `**Electromigration (EM)** is the physical transport of conductor metal atoms resulting from the momentum transfer between conducting electrons and lattice ions under high current densities.
 
 ### Black's Equation for Mean Time to Failure (MTTF):
@@ -148,12 +396,16 @@ $$\\text{MTTF} = \\frac{A}{J^n} \\exp\\left(\\frac{E_a}{k_B \\cdot T_j}\\right)$
           { title: "VLSI Calculator #9: Multi-Cut Via Matrix", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "Power Distribution Network (PDN) Lab", href: "/vlsi/power-studio" },
         ],
-      };
+      });
     }
 
     // 2. HOLD TIME & CLOCK PERIOD INDEPENDENCE
-    if (q.includes("hold") && (q.includes("period") || q.includes("independent") || q.includes("frequency") || q.includes("same edge"))) {
-      return {
+    if (
+      (topIntent?.intentId === "SETUP_HOLD_STA" && (q.includes("hold") || qCorrected.includes("hold"))) ||
+      (q.includes("hold") && (q.includes("period") || q.includes("independent") || q.includes("frequency") || q.includes("same edge"))) ||
+      (qCorrected.includes("hold") && (qCorrected.includes("period") || qCorrected.includes("independent") || qCorrected.includes("frequency") || qCorrected.includes("same edge")))
+    ) {
+      return wrap({
         a: `**Hold Time is Independent of Clock Period ($T_{\\text{period}}$)** because hold checks verify data racing against the **SAME clock edge ($t_0$)**, not the next cycle edge.
 
 ### Mathematical Inequality:
@@ -167,12 +419,16 @@ $$T_{\\text{launch}} + T_{\\text{cq}} + T_{\\text{comb}} \\ge T_{\\text{capture}
           { title: "Cadence Tempus: Hold & Min Delay Closure", href: "/vlsi/learn/c/cadence-sta/tempus-setup-hold-closure" },
           { title: "STA Timing Studio", href: "/vlsi/timing-studio" },
         ],
-      };
+      });
     }
 
     // 3. SETUP SLACK & TIMING CLOSURE
-    if (q.includes("setup") && (q.includes("slack") || q.includes("equation") || q.includes("formula") || q.includes("violation") || q.includes("max delay") || q.includes("fix"))) {
-      return {
+    if (
+      (topIntent?.intentId === "SETUP_HOLD_STA" && (q.includes("setup") || qCorrected.includes("setup"))) ||
+      (q.includes("setup") && (q.includes("slack") || q.includes("equation") || q.includes("formula") || q.includes("violation") || q.includes("max delay") || q.includes("fix"))) ||
+      (qCorrected.includes("setup") && (qCorrected.includes("slack") || qCorrected.includes("equation") || qCorrected.includes("formula") || qCorrected.includes("violation") || qCorrected.includes("max delay") || qCorrected.includes("fix")))
+    ) {
+      return wrap({
         a: `**Setup Timing Check (Max Delay)** ensures that data launched at edge $t_0$ arrives at the capture register and stabilizes before the **next active clock edge ($t_0 + T_{\\text{period}}$)**.
 
 ### Mathematical Formulation:
@@ -188,12 +444,19 @@ $$\\text{Setup Slack} = \\text{Required Time} - \\text{Arrival Time}$$
           { title: "VLSI Timing Calculator #17: Setup Slack Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "Cadence Tempus Setup Closure", href: "/vlsi/learn/c/cadence-sta/tempus-setup-hold-closure" },
         ],
-      };
+      });
     }
 
     // 4. INVERTED TEMPERATURE DEPENDENCE (ITD)
-    if (hasWord("itd") || q.includes("inverted temperature") || (q.includes("-40") && q.includes("125"))) {
-      return {
+    if (
+      topIntent?.intentId === "ITD_TEMPERATURE" ||
+      hasWord("itd") ||
+      q.includes("inverted temperature") ||
+      qCorrected.includes("inverted temperature") ||
+      (q.includes("-40") && q.includes("125")) ||
+      (qCorrected.includes("cold") && qCorrected.includes("temperature"))
+    ) {
+      return wrap({
         a: `**Inverted Temperature Dependence (ITD)** is a low-voltage physics phenomenon where transistors switch **slower at cold temperatures (-40°C) than at hot temperatures (+125°C)**.
 
 ### The Physics:
@@ -204,12 +467,18 @@ $$\\text{Setup Slack} = \\text{Required Time} - \\text{Arrival Time}$$
           { title: "Tempus STA MMMC Views & Parasitics", href: "/vlsi/learn/c/cadence-sta/tempus-mmmc-parasitics" },
           { title: "MMMC Signoff Studio", href: "/vlsi/mmmc-studio" },
         ],
-      };
+      });
     }
 
     // 5. COMMON PATH PESSIMISM REMOVAL (CPPR / CRPR)
-    if (hasWord("cppr") || hasWord("crpr") || q.includes("common path pessimism")) {
-      return {
+    if (
+      topIntent?.intentId === "CPPR_OCV" ||
+      hasWord("cppr") ||
+      hasWord("crpr") ||
+      q.includes("common path pessimism") ||
+      qCorrected.includes("common path pessimism")
+    ) {
+      return wrap({
         a: `**Common Path Pessimism Removal (CPPR / CRPR)** eliminates artificial clock skew introduced when On-Chip Variation (OCV) deratings are applied to the **shared physical clock tree**.
 
 ### Why is CPPR Essential?
@@ -222,12 +491,12 @@ $$\\Delta T_{\\text{CPPR}} = T_{\\text{common\\_path}} \\times (\\text{Late Dera
           { title: "Tempus AOCV, POCV & PBA Analysis", href: "/vlsi/learn/c/cadence-sta/tempus-ocv-pocv-pba" },
           { title: "Timing Studio", href: "/vlsi/timing-studio" },
         ],
-      };
+      });
     }
 
     // 6. RECOVERY & REMOVAL (RESET TIMING)
     if (q.includes("recovery") || q.includes("removal") || (q.includes("reset") && (q.includes("timing") || q.includes("bridge") || q.includes("synchronizer")))) {
-      return {
+      return wrap({
         a: `**Recovery and Removal** are timing constraints for **asynchronous reset/preset signals** to prevent flip-flops from entering metastability when exiting reset.
 
 ### Key Definitions:
@@ -242,12 +511,17 @@ $$\\Delta T_{\\text{CPPR}} = T_{\\text{common\\_path}} \\times (\\text{Late Dera
           { title: "CDC & Reset Synchronizers Lab", href: "/vlsi/learn/c/cdc" },
           { title: "Tempus Setup & Hold Timing Closure", href: "/vlsi/learn/c/cadence-sta/tempus-setup-hold-closure" },
         ],
-      };
+      });
     }
 
     // 7. ASYNCHRONOUS FIFO DEPTH & CDC
-    if (q.includes("fifo") || (hasWord("cdc") && (q.includes("depth") || q.includes("burst") || q.includes("gray") || q.includes("pointer")))) {
-      return {
+    if (
+      topIntent?.intentId === "FIFO_DEPTH" ||
+      q.includes("fifo") ||
+      qCorrected.includes("fifo") ||
+      (hasWord("cdc") && (q.includes("depth") || q.includes("burst") || q.includes("gray") || q.includes("pointer")))
+    ) {
+      return wrap({
         a: `**Asynchronous FIFO Depth Sizing** guarantees that continuous write bursts never overflow the FIFO before the read domain can drain the entries.
 
 ### FIFO Depth Formula:
@@ -261,12 +535,18 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
           { title: "VLSI Calculator #24: Async FIFO Depth Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "CDC & Metastability Course", href: "/vlsi/learn/c/cdc" },
         ],
-      };
+      });
     }
 
     // 8. LEVEL SHIFTERS & CROWBAR CURRENT
-    if (q.includes("level shifter") || q.includes("crowbar")) {
-      return {
+    if (
+      topIntent?.intentId === "LEVEL_SHIFTER" ||
+      q.includes("level shifter") ||
+      qCorrected.includes("level shifter") ||
+      q.includes("crowbar") ||
+      qCorrected.includes("crowbar")
+    ) {
+      return wrap({
         a: `**Low-to-High Level Shifters** are mandatory when crossing from a low-voltage power domain ($0.65\\text{V}$) into a high-voltage domain ($0.95\\text{V}$).
 
 ### The Crowbar Leakage Mechanism:
@@ -278,12 +558,12 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
           { title: "Cadence Voltus Power & UPF Low Power", href: "/vlsi/learn/c/cadence-power/voltus-power-gating-upf" },
           { title: "Power Studio", href: "/vlsi/power-studio" },
         ],
-      };
+      });
     }
 
     // 9. GRAPH-BASED (GBA) VS PATH-BASED (PBA)
     if (hasWord("gba") || hasWord("pba") || q.includes("graph-based") || q.includes("path-based")) {
-      return {
+      return wrap({
         a: `**Graph-Based Analysis (GBA) vs Path-Based Analysis (PBA)** in Static Timing Analysis:
 
 1. **Graph-Based Analysis (GBA)**:
@@ -298,7 +578,7 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
           { title: "Tempus AOCV, POCV & PBA Analysis", href: "/vlsi/learn/c/cadence-sta/tempus-ocv-pocv-pba" },
           { title: "Timing Studio", href: "/vlsi/timing-studio" },
         ],
-      };
+      });
     }
 
     // 10. CONFORMAL LEC & LOGIC EQUIVALENCE (Word-boundary check on 'lec')
@@ -309,7 +589,7 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
       q.includes("formal verification") ||
       (q.includes("equivalence") && (q.includes("golden") || q.includes("revised")))
     ) {
-      return {
+      return wrap({
         a: `**Cadence Conformal Logic Equivalence Checking (LEC)** formally proves that a Revised netlist (post-synthesis, post-scan, or post-PnR) is mathematically identical to Golden RTL without test vectors.
 
 ### 4-Stage LEC Flow:
@@ -321,12 +601,12 @@ $$\\text{Safe Power-of-2 Depth} = 2^{\\lceil \\log_2(\\text{Depth}) \\rceil}$$
           { title: "Cadence Conformal LEC Course", href: "/vlsi/learn/c/cadence-lec" },
           { title: "Conformal Practical Lab", href: "/vlsi/learn/c/cadence-lec/conformal-practical-lab" },
         ],
-      };
+      });
     }
 
     // 11. DYNAMIC IR DROP & DECAP SIZING
     if (q.includes("dynamic ir") || q.includes("decap") || q.includes("di/dt") || q.includes("ground bounce") || q.includes("inductive drop")) {
-      return {
+      return wrap({
         a: `**Dynamic IR Drop** is caused by simultaneous clock-edge switching surges ($di/dt$) interacting with package loop inductance and on-die mesh resistance.
 
 ### Total Dynamic Voltage Drop:
@@ -342,12 +622,12 @@ $$C_{\\text{decap\\_req}} = \\frac{I_{\\text{surge}} \\cdot \\Delta t_{\\text{wi
           { title: "VLSI Calculator #31: Decap Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "Cadence Voltus Power & IR Studio", href: "/vlsi/learn/c/cadence-power/voltus-practical-lab" },
         ],
-      };
+      });
     }
 
     // 12. PROCESS ANTENNA RATIO (PAR)
     if (q.includes("antenna") || hasWord("par") || q.includes("plasma etching") || q.includes("gate oxide breakdown")) {
-      return {
+      return wrap({
         a: `**Process Antenna Effect** occurs during manufacturing plasma etching when long metal interconnects act as antennas, accumulating electrostatic charge.
 
 ### Antenna Ratio Formulation:
@@ -361,12 +641,12 @@ $$\\text{PAR} = \\frac{\\sum A_{\\text{metal\\_connected}}}{A_{\\text{gate\\_oxi
           { title: "VLSI Calculator #25: Process Antenna & Diode Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "Innovus PnR Practical Lab", href: "/vlsi/learn/c/cadence-pnr/innovus-practical-lab" },
         ],
-      };
+      });
     }
 
     // 13. CROSSTALK & MILLER EFFECT
     if (q.includes("crosstalk") || q.includes("miller") || q.includes("glitch") || q.includes("delta delay")) {
-      return {
+      return wrap({
         a: `**Crosstalk Noise & Miller Capacitance Coupling**:
 
 ### 1. Miller Coupling Factor ($M_C$):
@@ -382,12 +662,18 @@ $$V_{\\text{glitch}} = V_{DD} \\times \\left(\\frac{C_C}{C_C + C_G}\\right) \\ti
           { title: "VLSI Calculator #26: Miller Coupling & Delta Delay", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "VLSI Calculator #27: Crosstalk Glitch Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
         ],
-      };
+      });
     }
 
     // 14. CLOCK GATING & ICG
-    if (q.includes("clock gating") || hasWord("icg") || q.includes("integrated clock")) {
-      return {
+    if (
+      topIntent?.intentId === "CLOCK_GATING" ||
+      q.includes("clock gating") ||
+      qCorrected.includes("clock gating") ||
+      hasWord("icg") ||
+      q.includes("integrated clock")
+    ) {
+      return wrap({
         a: `**Integrated Clock Gating (ICG)** disables clock distribution to idle flip-flop registers, slashing active dynamic power by 40-70%.
 
 ### Why Latch-Based ICGs are Mandatory:
@@ -400,12 +686,12 @@ $$V_{\\text{glitch}} = V_{DD} \\times \\left(\\frac{C_C}{C_C + C_G}\\right) \\ti
           { title: "VLSI Calculator #14: ICG Power Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "Cadence Voltus Power & Low Power UPF", href: "/vlsi/learn/c/cadence-power/voltus-power-gating-upf" },
         ],
-      };
+      });
     }
 
     // 15. METHOD OF LOGICAL EFFORT (LE)
     if (q.includes("logical effort") || q.includes("stage effort") || hasWord("fo4")) {
-      return {
+      return wrap({
         a: `**Method of Logical Effort (LE)** is Sutherland's analytical framework for sizing logic gates to achieve minimum path delay.
 
 ### Key Equations:
@@ -420,12 +706,12 @@ $$D_{\\text{min}} = N \\cdot F^{1/N} + \\sum p_i$$
           { title: "VLSI Calculator #19: Logical Effort Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "VLSI Calculator #16: FO4 Logic Depth Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
         ],
-      };
+      });
     }
 
     // 16. DFT & SCAN CHAINS (ATPG)
     if (hasWord("dft") || hasWord("atpg") || q.includes("scan chain") || q.includes("stuck-at") || q.includes("transition fault")) {
-      return {
+      return wrap({
         a: `**Design for Testability (DFT) & Automatic Test Pattern Generation (ATPG)**:
 
 ### 1. Scan Insertion Architecture:
@@ -440,12 +726,12 @@ $$D_{\\text{min}} = N \\cdot F^{1/N} + \\sum p_i$$
           { title: "DFT & Scan Chain Architecture Lab", href: "/vlsi/learn/c/dft" },
           { title: "Cadence Innovus PnR Flow", href: "/vlsi/learn/c/cadence-pnr/innovus-practical-lab" },
         ],
-      };
+      });
     }
 
     // 17. FLOORPLANNING, UTILIZATION & MACROS
     if (q.includes("floorplan") || q.includes("utilization") || q.includes("aspect ratio") || q.includes("halo") || q.includes("channel width") || q.includes("pad-limited")) {
-      return {
+      return wrap({
         a: `**Floorplanning & Core/Die Sizing Fundamentals**:
 
 ### Core Formulas:
@@ -460,12 +746,12 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
           { title: "VLSI Calculator #1: Core Area & Dimensions Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
           { title: "VLSI Calculator #3: Macro Halo Sizer", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
         ],
-      };
+      });
     }
 
     // 18. PHYSICAL VERIFICATION (DRC / LVS / ERC)
     if (hasWord("drc") || hasWord("lvs") || hasWord("erc") || q.includes("calibre") || q.includes("pegasus") || q.includes("design rule check")) {
-      return {
+      return wrap({
         a: `**Physical Verification Signoff (DRC / LVS / ERC)**:
 
 1. **Design Rule Checking (DRC)**:
@@ -480,38 +766,41 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
           { title: "Physical Verification DRC/LVS Lab", href: "/vlsi/learn/c/physical-verif" },
           { title: "Innovus PnR Practical Lab", href: "/vlsi/learn/c/cadence-pnr/innovus-practical-lab" },
         ],
-      };
+      });
     }
 
-    // DEFAULT COMPREHENSIVE ENGINEERING SYNTHESIS
-    return {
-      a: `### VLSI Engineering Analysis for: **"${queryText}"**
+    // DYNAMIC INTELLIGENT FALLBACK
+    const recognizedKeywords = Array.from(nlp.normalized.canonicalTokens).filter(
+      (t) => t.length > 2 && !["how", "what", "why", "the", "and", "for", "with", "can", "have", "you", "does"].includes(t)
+    );
 
-1. **Fundamental Physics & Circuit Topology**:
-   - Verify whether the inquiry pertains to **timing closure (setup/hold/recovery)**, **power integrity ($L\\cdot di/dt$ drop)**, **physical design (floorplan/CTS/PnR)**, or **signoff equivalence (LEC/DRC/LVS)**.
-   - Cross-check standard cell Liberty (.lib) lookup tables, parasitic SPEF interconnect models, and multi-mode multi-corner (MMMC) operating views.
+    return wrap({
+      a: `### VLSI Engineering Assistant: Analysis for **"${queryText}"**
 
-2. **Standard Production Signoff Rules**:
-   - **Timing**: Sign off with Path-Based Analysis (PBA) + Common Path Pessimism Removal (CPPR) across all active corners (-40°C to +125°C).
-   - **Power Grid**: Ensure static IR drop $< 2\\%\\,V_{DD}$ and dynamic peak voltage drop $< 5\\%\\,V_{DD}$ using distributed decaps.
-   - **Signal Integrity**: Guarantee max glitch voltage $< 20\\%\\,V_{DD}$ and antenna ratio $< 400:1$.
+I analyzed your query across digital synthesis, physical design, and static timing analysis.
 
-3. **Recommended EDA Verification Tools**:
-   - **Timing & SI**: Cadence Tempus / Synopsys PrimeTime
-   - **Power & Dynamic IR**: Cadence Voltus / Ansys RedHawk-SC
-   - **Physical Implementation**: Cadence Innovus / Synopsys ICC2
-   - **Formal Equivalence**: Cadence Conformal LEC / Synopsys Formality`,
+${recognizedKeywords.length > 0 ? `**Detected Key Topics:** ${recognizedKeywords.map((k) => `\`${k}\``).join(", ")}\n` : ""}
+To get the exact command syntax or silicon-level explanation, you can try:
+1. **EDA Command Query**: Ask syntax like *"command to report unconstrained paths"*, *"how to query all macros"*, or *"add tieoffs syntax"*.
+2. **Synthesis & Structural Lint**: Ask about *"how to fix unresolved modules"*, *"multiple drivers contention"*, *"remove continuous assigns"*, or *"combinational loop feedback"*.
+3. **STA & Physical Signoff**: Ask about *"why hold is independent of clock period"*, *"setup slack equation"*, *"electromigration Black's equation"*, or *"CPPR calculation"*.
+
+Explore the interactive studios below for live waveform analysis, SDC constraints, and automated DRC/STA verification:`,
       links: [
-        { title: "VLSI Calculator Hub (34 Live Sizers)", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
-        { title: "Interactive Timing Studio", href: "/vlsi/timing-studio" },
+        { title: "Synthesis & Timing Studio", href: "/vlsi/timing-studio" },
+        { title: "Interview Masterclass (60+ Scenarios)", href: "/vlsi/interview-masterclass" },
         { title: "MMMC Corner Matrix Studio", href: "/vlsi/mmmc-studio" },
-        { title: "Cadence Voltus Power Studio", href: "/vlsi/power-studio" },
+        { title: "VLSI Calculator Hub (34 Live Sizers)", href: "/vlsi/learn/c/cadence-pnr/vlsi-calculators" },
       ],
-    };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAllowed) {
+      setShowKeyModal(true);
+      return;
+    }
     if (!question.trim()) return;
     const currentQ = question.trim();
     setQuestion("");
@@ -525,6 +814,10 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
   };
 
   const handleSelectQuickPrompt = (p: QuickPrompt) => {
+    if (!isAllowed) {
+      setShowKeyModal(true);
+      return;
+    }
     setQuestion(p.query);
   };
 
@@ -533,24 +826,31 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
       className="border rounded-2xl p-6 shadow-md space-y-6 relative overflow-hidden transition-all"
       style={{
         background: "var(--ln-ask-bg)",
-        borderColor: "var(--ln-ask-border)",
+        borderColor: isAllowed ? "var(--ln-ask-border)" : "rgba(245, 158, 11, 0.4)",
       }}
     >
+      {/* Header Bar */}
       <div
         className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b"
         style={{ borderColor: "var(--ln-border)" }}
       >
         <div className="space-y-1">
-          <div
-            className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold"
-            style={{
-              background: "var(--ln-accent-soft)",
-              color: "var(--ln-accent)",
-              border: "1px solid var(--ln-border)",
-            }}
-          >
-            <Bot className="w-3.5 h-3.5" />
-            VLSI AI TUTOR & EDA COMMAND ASSISTANT
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold"
+              style={{
+                background: "var(--ln-accent-soft)",
+                color: "var(--ln-accent)",
+                border: "1px solid var(--ln-border)",
+              }}
+            >
+              <Bot className="w-3.5 h-3.5" />
+              VLSI AI TUTOR & EDA COMMAND ASSISTANT
+            </div>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm">
+              <Crown className="w-3 h-3 text-amber-400" />
+              PRO & MAX USERS ONLY
+            </span>
           </div>
           <h2
             className="text-xl font-bold tracking-tight flex items-center gap-2"
@@ -563,7 +863,18 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start md:self-auto shrink-0">
+          {isAllowed ? (
+            <span className="px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Unlocked · {ent.label} Tier
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5 text-amber-300 border-amber-500/30 bg-amber-500/10">
+              <Lock className="w-3.5 h-3.5 text-amber-400" />
+              Locked · {ent.label} Tier
+            </span>
+          )}
           <span
             className="px-2.5 py-1 rounded-lg border text-[11px] font-mono flex items-center gap-1.5"
             style={{
@@ -578,72 +889,265 @@ $$W_{\\text{channel}} = \\frac{N_{\\text{pins}} \\times P_{\\text{track}}}{N_{\\
         </div>
       </div>
 
-      {/* Quick Prompts */}
-      <div className="space-y-2">
+      {/* Paywall Gate for Free / Guest Users */}
+      {!isAllowed ? (
         <div
-          className="text-[11px] font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
-          style={{ color: "var(--ln-muted)" }}
+          className="rounded-2xl p-6 sm:p-8 border text-center space-y-5 relative overflow-hidden"
+          style={{
+            background: "color-mix(in srgb, var(--ln-bg-elev) 95%, transparent)",
+            borderColor: "rgba(245, 158, 11, 0.3)",
+          }}
         >
-          <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-          Popular EDA Commands & Interview Questions:
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {QUICK_PROMPTS.map((p, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => handleSelectQuickPrompt(p)}
-              className="px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer text-left hover:brightness-105"
-              style={{
-                background: "var(--ln-prompt-bg)",
-                borderColor: "var(--ln-prompt-border)",
-                color: "var(--ln-prompt-text)",
-              }}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+          <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-500/5 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10">
+            <Lock className="w-7 h-7" />
+          </div>
 
-      {/* Question Input Form */}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="relative">
-          <textarea
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Type any VLSI question or EDA command (e.g. 'what is command to get all macros?', 'how to get all flops?', 'set multicycle path syntax in SDC', 'how to add power stripes in Innovus')..."
-            rows={3}
-            className="w-full rounded-xl border p-3.5 text-xs focus:outline-none focus:border-blue-500 font-sans leading-relaxed shadow-sm transition-all"
-            style={{
-              background: "var(--ln-input-bg)",
-              borderColor: "var(--ln-input-border)",
-              color: "var(--ln-input-text)",
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!question.trim() || isAnswering}
-            className={`absolute right-3 bottom-3 px-4 py-2 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
-              !question.trim() || isAnswering
-                ? "bg-slate-400/20 text-slate-400 border border-slate-300/40 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-500 text-white border border-blue-400 shadow-blue-600/30"
-            }`}
-          >
-            {isAnswering ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Searching DB...
-              </>
-            ) : (
-              <>
-                <Send className="w-3.5 h-3.5" />
-                Ask Question
-              </>
-            )}
-          </button>
+          <div className="space-y-2 max-w-lg mx-auto">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              EXCLUSIVE TO PRO & MAX PLANS
+            </div>
+            <h3 className="text-xl font-black tracking-tight" style={{ color: "var(--ln-text)" }}>
+              Unlock the VLSI AI Tutor & EDA Command Assistant
+            </h3>
+            <p className="text-xs leading-relaxed" style={{ color: "var(--ln-muted)" }}>
+              You are currently on the <span className="font-semibold" style={{ color: "var(--ln-text)" }}>{ent.label} Tier</span>. The intelligent typo-tolerant AI Assistant is restricted to <span className="font-semibold text-amber-400">Pro</span> and <span className="font-semibold text-amber-400">Max</span> subscribers.
+            </p>
+          </div>
+
+          {/* Value props pills */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-left text-xs">
+            <div className="p-3 rounded-xl border" style={{ background: "var(--ln-bg)", borderColor: "var(--ln-border)" }}>
+              <div className="font-bold text-amber-300 flex items-center gap-1.5 mb-1">
+                <Terminal className="w-3.5 h-3.5" />
+                EDA Commands
+              </div>
+              <p className="text-[11px] leading-tight" style={{ color: "var(--ln-muted)" }}>
+                Exact syntax for Cadence (Innovus, Genus, Tempus, Voltus) and Synopsys (DC, ICC2).
+              </p>
+            </div>
+            <div className="p-3 rounded-xl border" style={{ background: "var(--ln-bg)", borderColor: "var(--ln-border)" }}>
+              <div className="font-bold text-blue-400 flex items-center gap-1.5 mb-1">
+                <Bot className="w-3.5 h-3.5" />
+                Typo Resilience
+              </div>
+              <p className="text-[11px] leading-tight" style={{ color: "var(--ln-muted)" }}>
+                Understands misspelled netlist flags (check_design -unresolved, multiple_driver, assigns).
+              </p>
+            </div>
+            <div className="p-3 rounded-xl border" style={{ background: "var(--ln-bg)", borderColor: "var(--ln-border)" }}>
+              <div className="font-bold text-emerald-400 flex items-center gap-1.5 mb-1">
+                <Code2 className="w-3.5 h-3.5" />
+                Silicon Derivations
+              </div>
+              <p className="text-[11px] leading-tight" style={{ color: "var(--ln-muted)" }}>
+                Deep physics for setup/hold, ITD at -40°C, EM Black's equation, and clock gating.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/25 transition-all cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              Upgrade to Pro or Max
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowKeyModal(true)}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border text-xs font-mono font-semibold transition-all hover:bg-white/5 cursor-pointer"
+              style={{ borderColor: "var(--ln-border)", color: "var(--ln-text)" }}
+            >
+              <Key className="w-3.5 h-3.5 text-blue-400" />
+              Enter Pro/Max License Key
+            </button>
+          </div>
+
+          {/* Dev Mode simulator button */}
+          <div className="pt-2 border-t border-white/5 flex items-center justify-center gap-2 text-[11px] font-mono text-[var(--ln-muted)]">
+            <span>Simulator:</span>
+            <button
+              type="button"
+              onClick={() => setDevSimulateFree(false)}
+              className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 cursor-pointer"
+            >
+              Switch to Pro/Max (Unlocked)
+            </button>
+          </div>
         </div>
-      </form>
+      ) : (
+        <>
+          {/* Quick Prompts */}
+          <div className="space-y-2">
+            <div
+              className="text-[11px] font-mono font-semibold uppercase tracking-wider flex items-center gap-1.5"
+              style={{ color: "var(--ln-muted)" }}
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+              Popular EDA Commands & Interview Questions:
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_PROMPTS.map((p, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSelectQuickPrompt(p)}
+                  className="px-3 py-1.5 rounded-xl border text-xs transition-all cursor-pointer text-left hover:brightness-105"
+                  style={{
+                    background: "var(--ln-prompt-bg)",
+                    borderColor: "var(--ln-prompt-border)",
+                    color: "var(--ln-prompt-text)",
+                  }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Question Input Form */}
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="relative">
+              <textarea
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Type any VLSI question or EDA command (e.g. 'what is command to get all macros?', 'how to get all flops?', 'set multicycle path syntax in SDC', 'how to add power stripes in Innovus')..."
+                rows={3}
+                className="w-full rounded-xl border p-3.5 text-xs focus:outline-none focus:border-blue-500 font-sans leading-relaxed shadow-sm transition-all"
+                style={{
+                  background: "var(--ln-input-bg)",
+                  borderColor: "var(--ln-input-border)",
+                  color: "var(--ln-input-text)",
+                }}
+              />
+              <button
+                type="submit"
+                disabled={!question.trim() || isAnswering}
+                className={`absolute right-3 bottom-3 px-4 py-2 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-md cursor-pointer ${
+                  !question.trim() || isAnswering
+                    ? "bg-slate-400/20 text-slate-400 border border-slate-300/40 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-500 text-white border border-blue-400 shadow-blue-600/30"
+                }`}
+              >
+                {isAnswering ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    Searching DB...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    Ask Question
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Dev simulator button for testing locked Free tier */}
+          <div className="flex items-center justify-end gap-2 text-[10px] font-mono text-[var(--ln-muted)] opacity-60 hover:opacity-100 transition-opacity">
+            <span>Simulator:</span>
+            <button
+              type="button"
+              onClick={() => setDevSimulateFree(true)}
+              className="px-2 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 cursor-pointer"
+            >
+              Test Free Tier (Lock AI)
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Key Activation Modal */}
+      {showKeyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="w-full max-w-md rounded-2xl border p-6 space-y-4 shadow-2xl relative"
+            style={{
+              background: "var(--ln-bg-elev, #111827)",
+              borderColor: "var(--ln-border, #374151)",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setShowKeyModal(false);
+                setKeyErrorMsg("");
+                setKeyStatus("idle");
+              }}
+              className="absolute top-4 right-4 p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <Key className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Enter Pro / Max API Key</h3>
+                <p className="text-xs text-slate-400">Unlock full access to the VLSI AI Assistant</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleKeySubmit} className="space-y-3 pt-2">
+              <div>
+                <input
+                  type="password"
+                  value={keyInput}
+                  onChange={(e) => setKeyInput(e.target.value)}
+                  placeholder="Paste your API key (or 'pro' / 'max' in dev)..."
+                  className="w-full rounded-xl border px-3.5 py-2.5 text-xs font-mono bg-slate-950 border-slate-700 text-white placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                  autoFocus
+                />
+              </div>
+
+              {keyErrorMsg && (
+                <div className="text-xs text-red-400 flex items-center gap-1.5 font-mono">
+                  <span>⚠️</span> {keyErrorMsg}
+                </div>
+              )}
+
+              {keyStatus === "success" && (
+                <div className="text-xs text-emerald-400 flex items-center gap-1.5 font-mono">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> License validated! Unlocking AI Assistant...
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowKeyModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-mono text-slate-300 hover:bg-white/5 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!keyInput.trim() || keyStatus === "validating"}
+                  className="px-5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-mono font-bold transition-all disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {keyStatus === "validating" ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Validating...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      Validate & Unlock
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Answers History */}
       {history.length > 0 && (

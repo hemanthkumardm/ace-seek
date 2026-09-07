@@ -18,3 +18,8 @@ export const LAYER_MIN_PLAN: Record<LearnLayer, PlanTier> = {
 export function layerUnlocked(tier: PlanTier, layer: LearnLayer): boolean {
   return learnPlanRank(tier) >= planRank(LAYER_MIN_PLAN[layer]);
 }
+
+/** AI Assistant is unlocked for Pro, Max, and Team tiers only. */
+export function aiAccessUnlocked(tier: PlanTier): boolean {
+  return learnPlanRank(tier) >= planRank("pro");
+}

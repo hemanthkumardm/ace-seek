@@ -98,6 +98,7 @@ export type Entitlements = {
   canVlsiReports: boolean;
   canVlsiExportTcl: boolean;
   canVlsiEco: boolean;
+  canAccessVlsiAi: boolean;
 
   // --- OpenROAD peer platform (openroad.ace-seek.com) ---
   /** Platform access (project upload + hub) */
@@ -169,6 +170,7 @@ const GUEST: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: true,
   canVlsiEco: true,
+  canAccessVlsiAi: false,
 
   canAccessOpenroad: true,
   canOpenroadScripts: true,
@@ -230,6 +232,7 @@ const FREE: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: false,
   canVlsiEco: false,
+  canAccessVlsiAi: false,
 
   // Free: VLSI handoff download only; OpenROAD platform starts at Pro
   canAccessOpenroad: false,
@@ -282,6 +285,7 @@ const PRO: Entitlements = {
   canVlsiReports: true,
   canVlsiExportTcl: true,
   canVlsiEco: false,
+  canAccessVlsiAi: true,
 
   // Pro: upload handoff + full script / local docker packs
   canAccessOpenroad: true,
@@ -495,6 +499,8 @@ export const FEATURE_MIN_PLAN: Record<string, PlanTier> = {
   vlsi_export_tcl: "pro",
   vlsi_power: "max",
   vlsi_eco: "max",
+  vlsi_ai: "pro",
+  vlsi_ai_assistant: "pro",
   openroad_platform: "pro",
   openroad_scripts: "pro",
   openroad_run: "max",
@@ -582,6 +588,7 @@ export function publicEntitlements(e: Entitlements) {
       reports: e.canVlsiReports,
       exportTcl: e.canVlsiExportTcl,
       eco: e.canVlsiEco,
+      ai: e.canAccessVlsiAi,
     },
     openroad: {
       access: e.canAccessOpenroad,

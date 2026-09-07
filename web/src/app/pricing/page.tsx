@@ -47,6 +47,62 @@ export default function PricingPage() {
         {/* Pricing cards — paid plans use secure checkout */}
         <PricingClient />
 
+        {/* 🌟 STANDALONE ONE-TIME BUNDLE: VLSI Interview Masterclass */}
+        <div className="sk-panel p-8 md:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/30 via-[var(--surface-panel)] to-slate-950/60 space-y-6 shadow-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="sk-icon-well w-10 h-10 rounded-xl bg-amber-500/10 border-amber-500/30 text-amber-400">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="sk-badge text-[10px] font-black uppercase text-amber-400 border-amber-500/30">
+                  Standalone One-Time Purchase · Lifetime Access
+                </span>
+                <h3 className="text-xl md:text-2xl font-black text-white mt-1">
+                  Top Semiconductor Company Interview Prep Masterclass
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden sm:block">
+                <span className="text-xs text-slate-400 line-through block">₹6,999</span>
+                <span className="text-2xl font-black text-amber-400">₹2,499</span>
+              </div>
+              <a
+                href="/vlsi/interview-masterclass"
+                className="sk-btn sk-btn-primary !bg-amber-500 hover:!bg-amber-400 !text-slate-950 !font-black !text-xs !py-3 !px-6 inline-flex items-center gap-2 shadow-lg shadow-amber-950/50"
+              >
+                <span>Explore Masterclass Bundle</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
+            Real technical interview questions, mathematical derivations, Tcl script fixes, and common traps from <strong>Nvidia, Qualcomm, Apple, Intel, AMD, Texas Instruments, Broadcom, and Arm</strong>. Instant lifetime access for a single one-time payment of <strong>₹2,499 ($29 USD)</strong> — not tied to any recurring subscription.
+          </p>
+
+          <div className="grid sm:grid-cols-4 gap-3 pt-2 border-t border-amber-500/20 text-xs">
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">12+ Top Companies</span>
+              <p className="text-slate-300 text-[11px]">Nvidia, Qualcomm, Intel, Apple, AMD, TI, Broadcom.</p>
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-emerald-400 font-mono">Step-by-Step Solutions</span>
+              <p className="text-slate-300 text-[11px]">Exact formulas, circuit physics, and Tcl scripts.</p>
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-cyan-400 font-mono">Mock Exam Simulators</span>
+              <p className="text-slate-300 text-[11px]">Timed technical rounds & instant scorecard breakdown.</p>
+            </div>
+            <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
+              <span className="text-[10px] font-bold uppercase text-purple-400 font-mono">Lifetime Updates</span>
+              <p className="text-slate-300 text-[11px]">Free access to all new company questions added.</p>
+            </div>
+          </div>
+        </div>
+
         {/* DEDICATED CALLOUT: Custom Projects & Business Automation Portals */}
         <div className="sk-panel p-8 md:p-10 border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 via-[var(--surface-panel)] to-slate-950/40 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">

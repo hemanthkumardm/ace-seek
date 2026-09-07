@@ -1794,12 +1794,17 @@ set_analysis_view \\
       "The Setup Check Equation: Data launched by register 1 on clock edge 0 must arrive at register 2 before clock edge 1 minus library setup time: T_c2q + T_comb + T_net <= T_clk + T_skew - T_setup - T_uncertainty. Setup is a maximum delay constraint checked at the highest frequency and slowest PVT corner.",
       "The Hold Check Equation: Data launched by register 1 must not change so quickly that it overwrites previous data before the capturing register holds it: T_c2q + T_comb_min + T_net_min >= T_skew + T_hold + T_uncertainty. Hold is a minimum delay constraint independent of clock period, checked at the fastest PVT corner.",
       "The 4 Path Groups: 1) reg2reg (Internal sequential pipeline paths), 2) in2reg (Input ports to first flop), 3) reg2out (Final flop to output ports), 4) in2out (Pure feedthrough combinational paths).",
+      "The Whiteboard Golden Formula Card: Setup Slack S_su = (T_clk + T_cp,C^early - T_su - T_unc) - (T_cp,L^late + T_co^max + T_dp^max). Setup-hurting skew is Delta = T_cp,L^late - T_cp,C^early. Hold Slack S_h = (T_cp,L^early + T_co^min + T_dp^min) - (T_cp,C^late + T_h + T_unc^hold). When capture clock is delayed by post-CTS skew, hold slack drops by the exact skew delta.",
+      "The I/O External Delay Allocation Rule: set_input_delay models external launch latency and belongs strictly to Data Arrival Time (T_arr = T_i_del + T_comb). On R2O paths, set_output_delay is subtracted from Data Required Time (T_req = T_clk - T_o_del - T_unc) in standard EDA reports, which is mathematically identical to the dual arrival form S = T_clk - T_unc - (T_arr + T_o_del).",
+      "The 30-Second Rapid-Fire Rules: 1) +Delta max output_delay or input_delay reduces setup slack by the exact same delta; 2) Multicycle setup 2 expands setup capture to 2*T_clk, but requires set_multicycle_path 1 -hold to prevent checking hold at edge T; 3) On I2O paths with physical pads, core gate upsizing cannot fix timing if pad intrinsic delays exceed the clock cycle.",
     ]),
 
   quiz("sta", "beginner", "sta-beginner-quiz", "STA — Beginner Equations & Slack Quiz", [
     { id: "sta_b1", prompt: "If a circuit has a negative setup slack (WNS = -0.25ns), which action will fix the violation?", choices: ["Decreasing clock frequency (increasing period) or sizing up combinational logic gates to reduce propagation delay", "Increasing clock uncertainty", "Increasing hold time", "Adding false paths blindly"], answer: 0, explain: "Setup slack is proportional to clock period; reducing data path delay or increasing period will close setup timing." },
     { id: "sta_b2", prompt: "Why is hold time independent of clock period (T_clk)?", choices: ["Hold checks data stability against the *same* clock edge (or immediate next edge in same cycle), checking minimum flight time", "Hold only applies to asynchronous circuits", "Hold is calculated in simulation only", "Hold is an SDC command"], answer: 0, explain: "Hold verifies that fast data does not contaminate the capture flip-flop during the active clock edge." },
     { id: "sta_b3", prompt: "Positive clock skew (Capture clock arrives later than Launch clock):", choices: ["Helps Setup timing but hurts Hold timing", "Hurts Setup timing and helps Hold timing", "Hurts both Setup and Hold", "Has zero effect on timing"], answer: 0, explain: "Positive skew gives data extra time to arrive for setup, but leaves less margin before the next data wave overwrites it for hold." },
+    { id: "sta_b4", prompt: "After setting 'set_multicycle_path 2 -setup', why is 'set_multicycle_path 1 -hold' typically required?", choices: ["Because the EDA tool defaults to checking hold against the edge before setup capture (edge T), creating false multi-hundred picosecond hold violations", "To disable clock gating", "To turn the flops into latches", "Because SDC syntax requires all commands in pairs"], answer: 0, explain: "Without -hold 1, the tool checks data launched at 0 against capture edge T instead of edge 0, requiring impossible data delays." },
+    { id: "sta_b5", prompt: "Where does 'set_input_delay' enter the setup slack equation in standard STA bookkeeping?", choices: ["Added directly to Data Arrival Time (T_arr = T_launch + T_input_delay + T_comb)", "Subtracted from Data Required Time", "Added to clock uncertainty", "Ignored on setup checks"], answer: 0, explain: "set_input_delay represents off-chip transmitter flight time and is strictly part of the data arrival path." },
   ]),
 
   theory("sta", "standard", "sta-standard-crosstalk-si", "Standard: Signal Integrity (SI) & Crosstalk Delta-Delay", 18,
@@ -2276,6 +2281,8 @@ report_cdc -violations -verbose > cdc_signoff_audit.rpt
     "The fundamental taxonomy of multi-domain power intent, supply distribution, and MTCMOS power switches.",
     [
       "Why Power Formats (UPF / CPF) Exist: In modern SoCs, RTL Verilog describes logical behavior without physical power pins. UPF (IEEE 1801) specifies multi-voltage supplies, power-gating switches, isolation cells, and retention registers as a separate power intent contract across synthesis, simulation, and physical design.",
+      "UPF vs Legacy CPF Mapping: 1) Default Scope: `create_power_domain -include_scope` (UPF) ↔ `create_power_domain -default` (CPF); 2) Sub-domain Elements: `-elements {u_core}` ↔ `-instances {u_core}`; 3) Power/Ground Rails: `create_supply_net` ↔ `create_power_nets` / `create_ground_nets`; 4) Power Switches: `create_power_switch -on_state` ↔ `create_power_switch -enable_condition_pin`; 5) Domain Binding: `set_domain_supply_net` ↔ `update_power_domain -primary_*`; 6) Isolation: `set_isolation` / `set_isolation_control` ↔ `create_isolation_rule`; 7) Level Shifters: `set_level_shifter` ↔ `create_level_shifter_rule`; 8) State Retention: `set_retention` ↔ `create_state_retention_rule`; 9) Power States: `create_pst` / `add_pst_state` ↔ `create_power_mode`.",
+      "The 10-Step Golden Authoring Order: To prevent unresolved object dependencies in Genus/Innovus, author power intent strictly in order: 1) `upf_version` -> 2) `create_supply_net/port` -> 3) `create_power_domain` -> 4) `set_domain_supply_net` -> 5) `create_power_switch` -> 6) `set_isolation` & control -> 7) `set_level_shifter` -> 8) `set_retention` -> 9) `create_pst` -> 10) `set_port_attributes`.",
       "Power Domains & Supply Networks: `create_power_domain PD_TOP -include_scope` defines the default root domain. Switchable sub-blocks are defined via `create_power_domain PD_CPU -elements {u_cpu_cluster}`. Supply networks are constructed using `create_supply_port`, `create_supply_net`, and bound via `set_domain_supply_net`.",
       "MTCMOS Power Switches: Multi-Threshold CMOS sleep transistors cut off the power supply to idle blocks. Header switches (High-Vth PMOS between VDD and virtual VDD) or Footer switches (NMOS between virtual VSS and VSS) are declared using `create_power_switch`.",
     ]),
@@ -6494,6 +6501,276 @@ write_do_lec -golden_design rtl \\
 write_design -innovus -base_name handoff/pnr/\${DESIGN_TOP}_synth_out
 ENDCODE
 `
+    ]
+  ),
+
+  theory(
+    "cadence-synthesis",
+    "master",
+    "genus-check-design-timing-lint",
+    "Master: Netlist Structure (check_design) & Timing Lint (check_timing) Troubleshooting Playbook",
+    25,
+    "Comprehensive diagnostic and resolution guide for all check_design structural violations (unresolved, multidriver, undriven, combo loops, assigns, constants, tieoffs) and check_timing constraint hygiene failures.",
+    [
+      `## 1. The Engineering Significance of Structural & Constraint Linting
+
+In modern sub-7nm digital synthesis, achieving zero setup and hold timing violations ($WNS \\ge 0\\,\\text{ps}$, $TNS = 0\\,\\text{ps}$) is completely meaningless if the netlist contains structural defects or invalid timing constraints:
+- **Structural Defects** (such as floating undriven inputs, bus contention from multiple drivers, or continuous Verilog wire assigns) will cause fatal short-circuits, floating transistor gates, gate oxide breakdown, or downstream place-and-route rejections in Cadence Innovus.
+- **Timing Constraint Defects** (such as unclocked sequential flip-flops, unconstrained primary ports, or missing input driving cells) hide real silicon timing failures behind optimistic library lookups, leading to non-functional fabricated chips.
+
+---
+
+## 2. check_design Diagnostic Matrix & Resolution Playbook
+
+Cadence Genus provides a granular set of flags under check_design to isolate each structural flaw before launching compute-heavy optimization passes:
+
+| check_design Flag | Severity | Physical Silicon Hazard | Exact Resolution Protocol |
+| :--- | :--- | :--- | :--- |
+| **-unresolved** | **Fatal / Hard** | Missing module or unmapped library blackbox. Downstream PnR and LEC will fail. | 1. Ingest missing RTL files via 'read_hdl -sv'.<br>2. Add missing standard cell or macro library to 'set_db library'.<br>3. Correct hierarchical module instantiation name mismatches. |
+| **-multiple_driver** | **Fatal / Hard** | Electrical bus contention: two outputs drive the same wire, creating destructive crowbar short-circuit current and indeterminate logic states. | 1. Fix RTL to ensure a single driver per net.<br>2. Resolve multi-drop tri-state busses into dedicated multiplexer trees. |
+| **-combo_loops** | **Fatal / Hard** | Combinational feedback cycle ($A \\to B \\to C \\to A$). Breaks STA monotonicity, causes arbitrary arc disabling, and hangs simulation. | 1. Audit cycle with 'check_design -combo_loops' and 'report_loop'.<br>2. Break feedback in RTL by inserting a pipeline register stage.<br>3. If false loop, disable surgically via 'set_disable_timing'. |
+| **-undriven** | **Hard / High** | High-impedance floating transistor gate oxide prone to ESD breakdown and floating noise oscillations. | 1. Connect floating pin in RTL.<br>2. If intentionally constant, drive via 'connect -constant 0|1 [get_db pins <pin>]'.<br>3. Bind all constants to physical tie cells using 'add_tieoffs'. |
+| **-assigns** | **Hard (PnR Blocker)** | Verilog continuous assigns ('assign b = a;') represent raw wire shorts; triggers fatal LVS shorts and routing DRCs in Innovus. | 1. Configure buffer cell: 'set_remove_assign_options -buffer_or_inverter BUFX2 -design <top>'.<br>2. Remove assigns: 'remove_assigns_without_opt -design <top> -verbose'.<br>3. Or enable during compilation: 'set_db remove_assigns true'. |
+| **-constant** | **Contextual** | Leaf pins tied to static 1'b0 or 1'b1. | - **On pad-ring top:** Finding ~350 constant pins is **normal and expected** (hard-wired pad configurations for slew rate, pull-up/down, drive strength). **Never delete them.**<br>- **In core logic:** Review intent; ensure constants map to tie cells. |
+| **-through_tie_cell** | **Signoff Gate** | Constant leaf pins connected directly to raw $V_{\\text{DD}}$ / $V_{\\text{SS}}$ power rails (gate oxide breakdown risk). | Map raw constants to dedicated ESD-protective tie cells:<br>'add_tieoffs -high TIEHI_X1 -low TIELO_X1 -max_fanout 8 <top>'<br>Verify with 'check_design -through_tie_cell'. |
+| **-unloaded** | **Medium** | Unused sequential flip-flops or unconnected ports. | 1. Remove dead RTL logic.<br>2. Clean unreferenced logic with 'delete_unloaded_undriven <top>'.<br>3. If required for scan or future ECOs, protect with 'set_db [get_cells ...] .preserve true'. |
+| **-unloaded_comb** | **Soft (Mid-flow)** | Dead combinational logic cones. | Normal before mapping (GTECH artifacts). Automatically swept by 'syn_generic' / 'syn_map' / 'syn_opt'. If remaining post-opt, run 'delete_unloaded_undriven'. |
+| **-lib_lef_consistency**| **Physical Prep** | Pin name, direction, or geometry mismatch between Liberty (.lib) and physical LEF. | Audit technology LEF and Liberty files to ensure exact 1-to-1 pin name and port direction matching before Innovus handoff. |
+
+---
+
+## 3. check_timing: The 4 Classic Constraint Hygiene Failures
+
+check_timing audits **constraint quality** before you trust any WNS/TNS metrics:
+
+CODE tcl
+# Comprehensive timing intent and constraint audit:
+check_timing -verbose > reports/check_timing_audit.rpt
+report_timing -unconstrained -max_paths 50 > reports/unconstrained_paths.rpt
+ENDCODE
+
+### 1. Clock Pins Without Waveform (Fatal Error — Must Be 0)
+- **Problem:** Sequential register clock pins receive no clock signal. Their timing paths are completely unconstrained, causing the synthesis engine to ignore them.
+- **Root Causes:**
+  1. Missing root clock: 'create_clock -name CLK -period 2.0 [get_ports pad_clk]'.
+  2. Missing generated clock on clock divider / PLL outputs:
+     'create_generated_clock -name CLK_DIV2 -source [get_ports pad_clk] -divide_by 2 [get_pins u_div/q_reg/Q]'.
+  3. Clock gating cell enable tied low, or disabled timing arc blocking propagation.
+
+### 2. Inputs / Outputs Without Clocked External Delays (Unconstrained Boundaries)
+- **Problem:** Primary I/O ports lack 'set_input_delay' or 'set_output_delay'. Paths through these ports are unoptimized and unverified.
+- **Fix:**
+CODE tcl
+# Constrain all functional inputs relative to the functional clock:
+set_input_delay -max 0.400 -clock CLK [remove_from_collection [all_inputs] [get_ports pad_clk]]
+set_input_delay -min 0.050 -clock CLK [remove_from_collection [all_inputs] [get_ports pad_clk]]
+
+# Constrain all functional outputs:
+set_output_delay -max 0.500 -clock CLK [all_outputs]
+set_output_delay -min 0.050 -clock CLK [all_outputs]
+ENDCODE
+
+### 3. Inputs Without Driver or Transition (Optimism Trap)
+- **Problem:** Without an external driving cell, the synthesis tool defaults to an ideal $0\\,\\text{ps}$ input slew. Non-linear delay model (NLDM) tables will look up maximum speed, injecting $60\\text{--}100\\,\\text{ps}$ of false optimism into the first stage of logic.
+- **Fix:**
+CODE tcl
+# Apply realistic library driver cell:
+set_driving_cell -lib_cell BUFX4 [remove_from_collection [all_inputs] [get_ports {pad_clk pad_rst_n}]]
+# Or apply explicit PCB transition slew:
+set_input_transition 0.200 [remove_from_collection [all_inputs] [get_ports pad_clk]]
+ENDCODE
+
+### 4. Outputs Without External Load (Under-Sizing Trap)
+- **Problem:** The tool assumes $0\\,\\text{pF}$ output load, synthesizing the weakest possible drive strength (e.g. 'BUFX1') that will fail on real PCB traces and package parasitics.
+- **Fix:**
+CODE tcl
+# Apply realistic PCB/package capacitive load:
+set_load 0.050 [all_outputs] ;# 50 fF load
+ENDCODE
+
+---
+
+## 4. The Interactive SDC Fast-Loop Workflow
+
+When fixing SDC constraints or resolving check_timing violations, **do NOT launch an expensive multi-hour re-optimization run** just to see the constraint effect!
+
+CODE tcl
+# 1. Activate interactive constraint mode in Genus CUI:
+set_interactive_constraint_modes [all_constraint_modes -active]
+
+# 2. Re-read the modified SDC file:
+read_sdc -echo ../sdc/pad_top_func.sdc
+
+# 3. Immediately re-lint and inspect updated slacks:
+check_timing -verbose
+report_timing -unconstrained -max_paths 20
+report_timing -max_paths 5 -nworst 1
+ENDCODE
+
+---
+
+## 5. Production Netlist Sanitization Sequence
+
+Execute this canonical sanitization sequence before passing any netlist to Cadence Innovus:
+
+CODE tcl
+# Step 1: Remove continuous assigns without altering logic:
+set_remove_assign_options -buffer_or_inverter BUFX2 -design pad_top
+remove_assigns_without_opt -design pad_top -verbose
+set_db remove_assigns true
+
+# Step 2: Clean unreferenced and undriven logic:
+delete_unloaded_undriven pad_top
+
+# Step 3: Insert physical tie-high / tie-low standard cells:
+add_tieoffs -high TIEHI_X1 -low TIELO_X1 -max_fanout 8 pad_top
+
+# Step 4: Final Signoff Verification Gate:
+check_design -all > reports/check_design_signoff.rpt
+check_timing -verbose > reports/check_timing_signoff.rpt
+report_qor > reports/qor_signoff.rpt
+ENDCODE
+`
+    ]
+  ),
+
+  theory(
+    "cadence-synthesis",
+    "master",
+    "genus-complete-index",
+    "Master: The Complete Genus Curriculum Map, 15-Stage Flow & 'No Gaps' Signoff Index",
+    25,
+    "Comprehensive master map of the 15-guide industrial Cadence Genus synthesis curriculum: end-to-end dependency pipeline, topic-to-guide matrix, and self-audit signoff checklists.",
+    [
+      `## 1. The Cadence Genus Digital Synthesis Master Curriculum Map
+
+In production ASIC and SoC development, digital logic synthesis is the foundational bridge converting behavioral RTL architectures into tapeout-ready structural gate netlists. Achieving zero timing violations (WNS ≥ 0 ps, TNS = 0 ps), optimal dynamic/leakage power, and clean formal equivalence across advanced FinFET nodes requires mastery across 15 specialized domains:
+
+\`\`\`
+                                  ┌────────────────────────┐
+                                  │   0. Master Index      │
+                                  └───────────┬────────────┘
+                                              │
+         ┌────────────────────────────────────┼────────────────────────────────────┐
+         ▼                                    ▼                                    ▼
+┌──────────────────┐                ┌──────────────────┐                ┌──────────────────┐
+│ 1. Master Flow   │                │ 2. Command Encyc │                │ 3. Clocks Guide  │
+│ STA & PPA Trade  │                │ Problem -> Fix   │                │ Gen/Mux/Latency  │
+└────────┬─────────┘                └────────┬─────────┘                └────────┬─────────┘
+         │                                    │                                    │
+         ▼                                    ▼                                    ▼
+┌──────────────────┐                ┌──────────────────┐                ┌──────────────────┐
+│ 4. CDC & FIFO    │                │ 5. UPF / CPF     │                │ 6. Low Power LP  │
+│ Synchronizers    │                │ Multi-Rail Arch  │                │ ICG & Multi-Vt   │
+└────────┬─────────┘                └────────┬─────────┘                └────────┬─────────┘
+         │                                    │                                    │
+         ▼                                    ▼                                    ▼
+┌──────────────────┐                ┌──────────────────┐                ┌──────────────────┐
+│ 7. MMMC Analysis │                │ 8. DFT & Scan    │                │ 9. Hierarchical  │
+│ Corners & Views  │                │ JTAG & ATPG      │                │ ILM & Top-Down   │
+└────────┬─────────┘                └────────┬─────────┘                └────────┬─────────┘
+         │                                    │                                    │
+         ▼                                    ▼                                    ▼
+┌──────────────────┐                ┌──────────────────┐                ┌──────────────────┐
+│ 10. Physical PnR │                │ 11. Verification │                │ 12. ECO & Increm │
+│ iSpatial / DEF   │                │ LEC, GLS & SDF   │                │ Post-Mask Fixes  │
+└────────┬─────────┘                └────────┬─────────┘                └────────┬─────────┘
+         │                                    │                                    │
+         ▼                                    ▼                                    ▼
+┌──────────────────┐                ┌──────────────────┐                ┌──────────────────┐
+│ 13. Macros & DP  │                │ 14. SAIF/VCD     │                │ 15. Whiteboard   │
+│ SRAMs & Datapath │                │ Power Activity   │                │ Numeric Drills   │
+└──────────────────┘                └──────────────────┘                └──────────────────┘
+\`\`\`
+
+---
+
+## 2. Topic-to-Document Cross-Reference Matrix
+
+Every synthesis requirement maps directly to an authoritative reference guide:
+
+| Technical Challenge | Authoritative Cadence Guide | Primary Tool Commands |
+|---|---|---|
+| **RTL Build & Elaboration** | \`GENUS_SYNTHESIS_MASTER_INTERVIEW_GUIDE.md\` | \`read_hdl\`, \`elaborate\`, \`check_design -unresolved\` |
+| **Command Diagnostics & Netlist Fixes** | \`GENUS_COMMANDS.md\` | \`get_db\`, \`set_db\`, \`remove_assigns\`, \`add_tieoffs\` |
+| **Root, Generated & Multiplexed Clocks**| \`CLOCKS_COMPLETE_USER_GUIDE.md\` | \`create_clock\`, \`create_generated_clock\`, \`set_clock_groups\` |
+| **Clock Domain Crossing (CDC) & FIFOs** | \`CDC_USER_GUIDE.md\` | \`check_cdc\`, \`set_clock_groups -asynchronous\` |
+| **Multi-Voltage Power Intent (UPF/CPF)** | \`HOW_TO_WRITE_UPF_CPF.md\` | \`read_power_intent -upf\`, \`apply_power_intent\` |
+| **Clock Gating & Leakage Optimization** | \`LOW_POWER_SYNTHESIS_REFERENCE.md\` | \`lp_insert_clock_gating\`, \`opt_leakage_to_dynamic_ratio\` |
+| **Multi-Mode Multi-Corner Signoff** | \`GENUS_MMMC_COMPLETE_GUIDE.md\` | \`read_mmmc\`, \`create_analysis_view\`, \`set_analysis_view\` |
+| **Scan Chain Synthesis & Test Clocks** | \`GENUS_DFT_SCAN_COMPLETE_GUIDE.md\` | \`define_test_clock\`, \`set_db dft_scan_style\` |
+| **Block-Level & Hierarchical ILMs** | \`GENUS_HIERARCHICAL_SYNTHESIS_GUIDE.md\` | \`write_ilm\`, \`read_ilm\`, \`uniquify\`, \`ungroup\` |
+| **Physical-Aware iSpatial Synthesis** | \`GENUS_PHYSICAL_ISPATIAL_GUIDE.md\` | \`read_def\`, \`syn_generic -physical\`, \`syn_opt -spatial\` |
+| **Formal Equivalence & Timing Simulation** | \`GENUS_VERIFICATION_LEC_GLS_SDF_GUIDE.md\` | \`write_hdl -lec\`, \`write_do_lec\`, \`write_sdf\` |
+| **Engineering Change Orders (ECO)** | \`GENUS_ECO_INCREMENTAL_EXCEPTIONS_GUIDE.md\` | \`apply_eco\`, \`syn_opt -incremental\` |
+| **Embedded Memories & Multibit Cells** | \`GENUS_MACROS_MULTIBIT_DATAPATH_GUIDE.md\` | \`use_multibit_cells true\`, \`read_physical -lef\` |
+| **Dynamic Switching Activity & Power** | \`GENUS_ACTIVITY_POWER_SAIF_VCD_GUIDE.md\` | \`read_saif -scale_to_sdc_frequency\`, \`report_power\` |
+| **Manual STA Calculations & Slack Math**| \`TIMING_WHITEBOARD_PROBLEMS.md\` | Setup/Hold whiteboard derivations, OCV, CPPR |
+
+---
+
+## 3. The 15-Stage Industrial RTL-to-GDSII Pipeline Flow
+
+\`\`\`
+1. Session Setup (report_units, read_libs, read_physical -lef)
+   │
+2. RTL Elaboration (read_hdl, elaborate, uniquify)
+   │
+3. Pre-Synthesis Sanity Audit (check_design -unresolved -multiple_driver)
+   │
+4. SDC Timing Intent Ingestion (read_sdc, report_clocks)
+   │
+5. Timing Intent Completeness Lint (check_timing -lint)
+   │
+6. Generic Boolean Optimization (syn_generic)
+   │
+7. Low-Power Clock Gating Insertion (lp_insert_clock_gating, read_saif)
+   │
+8. MMMC Multi-Corner Activation (set_analysis_view)
+   │
+9. Design-for-Test (DFT) Scan Synthesis (define_test_clock, scan replace)
+   │
+10. Technology Library Mapping (syn_map)
+   │
+11. Physical-Aware iSpatial Optimization (syn_opt -spatial, read_def)
+   │
+12. Netlist Sanitization (remove_assigns_without_opt, add_tieoffs)
+   │
+13. Final Signoff Verification Gate (check_design -status, report_qor)
+   │
+14. Formal LEC Verification Handoff (write_hdl -lec, write_do_lec)
+   │
+15. Innovus Common DB Handoff (write_db -common, write_design)
+\`\`\`
+
+---
+
+## 4. The "No Gaps" Tape-Out Self-Audit Checklist
+
+Before approving any synthesis netlist for downstream physical place-and-route in Cadence Innovus:
+
+### ✓ 1. Setup & Environment
+- [ ] Time and capacitance units verified with \`report_units\` (matching foundry .lib definitions).
+- [ ] Target and link libraries loaded with \`check_library\` reporting 0 missing cells.
+- [ ] Technology and standard cell LEF files linked with zero layer or pitch mismatches.
+
+### ✓ 2. Netlist Structural Hygiene
+- [ ] \`check_design -unresolved\` returns 0 unresolved module black-boxes.
+- [ ] \`check_design -multiple_driver\` returns 0 short-circuited nets.
+- [ ] \`check_design -combo_loops\` returns 0 combinational feedback cycles.
+- [ ] All continuous Verilog \`assign\` statements replaced with buffers via \`remove_assigns_without_opt\`.
+- [ ] All floating/constant inputs tied to dedicated TIEHI/TIELO cells via \`add_tieoffs -max_fanout 8\`.
+
+### ✓ 3. Timing & Constraints
+- [ ] All primary and derived clocks verified with \`report_clocks -generated\`.
+- [ ] Zero unconstrained register endpoints reported by \`report_timing -unconstrained\`.
+- [ ] Asynchronous clock groups (\`set_clock_groups -asynchronous\`) validated against physical 2-FF/FIFO RTL synchronizers.
+- [ ] Worst Negative Slack (WNS ≥ 0 ps) and Total Negative Slack (TNS = 0 ps) closed in \`report_qor\`.
+
+### ✓ 4. Power & Physical Readiness
+- [ ] Simulation switching activity ingested with \`-scale_to_sdc_frequency\`.
+- [ ] Clock gating efficiency audited with \`report_clock_gates -include_activity_info\`.
+- [ ] Common database exported via \`write_db -common\` for direct Innovus physical floorplanning.`
     ]
   ),
 

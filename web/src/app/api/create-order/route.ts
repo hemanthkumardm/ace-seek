@@ -7,6 +7,8 @@ const PLAN_PRICES_INR: Record<string, number> = {
   pro: 1299, // ₹1,299
   max: 2499, // ₹2,499
   team: 3999, // ₹3,999
+  interview_bundle: 2499, // ₹2,499 one-time lifetime ($29 USD)
+  interview_masterclass: 2499, // ₹2,499 one-time lifetime ($29 USD)
 };
 
 export async function POST(req: NextRequest) {

@@ -651,12 +651,12 @@ assert(parsedInnovus.constraintModes.length === 1, `Innovus fixture: 1 constrain
 assert(parsedInnovus.constraintModes[0]?.name === "func", `Innovus fixture: mode name func`);
 assert(parsedInnovus.librarySets.length === 2, `Innovus fixture: 2 library sets`);
 assert(
-  parsedInnovus.librarySets.find((l) => l.name === "ffgnp_0p88v_125c")?.files.length === 4,
-  `FFGNP library set has 4 .lib files`
+  parsedInnovus.librarySets.find((l) => l.name === "ff_0p88v_125c")?.files.length === 4,
+  `FF library set has 4 .lib files`
 );
 assert(
-  parsedInnovus.librarySets.find((l) => l.name === "ssgnp_0p72v_m40c")?.files.length === 4,
-  `SSGNP library set has 4 .lib files`
+  parsedInnovus.librarySets.find((l) => l.name === "ss_0p72v_m40c")?.files.length === 4,
+  `SS library set has 4 .lib files`
 );
 assert(parsedInnovus.rcCorners.length === 2, `Innovus fixture: 2 RC corners`);
 assert(
@@ -665,13 +665,13 @@ assert(
 );
 assert(parsedInnovus.opConds.length === 2, `Innovus fixture: 2 opconds`);
 assert(
-  parsedInnovus.opConds.find((o) => o.name === "ssgnp_op_worst_m40c")?.voltage === 0.72,
-  `ssgnp opcond voltage 0.72`
+  parsedInnovus.opConds.find((o) => o.name === "op_worst_m40c")?.voltage === 0.72,
+  `ss opcond voltage 0.72`
 );
 assert(parsedInnovus.delayCorners.length === 2, `Innovus fixture: 2 delay corners`);
 assert(
-  parsedInnovus.delayCorners.some((d) => d.name === "ssgnp_setup_corner" && d.opCondName === "ssgnp_op_worst_m40c"),
-  `ssgnp_setup_corner links opcond by name`
+  parsedInnovus.delayCorners.some((d) => d.name === "setup_corner" && d.opCondName === "op_worst_m40c"),
+  `setup_corner links opcond by name`
 );
 assert(parsedInnovus.analysisViews.length === 2, `Innovus fixture: 2 analysis views`);
 const setupV = parsedInnovus.analysisViews.find((v) => v.name === "func_setup_view");
@@ -680,9 +680,9 @@ assert(!!setupV && setupV.isSetup && setupV.isDynamic && !setupV.isHold, `func_s
 assert(!!holdV && holdV.isHold && holdV.isLeakage && !holdV.isSetup, `func_hold_view is hold+leakage`);
 
 const regen = generateMmmcTcl(parsedInnovus, "cadence");
-assert(regen.includes("create_library_set -name ffgnp_0p88v_125c"), `Regen FFGNP library set`);
-assert(regen.includes("create_opcond -name ffgnp_op_best_125c"), `Regen create_opcond`);
-assert(regen.includes("-opcond ffgnp_op_best_125c"), `Regen delay -opcond`);
+assert(regen.includes("create_library_set -name ff_0p88v_125c"), `Regen FF library set`);
+assert(regen.includes("create_opcond -name op_best_125c"), `Regen create_opcond`);
+assert(regen.includes("-opcond op_best_125c"), `Regen delay -opcond`);
 assert(regen.includes("-setup {func_setup_view}"), `Regen -setup brace`);
 assert(regen.includes("-hold {func_hold_view}"), `Regen -hold brace`);
 assert(regen.includes("-leakage {func_hold_view}"), `Regen -leakage`);

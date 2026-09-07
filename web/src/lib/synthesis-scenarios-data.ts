@@ -1091,7 +1091,7 @@ path_group -view func_setup_view -from [all_inputs]    -to [all_outputs]   -grou
     logSnippet: `Genus Logical Synthesis (WLM Mode): WNS = +40 ps (PASSED)
 Innovus Post-Route Timing (SPEF Mode): WNS = -850 ps (FAILED)
 [CORRELATION-ERROR] Long interconnect wire resistance across 3.5mm floorplan dominated path delay by 78%. WLM estimated zero distance delay!`,
-    principle: "In deep submicron and FinFET nodes (16nm/7nm/Sky130), interconnect wire RC dominates gate delay. Traditional statistical WLMs fail. Physical synthesis with iSpatial invokes embedded placement in memory to accurately model Steiner wire parasitics.",
+    principle: "In deep submicron and FinFET nodes (FinFET/7nm/Sky130), interconnect wire RC dominates gate delay. Traditional statistical WLMs fail. Physical synthesis with iSpatial invokes embedded placement in memory to accurately model Steiner wire parasitics.",
     remedyTcl: `read_physical -lef { ./tech/tech.lef ./libs/stdcells.lef ./libs/macros.lef }
 read_def inputs/floorplan.def
 syn_generic -physical
@@ -3391,6 +3391,926 @@ write_do_lec -golden_design rtl -revised_design outputs/soc_top_netlist.v > lec/
       },
     ],
   },
-];
+  {
+    id: 70,
+    domainId: "setup_closure",
+    domainName: "Setup & Timing Closure",
+    title: "Top-Level WNS = −3.5 ns: I2O Pad Feedthrough Masking Core Logic",
+    severity: "CRITICAL",
+    stageName: "Post-Mapping / syn_map",
+    symptom: "Top-level pad_top synthesis reports catastrophic WNS = −3.52 ns on in2out feedthroughs, while core register-to-register (R2R) slack is positive (+0.91 ns).",
+    logSnippet: `[GENUS-QOR] Path Group 'in2out': WNS = -3.520 ns, TNS = -28.160 ns (Violators: 8)
+[GENUS-QOR] Path Group 'reg2reg': WNS = +0.912 ns, TNS = 0.000 ns (Violators: 0)
+[GENUS-TIMING] Path: 'pad_data_in[0]' -> 'pad_data_out[0]'. Delay = 2.650 ns (Pad In: 0.7ns, Core: 0.55ns, Pad Out: 1.4ns). Required = 2.000 ns.`,
+    principle: "Input-to-output (I2O) combinational paths cross both input and output pad cells with large internal propagation arcs and external load constraints. Core gate sizing cannot fix pad arc physics; I/O paths must be isolated into dedicated cost groups (define_cost_group -name in2out) and registered or constrained realistically.",
+    remedyTcl: `# 1. Isolate I2O into dedicated path group:
+define_cost_group -name in2out
+path_group -from [all_inputs] -to [all_outputs] -group in2out
+set_db [get_db cost_groups in2out] .weight 1.0
 
+# 2. Audit and budget I/O ports:
+report_port -delay [get_ports pad_*]
+set_input_delay  -clock clk_main -max 0.400 [get_ports pad_data_in*]
+set_output_delay -clock clk_main -max 0.350 [get_ports pad_data_out*]
+syn_opt`,
+    beforeMetrics: [
+      { label: "Chip WNS (in2out)", val: "-3.520 ns", bad: true },
+      { label: "Core R2R Slack", val: "+0.912 ns", bad: false },
+      { label: "TNS Violators", val: "8 Paths", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Chip WNS (in2out)", val: "+0.150 ns ✓", bad: false },
+      { label: "Core R2R Slack", val: "+0.912 ns ✓", bad: false },
+      { label: "TNS Violators", val: "0 Paths ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_isolate_in2out",
+        label: "Isolate I2O feedthroughs into a dedicated cost group and budget realistic external pad constraints or register at core boundary",
+        correct: true,
+        explanation: "Correct! Isolating I2O into its own cost group prevents Genus from over-optimizing core logic to compensate for pad physical delays.",
+      },
+      {
+        id: "opt_upsize_core_alu",
+        label: "Upsize all internal ALU combinational logic gates to drive strength X16",
+        correct: false,
+        explanation: "Upsizing internal core logic does not reduce the 2.1 ns delay consumed inside the boundary I/O pad cells.",
+      },
+      {
+        id: "opt_false_path_all_inputs",
+        label: "Apply set_false_path -from [all_inputs] -to [all_outputs] across the entire chip",
+        correct: false,
+        explanation: "Applying unconditional false paths to all I/O disables timing checks indiscriminately and causes silicon failures on real functional interfaces.",
+      },
+    ],
+  },
+  {
+    id: 71,
+    domainId: "timing_lint",
+    domainName: "SDC Timing Intent",
+    title: "Cadence Genus CDC Clock Grouping: -asynchronous vs -logically_exclusive Audit",
+    severity: "HIGH",
+    stageName: "Pre-Synthesis SDC Lint / init_design",
+    symptom: "Genus reports 1,420 unconstrained inter-clock timing violations between 500 MHz PCIe clock and 100 MHz Core clock because asynchronous domain grouping was omitted.",
+    logSnippet: `[GENUS-TIMING] Warning: 1420 paths between clock domains 'clk_core' and 'clk_pci' have no relationship defined.
+[GENUS-TIMING] Max Slack = -8.240 ns (Setup check across asynchronous clock edge).
+[GENUS-LINT] Found 1420 cross-domain paths with missing clock group assertions.`,
+    principle: "Asynchronous clocks running simultaneously on-chip must be isolated using set_clock_groups -asynchronous only after verifying physical synchronizers (2-FF, FIFO) exist. Mode-multiplexed clocks that never operate concurrently must use -logically_exclusive.",
+    remedyTcl: `# 1. Audit cross-domain crossings:
+report_timing -from [get_clocks clk_core] -to [get_clocks clk_pci] -max_paths 10
+
+# 2. Isolate verified asynchronous domains:
+set_clock_groups -name ASYNC_CORE_PCI -asynchronous \\
+  -group [get_clocks clk_core] \\
+  -group [get_clocks clk_pci]
+
+# 3. Verify zero unconstrained crossings remain:
+check_timing -lint`,
+    beforeMetrics: [
+      { label: "Unconstrained CDC Paths", val: "1,420 Paths", bad: true },
+      { label: "False Cross-Domain WNS", val: "-8.240 ns", bad: true },
+      { label: "Timing Intent Integrity", val: "UNVERIFIED", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Unconstrained CDC Paths", val: "0 Paths ✓", bad: false },
+      { label: "False Cross-Domain WNS", val: "CLEAN (Grouped) ✓", bad: false },
+      { label: "Timing Intent Integrity", val: "100% PASSED ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_set_clock_groups_async",
+        label: "Verify physical synchronizers in RTL, then apply set_clock_groups -asynchronous to isolate the independent domains",
+        correct: true,
+        explanation: "Correct! Asynchronous clock domains operating simultaneously must be grouped with set_clock_groups -asynchronous once 2-FF or FIFO synchronizers are verified in RTL.",
+      },
+      {
+        id: "opt_set_clock_groups_logically_exclusive",
+        label: "Apply set_clock_groups -logically_exclusive to the concurrently running PCI and Core clocks",
+        correct: false,
+        explanation: "Logically exclusive is reserved for mutually exclusive operating modes (e.g. Test vs Functional mode). PCIe and Core clocks run concurrently in silicon.",
+      },
+      {
+        id: "opt_set_max_delay_cdc",
+        label: "Set a 0.0 ns max delay on all 1,420 cross-domain nets",
+        correct: false,
+        explanation: "Constraining asynchronous crossings with a 0 ns max delay will cause massive unfixable timing violations.",
+      },
+    ],
+  },
+  {
+    id: 72,
+    domainId: "dft_power",
+    domainName: "Low-Power (UPF) & Clock Gating",
+    title: "Uncalibrated Vectorless Power Synthesis Sizing False Dynamic Hot-Spots",
+    severity: "HIGH",
+    stageName: "Post-Mapping Power Opt / syn_opt -power",
+    symptom: "Genus reports 185 mW dynamic power with 62% consumed by fine-grained ICGs and data bus drivers, because default vectorless toggle rates (0.1) caused over-insertion of ICGs on rarely-used debug logic.",
+    logSnippet: `[GENUS-POWER] Warning: No simulation switching activity (SAIF/VCD) provided.
+[GENUS-POWER] Using vectorless default toggle percentage: 10.00%
+[GENUS-POWER] Inferred 1,840 ICG cells. Clock Gating Efficiency: UNVERIFIED.
+[GENUS-QOR] Total Dynamic Power = 184.6 mW (Core: 48.2 mW, ICG Overhead: 64.1 mW).`,
+    principle: "Vectorless power estimation assumes uniform 10% switching on all nets. This causes Genus to insert ICGs on registers that enable on every cycle (increasing net capacitance) or on debug registers that never toggle (wasting static leakage). Accurate power optimization requires ingesting workload SAIF with -scale_to_sdc_frequency and setting a minimum flop threshold (lp_clock_gating_min_flops >= 4).",
+    remedyTcl: `# 1. Ingest production functional simulation activity:
+read_saif -instance tb_top/u_core -scale_to_sdc_frequency sim/workload.saif
+
+# 2. Set minimum gating threshold to prevent single-bit ICG overhead:
+set_db lp_clock_gating_min_flops 4
+set_db lp_clock_gating_max_flops 64
+
+# 3. Optimize power with real activity awareness:
+set_db opt_power_effort high
+syn_opt -power
+report_clock_gates -include_activity_info
+report_power -by_category -unit mW`,
+    beforeMetrics: [
+      { label: "Total Dynamic Power", val: "184.6 mW", bad: true },
+      { label: "ICG Overhead Dissipation", val: "64.1 mW", bad: true },
+      { label: "Activity Quality", val: "VECTORLESS DEFAULT (10%)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Total Dynamic Power", val: "92.4 mW (-50%) ✓", bad: false },
+      { label: "ICG Overhead Dissipation", val: "14.8 mW ✓", bad: false },
+      { label: "Activity Quality", val: "SAIF CORRELATED (98.4%) ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_ingest_saif_min_flops",
+        label: "Ingest production simulation SAIF with -scale_to_sdc_frequency and set lp_clock_gating_min_flops to 4 to eliminate single-bit ICG overhead",
+        correct: true,
+        explanation: "Correct! Real switching activity enables Genus to gate only true high-enable nets, while setting min_flops prevents inserting ICGs on single registers where cell overhead exceeds savings.",
+      },
+      {
+        id: "opt_disable_all_clock_gating",
+        label: "Globally disable clock gating to eliminate all ICG cell overhead",
+        correct: false,
+        explanation: "Disabling clock gating completely will cause flip-flop internal clock pin capacitance to switch continuously on every clock edge, exploding dynamic power.",
+      },
+      {
+        id: "opt_increase_toggle_rate_vectorless",
+        label: "Increase lp_default_toggle_percentage to 50% to force more aggressive gate downsizing",
+        correct: false,
+        explanation: "Arbitrarily raising default toggle rates distorts timing cost weighting without providing accurate microarchitectural activity.",
+      },
+    ],
+  },
+  {
+    id: 73,
+    domainId: "check_design",
+    domainName: "Design Lint & Hygiene",
+    title: "Unresolved Macro Models & Floating Constant Pins Halt Physical Placement",
+    severity: "CRITICAL",
+    stageName: "Pre-Synthesis Lint & Netlist Sanitization",
+    symptom: "Innovus P&R aborts floorplan placement with fatal LVS opens and unplaced macros because Genus synthesis passed without -unresolved and -through_tie_cell signoff audits.",
+    logSnippet: `[GENUS-LINT] Error: check_design detected 4 unresolved macro modules: 'u_sram_256x32'
+[GENUS-LINT] Warning: 86 constant input pins tied directly to VDD/VSS without TIE cells.
+[INNOVUS-PLACE] Fatal: Cannot place unlinked logical-only cells. Gate dielectric rule violated.`,
+    principle: "check_design -unresolved is a fatal blocker: missing macro models prevent LEF linking and place-and-route. Direct ties to raw VDD/VSS rails expose thin gate oxides to breakdown; constant nets must be tied through dedicated TIEHI/TIELO cells using add_tieoffs.",
+    remedyTcl: `# 1. Audit structural health:
+check_design -unresolved
+check_design -constant
+
+# 2. Link missing SRAM/IP Liberty and LEF:
+set_db library [list $STD_LIB $IO_LIB $SRAM_LIB]
+
+# 3. Clean assigns and insert TIE cells:
+set_db remove_assigns true
+remove_assigns_without_opt -design soc_top -verbose
+add_tieoffs -high TIEHI_X1 -low TIELO_X1 -max_fanout 8 soc_top
+
+# 4. Signoff check:
+check_design -status`,
+    beforeMetrics: [
+      { label: "Unresolved Macros", val: "4 Instances", bad: true },
+      { label: "Raw VDD/VSS Ties", val: "86 Pins", bad: true },
+      { label: "Netlist Routing Readiness", val: "REJECTED BY P&R", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Unresolved Macros", val: "0 (All Linked) ✓", bad: false },
+      { label: "Raw VDD/VSS Ties", val: "0 (TIE Cell Protected) ✓", bad: false },
+      { label: "Netlist Routing Readiness", val: "100% P&R READY ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_link_sram_and_tieoffs",
+        label: "Link missing SRAM/IP libraries, execute remove_assigns_without_opt, and insert dedicated TIEHI/TIELO cells via add_tieoffs",
+        correct: true,
+        explanation: "Correct! Linking all macro libraries resolves black-boxes, removing assigns prevents physical shorts, and TIE cells prevent gate oxide rupture.",
+      },
+      {
+        id: "opt_force_constant_ties_ground",
+        label: "Directly tie all 86 pins to the global VSS power ring to bypass the tieoff cell requirement",
+        correct: false,
+        explanation: "Direct connections to global power rails expose MOSFET gates to inductive supply bounce and cause dielectric gate oxide rupture.",
+      },
+      {
+        id: "opt_set_dont_touch_unresolved",
+        label: "Apply set_dont_touch to the unresolved macro instances so Genus ignores them",
+        correct: false,
+        explanation: "Applying dont_touch to unresolved instances does not provide the required timing, pin, or physical models needed by P&R.",
+      },
+    ],
+  },
+  {
+    id: 74,
+    domainId: "dft_power",
+    domainName: "Design-for-Test (DFT) & Scan",
+    title: "Uncontrolled Asynchronous Reset Blocking Scan Flop Controllability",
+    severity: "HIGH",
+    stageName: "Pre-Scan TDRC Audit / check_dft_rules",
+    symptom: "check_dft_rules reports 128 D2/R1 violations flagging sequential registers as non-scannable because internal asynchronous reset nets are driven by combinational logic without test multiplexers.",
+    logSnippet: `[GENUS-DFT] Error: check_dft_rules detected 128 asynchronous reset controllability violations (Rule D2/R1).
+[GENUS-DFT] Flop 'u_fsm/state_reg[3]' reset pin 'CDN' is not controllable from primary test pins during shift.
+[GENUS-DFT] Warning: 128 flip-flops will NOT be converted to scan, reducing stuck-at test coverage below 85%.`,
+    principle: "In scan shift mode, every flip-flop reset pin must remain permanently inactive (deasserted). If an asynchronous reset is driven by combinational logic, transitions on data lines during shift will glitch the reset line, prematurely clearing the scan chain. A test multiplexer controlled by test_mode or scan_en must be inserted to force the reset inactive during shift.",
+    remedyTcl: `# 1. Audit TDRC violations:
+check_dft_setup
+check_dft_rules -advanced -verbose > reports/tdrc.rpt
+
+# 2. Automatically insert test control logic on internal async resets:
+set_db dft_controllable_async_resets true
+set_db dft_async_reset_active_state 0
+fix_dft_violations -type async_reset -design soc_top
+
+# 3. Re-verify 100% scannability:
+check_dft_rules -verbose
+convert_to_scan -design soc_top
+report_scan_registers`,
+    beforeMetrics: [
+      { label: "Non-Scannable Flops", val: "128 Flops", bad: true },
+      { label: "Stuck-At Fault Coverage", val: "84.2%", bad: true },
+      { label: "TDRC Controllability", val: "128 VIOLATIONS", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Non-Scannable Flops", val: "0 Flops (100% Scannable) ✓", bad: false },
+      { label: "Stuck-At Fault Coverage", val: "99.4% ✓", bad: false },
+      { label: "TDRC Controllability", val: "100% CLEAN ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_insert_reset_test_mux",
+        label: "Enable dft_controllable_async_resets and run fix_dft_violations to insert test multiplexers forcing resets inactive during shift",
+        correct: true,
+        explanation: "Correct! Test multiplexers ensure that internal combinational reset glitching cannot trigger an asynchronous reset during scan shift.",
+      },
+      {
+        id: "opt_tie_reset_permanently_active",
+        label: "Tie the reset pins permanently to logic 0 to guarantee they never transition",
+        correct: false,
+        explanation: "Permanently tying resets active forces registers into continuous reset, destroying functional operation.",
+      },
+      {
+        id: "opt_waive_unscannable_flops",
+        label: "Waive the 128 violations and leave the registers as non-scan",
+        correct: false,
+        explanation: "Leaving 128 sequential registers out of scan chains severely degrades manufacturing stuck-at and transition test coverage.",
+      },
+    ],
+  },
+  {
+    id: 75,
+    domainId: "timing_exceptions_eco",
+    domainName: "Timing Exceptions & Post-Freeze ECO",
+    title: "Multicycle Path Setup Expansion Causing Catastrophic False Hold Violations & Netlist Freeze Preservation",
+    severity: "CRITICAL",
+    stageName: "Post-Freeze SDC Signoff / Incremental Opt",
+    symptom: "A 2-cycle arithmetic pipeline constrained with 'set_multicycle_path 2 -setup' reports a devastating WNS_hold = -1.88 ns. PnR inserts 48 redundant hold buffers, destroying silicon area. Simultaneously, an incremental re-synthesis pass merged two CDC synchronizer flops.",
+    logSnippet: `[TIMING-STA] Error: Hold violation detected on endpoint 'u_accum_reg[15]/D'.
+[TIMING-STA] Launch Clock: clk_core (Rise at 0.00 ns), Capture Clock: clk_core (Rise at 2.00 ns).
+[TIMING-STA] Required Hold Time: 2.05 ns, Actual Arrival: 0.17 ns -> Slack (VIOLATED): -1.88 ns.
+[GENUS-OPT] Warning: Optimization merged instance 'u_cdc/sync_reg_1' into 'u_cdc/sync_reg_2' during syn_opt!`,
+    principle: "In STA, the default hold capture edge is calculated as (Setup Capture Edge - 1 period). When setup is expanded to N=2 cycles (Capture Edge 2 at 4.0 ns), the default hold check automatically moves to Edge 1 (2.0 ns), falsely asserting that fast data cannot arrive before 2.0 ns. Adding 'set_multicycle_path 1 -hold' shifts the hold capture edge backward by 1 cycle, restoring the hold check to Edge 0. Furthermore, critical CDC synchronizers must be explicitly tagged with '.preserve true' to prevent optimizer merging.",
+    remedyTcl: `# 1. Realigh Hold Capture Edge to Edge 0 (shift backward by N-1 = 1 cycle):
+set_multicycle_path 2 -setup -from [get_cells u_pipe*] -to [get_cells u_accum*]
+set_multicycle_path 1 -hold  -from [get_cells u_pipe*] -to [get_cells u_accum*]
+
+# 2. Lock down CDC synchronizers against optimizer restructuring:
+set_db [get_db insts *sync_reg*] .preserve true
+
+# 3. Audit exceptions and netlist preservation:
+check_timing -verbose
+check_design -preserved
+report_timing -from [get_cells u_pipe*] -to [get_cells u_accum*] -path_type full_clock
+
+# 4. Perform non-destructive incremental timing closure:
+syn_opt -incremental`,
+    beforeMetrics: [
+      { label: "Hold Slack (WNS)", val: "-1.88 ns (VIOLATED)", bad: true },
+      { label: "Redundant Hold Buffers", val: "48 Cells (Area Bloat)", bad: true },
+      { label: "CDC 2-FF Integrity", val: "1 Flop Merged (BROKEN)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Hold Slack (WNS)", val: "+0.09 ns (CLEAN) ✓", bad: false },
+      { label: "Redundant Hold Buffers", val: "0 Cells (Clean PnR) ✓", bad: false },
+      { label: "CDC 2-FF Integrity", val: "2/2 Flops Preserved ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_add_mcp_hold_and_preserve",
+        label: "Specify set_multicycle_path 1 -hold to realign the hold check to Edge 0, and lock synchronizers with .preserve true before syn_opt -incremental",
+        correct: true,
+        explanation: "Correct! The -hold 1 constraint shifts the hold capture edge backward by 1 cycle back to Edge 0, eliminating false hold violations without buffer insertion. .preserve true prevents synchronizer merging.",
+      },
+      {
+        id: "opt_apply_false_path_mcp",
+        label: "Apply set_false_path across the pipeline to silence the hold violation and rerun global syn_opt",
+        correct: false,
+        explanation: "Applying set_false_path completely removes the path from timing analysis, blinding the tool to real setup violations and causing silicon functional corruption.",
+      },
+      {
+        id: "opt_relax_clock_period_hold",
+        label: "Double the clock period to absorb the hold check and allow the router to insert the 48 delay cells",
+        correct: false,
+        explanation: "Doubling the clock period degrades chip operating frequency by 50% without solving the underlying SDC bookkeeping discrepancy.",
+      },
+    ],
+  },
+  {
+    id: 76,
+    domainId: "hierarchical_synthesis",
+    domainName: "Hierarchical Synthesis & Interface Contracts",
+    title: "Bottom-Up Chip Assembly Failure: Stale ILM Interface Budget & Inter-Block Slew Degradation",
+    severity: "CRITICAL",
+    stageName: "Hierarchical Assembly & Full-Chip STA",
+    symptom: "Full-chip top-level timing reports WNS = -2.14 ns across an inter-block bus connecting crypto_core to dma_engine. However, both blocks met standalone timing with +0.15 ns slack in their respective block-level signoff runs.",
+    logSnippet: `[TIMING-STA] Error: Path violation detected from 'u_crypto/data_out_reg[31]/CP' to 'u_dma/data_in_reg[31]/D'.
+[TIMING-STA] Launch Clock: clk_core (0.00 ns), Capture Clock: clk_core (2.00 ns).
+[TIMING-STA] Data Arrival Time: 4.08 ns, Required Time: 1.94 ns -> Slack (VIOLATED): -2.14 ns.
+[TIMING-STA] Warning: Boundary output transition at 'u_crypto/data_out[31]' is 1.15 ns (exceeds max_transition 0.40 ns).
+[GENUS-HIER] Warning: ILM for 'crypto_core' was generated with ideal 10 fF output load, but actual top net load is 360 fF.`,
+    principle: "In bottom-up hierarchical flows, blocks passing standalone timing can fail at top assembly due to interface contract drift. When a block's output pin is constrained with an unrealistically low external load (10 fF) during ILM generation, the synthesis tool selects a minimum-drive inverter. At full-chip assembly, connecting this weak inverter to a long 5 mm inter-block wire (360 fF) triggers severe slew degradation (1.15 ns), blowing up gate delay by over 1.5 ns. Re-generating the block ILM with accurate top-level driving cells and load budgets, accompanied by top-level repeater insertion, eliminates the violation.",
+    remedyTcl: `# 1. Audit boundary slew and capacitance violations:
+report_constraint -max_transition -all_violators > reports/hier_max_tran.rpt
+report_timing -from [get_cells u_crypto/data_out*] -to [get_cells u_dma/data_in*] -path_type full_clock
+
+# 2. Update block interface contracts with realistic top loads & driving cells:
+set_load 350fF [get_ports data_out*]
+set_driving_cell -lib_cell BUFF_X8 [get_ports data_in*]
+
+# 3. Regenerate block ILM with realistic physical pin loads:
+syn_opt -incremental
+generate_ilm -directory outputs/ilm/crypto_core -include_physical
+
+# 4. At top assembly, reload fresh ILM and insert inter-block repeaters:
+read_ilm -directory outputs/ilm/crypto_core
+elaborate soc_top
+syn_opt -incremental`,
+    beforeMetrics: [
+      { label: "Interface Slack (WNS)", val: "-2.14 ns (VIOLATED)", bad: true },
+      { label: "Boundary Output Slew", val: "1.15 ns (DRV VIOLATION)", bad: true },
+      { label: "ILM Synchronization", val: "STALE (10 fF vs 360 fF)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Interface Slack (WNS)", val: "+0.12 ns (CLEAN) ✓", bad: false },
+      { label: "Boundary Output Slew", val: "0.18 ns (CLEAN) ✓", bad: false },
+      { label: "ILM Synchronization", val: "IN-SYNC (360 fF Physical) ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_update_ilm_budgets_and_repeaters",
+        label: "Update block SDC with realistic top-level wire loads and driving cells, regenerate the ILM, and insert repeaters on the top-level inter-block bus",
+        correct: true,
+        explanation: "Correct! Re-synthesizing the block boundary with real wire loads forces the tool to select high-drive boundary cells, while top-level repeaters prevent inter-block slew degradation.",
+      },
+      {
+        id: "opt_set_false_path_hier_bus",
+        label: "Apply set_false_path on the inter-block bus to hide the violation from top-level timing reports",
+        correct: false,
+        explanation: "Applying set_false_path blinds the tool to real physical delays, causing the chip to experience functional data corruption on silicon.",
+      },
+      {
+        id: "opt_relax_clock_period_hier",
+        label: "Halve the chip clock frequency to 250 MHz so the degraded slews fit into the cycle",
+        correct: false,
+        explanation: "Degrading operating frequency by 50% fails architectural throughput specifications without addressing the root cause of interface contract mischaracterization.",
+      },
+    ],
+  },
+  {
+    id: 77,
+    domainId: "macros_memories",
+    domainName: "Macros, Memories & Datapath Optimization",
+    title: "Unresolved SRAM Macro Liberty View & Multibit Flop Local Hold Race Failure",
+    severity: "CRITICAL",
+    stageName: "Physical Synthesis & Multibit Mapping",
+    symptom: "Genus flags 4 instances of compiled SRAM macro as unresolved black boxes during hold signoff because memory .lib files were only added to the slow late library set. Simultaneously, automatic multibit merging (MBFF) triggered 64 intra-cell hold violations on shift registers.",
+    logSnippet: `[GENUS-LIB] Warning: Unresolved cell 'sram_2048x64_sp' in MMMC library_set 'lib_fast_view'. Macro treated as black box for hold timing!
+[TIMING-STA] Error: Hold race detected on multibit cell 'MBFF_shift_reg[3:0]'.
+[TIMING-STA] Launch Clock: clk (0.00 ns), Capture Clock: clk (0.00 ns) -> Clock Skew = 0.00 ps!
+[TIMING-STA] Datapath delay Bit 0 -> Bit 1 is 18 ps, Required Hold Time is 45 ps -> Slack (VIOLATED): -27 ps.`,
+    principle: "In MMMC flows, memory compiler libraries must be populated across every active library set (both slow and fast corners). Omitting memory .lib from the fast corner blinds the engine to macro hold times and clock-to-Q minimum delays. Furthermore, multibit flip-flops (MBFFs) share a single internal clock inverter, eliminating inter-bit clock skew. When chained sequentially (e.g. shift registers), microscopic wire delays between adjacent bits trigger hold race conditions. The synthesis policy must ban MBFF conversion on shift registers while including memory compilers in all MMMC sets.",
+    remedyTcl: `# 1. Populate memory compiler .lib across ALL MMMC library sets:
+update_library_set -name lib_fast_view -add_files [list sram_2048x64_ff.lib]
+update_library_set -name lib_slow_view -add_files [list sram_2048x64_ss.lib]
+check_design -unresolved
+check_design -lib_lef_consistency
+
+# 2. Exclude shift registers and CDC synchronizers from multibit merging:
+set_db [get_db insts *shift_reg*] .lp_insert_multibit false
+set_db [get_db insts *sync_reg*] .lp_insert_multibit false
+
+# 3. Merge remaining data registers into MBFFs:
+merge_to_multibit_cells -design soc_top
+identify_multibit_cell_abstract_scan_segments -design soc_top
+
+# 4. Audit hold slack and macro timing:
+report_timing -early -max_paths 10
+report_multibit_inferencing`,
+    beforeMetrics: [
+      { label: "Unresolved Memory Views", val: "4 Macros (Black Box)", bad: true },
+      { label: "MBFF Hold Violations", val: "64 Endpoints (VIOLATED)", bad: true },
+      { label: "Clock Power Efficiency", val: "Baseline (Single-Bit)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Unresolved Memory Views", val: "0 (100% Constrained) ✓", bad: false },
+      { label: "MBFF Hold Violations", val: "0 Clean Slacks ✓", bad: false },
+      { label: "Clock Power Efficiency", val: "-28% Clock Power Saved ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_update_mmmc_and_filter_mbff",
+        label: "Populate memory .lib across all MMMC sets, ban MBFF on shift registers/synchronizers, and merge data flops into MBFFs with abstract scan segments",
+        correct: true,
+        explanation: "Correct! Full MMMC coverage ensures accurate fast-corner hold analysis, while exempting shift registers prevents zero-skew hold race conditions.",
+      },
+      {
+        id: "opt_insert_delay_cells_mbff",
+        label: "Insert 64 delay cells between internal MBFF bits and leave the memory macro unconstrained in the fast corner",
+        correct: false,
+        explanation: "Inserting delay cells wastes area and defeats the purpose of multibit cells, while unconstrained memory macros risk silicon hold failures.",
+      },
+      {
+        id: "opt_disable_all_hold_checks",
+        label: "Waive all hold timing checks on memories and multibit cells until post-route PnR",
+        correct: false,
+        explanation: "Waiving hold checks in synthesis allows severe architectural race conditions to propagate into PnR, where fixing them causes massive routing congestion.",
+      },
+    ],
+  },
+  {
+    id: 78,
+    domainId: "mmmc_signoff",
+    domainName: "Multi-Mode Multi-Corner (MMMC) Signoff",
+    title: "MMMC Setup/Hold Analysis View Imbalance & Fast-Corner Clock Inversion Race",
+    severity: "CRITICAL",
+    stageName: "Multi-View Synthesis & Signoff Optimization",
+    symptom: "Single-corner synthesis met setup timing cleanly with +0.18 ns slack at SS/0.675V/-40C. However, Innovus initial placement reports 420 catastrophic hold race violations (WNS_hold = -0.68 ns) in the FF/0.825V/125C corner across functional register-to-register paths.",
+    logSnippet: `[MMMC-VIEW] Warning: Synthesis was executed with ONLY 1 active setup view: 'av_func_ss'. The '-hold' view list is EMPTY!
+[TIMING-STA] Analysis View: av_func_ff_rcb (FF / 0.825V / 125C / rcbest).
+[TIMING-STA] Path 1: Launch 'u_core/pipe_reg[15]/CP', Capture 'u_core/pipe_reg[16]/D'.
+[TIMING-STA] Data Arrival Time: 0.042 ns, Data Required Time: 0.722 ns -> Slack (VIOLATED): -0.680 ns.
+[GENUS-OPT] Warning: Aggressive gate upsizing during SS setup closure created 420 zero-skew fast-path hold races!`,
+    principle: "Executing synthesis under a single slow setup view blinds the optimization cost function to fast-path hold behavior. In the slow corner, the optimizer aggressively upsized combinational gates to fix setup violations. But in the fast corner (high voltage, high temperature, rcbest interconnect), these oversized gates switch in picoseconds, causing fast data to race ahead of the clock. Configuring a multi-view environment with both setup (av_func_ss_rcw) and hold (av_func_ff_rcb) views forces the optimizer to balance the cost function, choosing moderate gate sizes and pin swaps that satisfy both corners without hold buffer bloat.",
+    remedyTcl: `# 1. Author and activate multi-corner setup and hold views:
+create_analysis_view -name av_func_ss_rcw -constraint_mode cm_func -delay_corner dc_slow
+create_analysis_view -name av_func_ff_rcb -constraint_mode cm_func -delay_corner dc_fast
+
+set_analysis_view \\
+  -setup [list av_func_ss_rcw] \\
+  -hold  [list av_func_ff_rcb]
+
+# 2. Audit active views in database:
+report_analysis_views
+
+# 3. Perform multi-view incremental optimization:
+syn_opt -incremental
+
+# 4. Audit setup and hold QoR across both views:
+report_qor -view av_func_ss_rcw
+report_qor -view av_func_ff_rcb
+write_mmmc -dir handoff/mmmc -prefix soc_top_signoff`,
+    beforeMetrics: [
+      { label: "Active MMMC Views", val: "1 Setup Only (0 Hold)", bad: true },
+      { label: "Hold Violations (FF View)", val: "420 Endpoints (-0.68 ns)", bad: true },
+      { label: "PnR Buffer Bloat", val: "Severe Risk (>500 Cells)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Active MMMC Views", val: "Balanced Setup + Hold ✓", bad: false },
+      { label: "Hold Violations (FF View)", val: "0 Clean Slacks (+0.04 ns) ✓", bad: false },
+      { label: "PnR Buffer Bloat", val: "0 Redundant Buffers ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_activate_multiview_setup_hold",
+        label: "Activate both slow setup and fast hold views in set_analysis_view, and run syn_opt -incremental to balance the multi-view cost function",
+        correct: true,
+        explanation: "Correct! Simultaneous setup and hold optimization prevents over-sizing and pin swaps that create fast-path hold races in PnR.",
+      },
+      {
+        id: "opt_insert_delay_buffers_standalone",
+        label: "Manually insert 420 delay buffers in the netlist and re-run single-corner synthesis",
+        correct: false,
+        explanation: "Manually padding delay buffers without multi-corner visibility degrades slow-corner setup timing and causes massive area bloat.",
+      },
+      {
+        id: "opt_relax_hold_in_sdc",
+        label: "Apply set_false_path -hold across the entire clock domain to hide the violations from signoff reports",
+        correct: false,
+        explanation: "Hiding hold violations in SDC will lead to silicon data corruption on fast silicon chips.",
+      },
+    ],
+  },
+  {
+    id: 79,
+    domainId: "physical_synthesis",
+    domainName: "Physical-Aware & iSpatial Synthesis",
+    title: "Physical Synthesis Narrow Channel Congestion & Severe Post-Route Timing Miscorrelation",
+    severity: "CRITICAL",
+    stageName: "iSpatial Physical Placement & Congestion Optimization",
+    symptom: "Logical synthesis achieved +0.22 ns setup slack, but after feeding DEF into iSpatial physical synthesis, report_congestion reveals 4.8% G-cell routing overflow in the narrow channel between two memory macros, and WNS collapses to -1.35 ns.",
+    logSnippet: `[PHYS-CONG] Error: Peak routing congestion detected in G-cell bounding box {1200 850 1450 980}.
+[PHYS-CONG] Direction: Horizontal, Overflow: 4.82% (Fatal: exceeds 1.50% routing limit).
+[PHYS-CONG] Standard cells placed inside 35 um SRAM channel: 850 instances.
+[TIMING-STA] Path 1: Launch 'u_dsp/pipe_reg[31]/CP' to 'u_sram_bank/A[11]'.
+[TIMING-STA] Net 'u_dsp/net_842': Steiner length = 180 um, Actual detoured wire = 720 um -> Slack (VIOLATED): -1.35 ns.`,
+    principle: "When high-pin-count standard cells are placed inside narrow macro channels without keep-out halos, routing wires must detour around macro metal blockages, causing both severe routing congestion and massive net length inflation. In iSpatial physical synthesis, setting macro placement halos (create_place_halo), capping localized module density (set_db place_density 0.60), and executing spatial optimization (syn_opt -spatial) disperses standard cells into open core regions, clearing the routing overflow and closing timing.",
+    remedyTcl: `# 1. Audit routing congestion hotspots and cell density:
+report_congestion > reports/pre_mitigation_congestion.rpt
+report_utilization > reports/pre_mitigation_util.rpt
+
+# 2. Add 20 um placement halos around SRAM macros to clear the channel:
+create_place_halo -insts [get_db insts -if {.is_macro == true}] -halo_deltas {20 20 20 20}
+
+# 3. Apply localized density cap on the congested DSP logic:
+set_db [get_db hinsts u_dsp] .place_density 0.60
+
+# 4. Re-run placement-guided spatial optimization:
+syn_opt -spatial
+
+# 5. Audit post-optimization congestion and physical timing:
+report_congestion > reports/post_mitigation_congestion.rpt
+report_timing -max_paths 10
+write_db -common -design soc_top handoff/soc_top_ispatial.db`,
+    beforeMetrics: [
+      { label: "G-Cell Routing Overflow", val: "4.82% (UNROUTABLE)", bad: true },
+      { label: "Macro Channel Standard Cells", val: "850 Cells (CONGESTED)", bad: true },
+      { label: "Physical Setup Slack (WNS)", val: "-1.35 ns (VIOLATED)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "G-Cell Routing Overflow", val: "0.25% (CLEAN <1.5%) ✓", bad: false },
+      { label: "Macro Channel Standard Cells", val: "0 Cells (Clean Halo) ✓", bad: false },
+      { label: "Physical Setup Slack (WNS)", val: "+0.08 ns (CLOSED) ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_apply_halo_and_density_cap",
+        label: "Add 20 um macro placement halos to keep cells out of the channel, cap DSP density at 60%, and run syn_opt -spatial to disperse logic into open core areas",
+        correct: true,
+        explanation: "Correct! Halos prevent cell placement in unroutable macro channels, while localized density caps spread standard cells into open core regions, eliminating routing congestion.",
+      },
+      {
+        id: "opt_delete_timing_paths_cong",
+        label: "Apply set_false_path across the SRAM bus to ignore the delay detours and proceed with PnR",
+        correct: false,
+        explanation: "Applying false paths blinds the tool to real physical delays, causing the chip to fail timing on silicon.",
+      },
+      {
+        id: "opt_switch_back_to_wireload",
+        label: "Switch interconnect_mode back to wireload so the tool ignores physical congestion",
+        correct: false,
+        explanation: "Ignoring physical realities via statistical wireload models results in an unroutable design that will fail completely in place-and-route.",
+      },
+    ],
+  },
+  {
+    id: 80,
+    domainId: "chip_assembly",
+    domainName: "Chip-Level Pad Ring & IO Synthesis",
+    title: "Advanced FinFET Pad-to-Pad Combinational Throughput Bottleneck & Severe I2O Negative Slack (-3.5 ns)",
+    severity: "CRITICAL",
+    stageName: "Full-Chip Pad-Top Timing Closure & Cost Group Budgeting",
+    symptom: "At 500 MHz (2.0 ns clock period), core register-to-register paths close cleanly with +0.97 ns slack, but un-registered input-to-output paths (pad_addr_i[2] -> pad_zero_flag) fail catastrophically by -3.495 ns, dominating chip WNS.",
+    logSnippet: `[TIMING-STA] Cost Group: default (WNS: -3.495 ns, Violating Endpoints: 489).
+[TIMING-STA] Path 1 (I2O): Launch 'pad_addr_i[2]' -> Capture 'pad_zero_flag'.
+[TIMING-STA] Input Pad 'u_pad_addr_2/IO_IN_PAD' Delay: 0.720 ns (slew: 0.180 ns).
+[TIMING-STA] Core Combinational Logic (u_decoder): 1.350 ns.
+[TIMING-STA] Output Pad 'u_pad_zero/IO_OUT_PAD' Delay: 1.425 ns (load: 50.0 fF).
+[TIMING-STA] Required Time: 1.700 ns, Arrival Time: 5.195 ns -> Slack (VIOLATED): -3.495 ns!
+[TIMING-STA] Path 2 (R2R): 'u_core/u_mac/prod_r' -> 'u_core/u_mac/y_reg[15]' -> Slack (MET): +0.970 ns.`,
+    principle: "Perimeter IO pads contain large level-shifting and ESD buffers that introduce 2.1 ns of intrinsic delay (0.7 ns input + 1.4 ns output). In a 2.0 ns cycle, un-registered I2O paths will inevitably violate timing regardless of synthesis optimization effort. Standard fanout limits and path cost groups cannot defy pad physics. The architectural solution is to pipeline chip boundaries by registering signals immediately at pad boundaries (converting I2O into clean I2R and R2O paths) or applying multi-cycle path exceptions if the interface handshaking protocol permits.",
+    remedyTcl: `# 1. Define isolated cost groups so I2O violations do not degrade core optimization:
+define_cost_group -name R2R -design pad_top
+define_cost_group -name I2O -design pad_top
+path_group -from [all_registers] -to [all_registers] -group R2R -name pg_r2r
+path_group -from [all_inputs]    -to [all_outputs]   -group I2O -name pg_i2o
+
+# 2. Prioritize core optimization while architecturally addressing boundary pads:
+set_path_group_options R2R -effort_level high -weight 10
+set_path_group_options I2O -effort_level low
+
+# 3. Architectural remedy in RTL: pipeline the boundary signals
+# (Or apply multi-cycle path if external bus handshaking allows 2-cycle latency):
+set_multicycle_path -setup 3 -from [get_ports pad_addr_i*] -to [get_ports pad_zero_flag]
+set_multicycle_path -hold  2 -from [get_ports pad_addr_i*] -to [get_ports pad_zero_flag]
+
+# 4. Set accurate external electrical environment:
+set_driving_cell -lib_cell BUFX4 [remove_from_collection [all_inputs] [get_ports {pad_clk pad_rst_n}]]
+set_load 0.05 [all_outputs]
+
+# 5. Re-run incremental optimization and audit slacks:
+syn_opt -incremental
+report_timing -group R2R -max_paths 5
+report_timing -group I2O -max_paths 5`,
+    beforeMetrics: [
+      { label: "Chip WNS (I2O Dominated)", val: "-3.495 ns (VIOLATED)", bad: true },
+      { label: "Core R2R Slack", val: "+0.970 ns (MET)", bad: false },
+      { label: "Violating Endpoints", val: "489 Endpoints", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Chip WNS (Pipelined / MCP)", val: "+0.210 ns (CLEAN) ✓", bad: false },
+      { label: "Core R2R Slack", val: "+0.970 ns (PRESERVED) ✓", bad: false },
+      { label: "Violating Endpoints", val: "0 Endpoints ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_pipeline_and_cost_group",
+        label: "Isolate I2O paths with define_cost_group so they don't corrupt core R2R optimization, pipeline pad boundaries in RTL or apply multicycle paths, and set realistic driving cell and load constraints",
+        correct: true,
+        explanation: "Correct! Separating cost groups prevents failing pad paths from pulling synthesis effort away from core logic, while boundary pipelining directly eliminates the multi-nanosecond pad delay bottleneck.",
+      },
+      {
+        id: "opt_increase_max_fanout_i2o",
+        label: "Set max_fanout 1 on all nets to force Genus to insert 500 buffers along the pad paths",
+        correct: false,
+        explanation: "Adding hundreds of buffers increases path latency further and severely inflates chip power without fixing pad intrinsic delays.",
+      },
+      {
+        id: "opt_false_path_all_i2o",
+        label: "Apply set_false_path from all_inputs to all_outputs to permanently silence the violations",
+        correct: false,
+        explanation: "Faking false paths on active chip interface signals will cause setup timing failures and data corruption when tested on real printed circuit boards.",
+      },
+    ],
+  },
+
+  // 81. STRUCTURAL CONTINUOUS ASSIGN PROLIFERATION & COMBINATIONAL FEEDBACK LOOP
+  {
+    id: 81,
+    domainId: "check_design",
+    domainName: "Design Rule & Structural Integrity",
+    title: "Structural Continuous Assign Proliferation & Unresolved Combinational Feedback Loop",
+    severity: "CRITICAL",
+    stageName: "Pre-PnR Netlist Sanitization & Structural Signoff",
+    symptom: "Post-synthesis check_design flags 1,420 Verilog continuous assign statements across hierarchical module boundaries and an unresolved combinational loop in the bus arbiter cone (u_bus_arb/comb_loop_0). Innovus PnR handoff crashes during detailed routing with fatal short circuit violations.",
+    logSnippet: `[CHECK-DESIGN] Warning: Found 1420 continuous assign statements in design 'soc_top'.
+[CHECK-DESIGN] Error: Combinational feedback loop detected:
+  Pin: u_bus_arb/u_loop_mux/S -> Y
+  Pin: u_bus_arb/u_stage2/A -> Z
+  Pin: u_bus_arb/u_loop_mux/S (Closed Loop Arc!).
+[CHECK-DESIGN] Error: check_design failed with 1 fatal error and 1420 warnings.
+[PNR-HANDOFF] Innovus detailed router reports: 1420 LVS short circuits on unbuffered nets.`,
+    principle: "Structural verification via check_design is the primary gate before physical PnR handoff. Verilog continuous assigns (assign b = a;) create two distinct logical nets shorted together without physical buffers, triggering fatal LVS shorts and routing DRCs in Innovus. Furthermore, combinational feedback loops break timing arc monotonicity, causing synthesis to arbitrarily disable arcs and leading to simulator lockups in gate-level simulation.",
+    remedyTcl: `# 1. Audit and locate combinational feedback loop:
+check_design -combo_loops > reports/combo_loops.rpt
+
+# 2. Break combinational loop in RTL (register feedback) or disable invalid timing arc:
+set_disable_timing -from S -to Y [get_cells u_bus_arb/u_loop_mux]
+
+# 3. Configure assign removal buffer mapping options:
+set_remove_assign_options -buffer_or_inverter BUFX2 -design soc_top
+# (Synonym: add_assign_buffer_options -buffer_or_inverter BUFX2 -design soc_top)
+
+# 4. Replace Verilog continuous assigns with physical buffers without global re-optimization:
+remove_assigns_without_opt -design soc_top -verbose
+
+# 5. Insert dedicated physical tie-high and tie-low cells for constant leaf pins:
+add_tieoffs -high TIEHI_X1 -low TIELO_X1 -max_fanout 8 soc_top
+
+# 6. Re-verify structural integrity prior to PnR handoff:
+check_design -assigns > reports/check_assigns_clean.rpt
+check_design -through_tie_cell > reports/check_tiecells.rpt
+check_design -all > reports/check_design_signoff.rpt`,
+    beforeMetrics: [
+      { label: "Verilog Continuous Assigns", val: "1,420 Assigns (LVS HAZARD)", bad: true },
+      { label: "Combinational Loops", val: "1 Fatal Loop", bad: true },
+      { label: "Floating Undriven Pins", val: "42 Pins", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Verilog Continuous Assigns", val: "0 Assigns (CLEAN) ✓", bad: false },
+      { label: "Combinational Loops", val: "0 Loops (RESOLVED) ✓", bad: false },
+      { label: "Physical Tie-Off Cells", val: "100% TIEHI/TIELO Bound ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_remove_assigns_and_tieoffs",
+        label: "Break the arbiter combinational loop, execute remove_assigns_without_opt to map continuous assigns into physical buffers (BUFX2), and insert physical tie cells via add_tieoffs",
+        correct: true,
+        explanation: "Correct! remove_assigns_without_opt replaces Verilog continuous assigns with physical buffer cells without triggering expensive global timing re-runs, and add_tieoffs replaces raw VDD/VSS ties with dedicated ESD-safe tie cells.",
+      },
+      {
+        id: "opt_ignore_assigns_in_pnr",
+        label: "Ignore the assign warnings and instruct Innovus to treat them as zero-ohm virtual resistor shorts",
+        correct: false,
+        explanation: "Continuous assigns create two distinct nets on the same metal node, which physical PnR tools will flag as fatal LVS short circuit violations.",
+      },
+      {
+        id: "opt_delete_all_constants",
+        label: "Run delete_unloaded_undriven to delete all tied pins and bypass tie cell insertion",
+        correct: false,
+        explanation: "Deleting tied pins breaks functional control logic on configured macros and pads.",
+      },
+    ],
+  },
+
+  // 82. POWER-GATED DOMAIN FLOATING OUTPUT CROWBAR LEAKAGE & UPF ISOLATION RAIL MISCONNECTION
+  {
+    id: 82,
+    domainId: "low_power",
+    domainName: "Low-Power Synthesis & UPF",
+    title: "Power-Gated Domain Floating Output Crowbar Leakage & UPF Isolation Rail Misconnection",
+    severity: "CRITICAL",
+    stageName: "IEEE 1801 UPF Power Intent Synthesis & Commit",
+    symptom: "When the power-gated core domain (PD_CORE) is powered off in sleep mode, standby current surges by 180 mA in the Always-On domain (PD_TOP), and gate-level simulation shows Xs propagating into sequential registers because boundary isolation cells were incorrectly powered from the gated supply rail (VDD_CORE).",
+    logSnippet: `[POWER-STA] Power Domain: PD_CORE in state 'OFF' (VDD_CORE = 0.0V).
+[SIM-GLS] Error: Node 'u_core/out_valid' is floating (Z). Receiver 'u_top/reg_valid_d' enters metastable state (X).
+[VOLTUS-IR] Warning: Abnormal static standby crowbar leakage detected in PD_TOP: 184.2 mW.
+[POWER-UPF] Warning: Isolation strategy 'iso_core_out' specifies -isolation_power_net 'VDD_CORE\.
+[POWER-UPF] Error: Isolation cells in PD_CORE are powered from the gated supply rail! Clamping fails when domain is OFF.`,
+    principle: "Isolation cells exist to prevent floating inputs and catastrophic crowbar currents in always-on logic when a power-gated domain collapses to 0V. An isolation cell must ALWAYS be powered from an Always-On (AO) supply net (-isolation_power_net VDD). Powering isolation cells from the gated rail (VDD_CORE) deprives the isolation transistors of power during sleep mode, causing them to float and triggering severe crowbar short circuits in downstream always-on receivers.",
+    remedyTcl: `# 1. Correct the isolation power net in IEEE 1801 UPF to Always-On VDD:
+set_isolation iso_core_out \\
+  -domain PD_CORE \\
+  -applies_to outputs \\
+  -clamp_value 0 \\
+  -isolation_power_net  VDD \\
+  -isolation_ground_net VSS
+
+# 2. Align isolation control polarity with active-high power switch (sw_core_ctrl):
+set_isolation_control iso_core_out \\
+  -domain PD_CORE \\
+  -isolation_signal sw_core_ctrl \\
+  -isolation_sense low \\
+  -location self
+
+# 3. Reload and audit power intent in Genus:
+read_power_intent -1801 -module soc_top -verbose ../upf/soc_top_fixed.upf
+apply_power_intent -design soc_top -summary
+check_power_intent -design soc_top -isolation -detail
+
+# 4. Physically commit corrected isolation cells:
+commit_power_intent -design soc_top
+
+# 5. Audit isolation instances and verified AO power rail binding:
+report_power_intent_instances -isolation_only -detail > reports/iso_instances.rpt`,
+    beforeMetrics: [
+      { label: "Sleep Standby Current", val: "184.2 mW (CROWBAR SHORT)", bad: true },
+      { label: "Floating Boundary Nodes", val: "248 Floating (Z)", bad: true },
+      { label: "Simulation X-States", val: "Propagating (FAIL)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Sleep Standby Current", val: "1.4 uW (OPTIMIZED) ✓", bad: false },
+      { label: "Floating Boundary Nodes", val: "0 Floating (CLAMPED 0) ✓", bad: false },
+      { label: "Simulation X-States", val: "0 Xs (CLEAN) ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_correct_iso_rail_and_sense",
+        label: "Re-bind -isolation_power_net to Always-On VDD, configure -isolation_sense low synchronized with the power switch, and re-commit power intent via commit_power_intent",
+        correct: true,
+        explanation: "Correct! Isolation cells must be powered from the Always-On rail so their clamping transistors remain active when the core domain is collapsed, and -isolation_sense low ensures isolation is enabled when the active-high switch control is 0.",
+      },
+      {
+        id: "opt_add_rtl_pulldowns",
+        label: "Insert pull-down trireg statements in RTL instead of modifying the UPF isolation configuration",
+        correct: false,
+        explanation: "Verilog pull-down statements are synthesizable only in FPGA flows and do not insert physical low-power isolation standard cells in ASIC synthesis.",
+      },
+      {
+        id: "opt_keep_switch_on",
+        label: "Force sw_core_ctrl to 1 permanently to avoid turning off the domain",
+        correct: false,
+        explanation: "Keeping the power switch on eliminates power gating entirely, defeating the low-power architecture and draining the battery.",
+      },
+    ],
+  },
+
+  // 83. CLOCK GATING ENABLE TIMING HAZARD & PAD-MASKED POWER METRIC DIAGNOSTIC FAILURE
+  {
+    id: 83,
+    domainId: "low_power",
+    domainName: "Low-Power Synthesis & UPF",
+    title: "Clock Gating Enable Timing Hazard & Pad-Masked Power Metric Diagnostic Failure",
+    severity: "CRITICAL",
+    stageName: "Post-ICG Power Optimization & Clock Gating Setup Signoff",
+    symptom: "After enabling 'set_db lp_insert_clock_gating true', chip-level power reports show virtually zero improvement (248.5 mW down to 248.1 mW), while a newly inserted ICG enable path violates setup timing by -380 ps (WNS = -0.380 ns), prompting an engineer to mistakenly disable clock gating entirely.",
+    logSnippet: `[POWER-REPORT] Total Chip Power: 248.12 mW (Baseline without ICG: 248.51 mW, Delta: -0.16%).
+[TIMING-STA] Path 1: Setup check violated on ICG leaf cell 'u_core/u_alu/u_icg_reg_bank/ENA'.
+  Required Time: 1.250 ns | Arrival Time: 1.630 ns | Slack: -0.380 ns (VIOLATED).
+  Data Path: u_core/u_alu/u_ctrl_dec/Y -> u_core/u_alu/u_icg_reg_bank/ENA (Clock Gating Setup).
+[POWER-DIAG] Warning: Total chip power is dominated by I/O pad switching (Pads: 218.4 mW, Core: 29.7 mW).`,
+    principle: "Full-chip power reports on pad-ring designs are heavily skewed by I/O pad capacitance (often 85-90% of total dissipation). Evaluating clock gating efficacy requires isolating the core logic via 'report_power -inst u_core -by_category'. Furthermore, clock gating inserts real physical setup checks on the ICG enable pin (T_setup_cg). When enable timing fails, engineers must resize enable cone drivers or adjust minimum flop thresholds ('lp_clock_gating_min_flops') rather than disabling clock gating across the entire chip.",
+    remedyTcl: `# 1. Isolate core logic power to unmask true dynamic clock gating savings:
+report_power -inst u_core -by_category -unit mW -header > reports/core_power_unmasked.rpt
+
+# 2. Inspect failing clock gating setup timing path:
+report_timing -check_type clock_gating_setup -max_paths 5 > reports/cg_setup_paths.rpt
+
+# 3. Increase minimum flop threshold to prevent ICG insertion on narrow high-speed paths:
+set_db lp_clock_gating_min_flops 4
+
+# 4. Upsize the critical enable driver gate to fix enable propagation delay:
+set_db [get_cells u_core/u_alu/u_ctrl_dec] .base_cell [get_db lib_cells */AND2_X4]
+
+# 5. Re-run incremental optimization to close clock gating setup timing:
+syn_opt -incr
+
+# 6. Verify clock gating quality and verified positive slack:
+report_clock_gates -detail -fanout_summary > reports/clock_gates_final.rpt
+report_timing -check_type clock_gating_setup > reports/cg_timing_closed.rpt`,
+    beforeMetrics: [
+      { label: "Core Dynamic Power", val: "28.4 mW (UNMASKED: HIGH)", bad: true },
+      { label: "Clock Gating Setup Slack", val: "-380 ps (VIOLATED)", bad: true },
+      { label: "Gated Sequential Sinks", val: "0% (ICG DISABLED)", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Core Dynamic Power", val: "17.1 mW (-39.8% CUT) ✓", bad: false },
+      { label: "Clock Gating Setup Slack", val: "+45 ps (MET) ✓", bad: false },
+      { label: "Gated Sequential Sinks", val: "91.4% (OPTIMIZED) ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_isolate_core_and_fix_enable_driver",
+        label: "Isolate core power via report_power -inst u_core, upsize the critical enable driver, set lp_clock_gating_min_flops 4, and close setup timing with syn_opt -incr",
+        correct: true,
+        explanation: "Correct! Isolating u_core unmasks the ~40% core dynamic power reduction hidden by I/O pads, and upsizing the enable cone resolves the clock gating setup violation.",
+      },
+      {
+        id: "opt_disable_clock_gating",
+        label: "Permanently set lp_insert_clock_gating to false to eliminate the setup check violation",
+        correct: false,
+        explanation: "Disabling clock gating surrenders all dynamic power savings, causing registers and clock distribution networks to toggle continuously.",
+      },
+      {
+        id: "opt_set_false_path_on_icg",
+        label: "Apply set_false_path to the ICG enable pin so STA ignores the setup check",
+        correct: false,
+        explanation: "Setting false paths on clock gating enable pins causes real silicon glitching and clock clipping if the enable transitions while the clock is active.",
+      },
+    ],
+  },
+
+  // 84. WHITEBOARD STA DIAGNOSTIC FAILURE: SLEW UNDER-CONSTRAINT & UNCORRECTED MULTICYCLE HOLD EDGE MISALIGNMENT
+  {
+    id: 84,
+    domainId: "setup_closure",
+    domainName: "Setup & Timing Closure",
+    title: "Whiteboard STA Diagnostic Failure: Slew Under-Constraint & Uncorrected Multicycle Hold Edge Misalignment",
+    severity: "CRITICAL",
+    stageName: "Static Timing Signoff & SDC Constraint Verification",
+    symptom: "After applying 'set_multicycle_path 2 -setup' on a 64-bit arithmetic accelerator datapath, the design reports 256 hold violations (WNS = -0.890 ns) on clock edge T. Simultaneously, an optimistic input slew constraint ('set_input_transition 0.05') on 1.8V chip interface pins masks a -60 ps setup deficit that causes functional failure on the silicon tester.",
+    logSnippet: `[TIMING-STA] Path 1 (R2R): 'u_accel/u_mult/pipe_reg_0' -> 'u_accel/u_acc/sum_reg_0'.
+  Constraint: Multicycle Path 2 (-setup). Setup Slack (MET): +1.250 ns.
+  Hold Check: Data launched at edge 0 (0.0 ns) checked against capture edge 1T (1.0 ns)!
+  Arrival Time: 0.150 ns | Required Time: 1.000 ns + 0.040 ns (Th) = 1.040 ns.
+  Hold Slack (FATAL VIOLATION): -0.890 ns across 256 endpoints!
+[TIMING-STA] Path 2 (I2R): 'pad_data_in[7]' -> 'u_core/in_reg[7]'.
+  Constrained Slew: 0.050 ns | First Buffer Delay: 0.120 ns | Setup Slack: +0.020 ns (Reported MET).
+  True Silicon Slew: 0.200 ns | First Buffer True Delay: 0.180 ns | True Silicon Slack: -0.040 ns (FAIL)!`,
+    principle: "Applying 'set_multicycle_path 2 -setup' automatically shifts the tool's default hold check edge forward to (N-1)*T_clk (edge 1.0 ns), checking data launched at 0 against clock edge T instead of edge 0. This creates artificial multi-hundred picosecond hold violations that lead to buffer explosion unless corrected with 'set_multicycle_path 1 -hold'. Additionally, under-constraining primary input slews (e.g. 0.05 ns instead of true 0.20 ns) causes non-linear lookup optimism in NLDM/CCS tables, injecting 60-100 ps of dangerous optimism that turns passing timing reports into failing silicon.",
+    remedyTcl: `# 1. Align multicycle hold check to same edge by applying -hold 1:
+set_multicycle_path 2 -setup -from [get_pins u_accel/u_mult/pipe_reg*/Q] -to [get_pins u_accel/u_acc/sum_reg*/D]
+set_multicycle_path 1 -hold  -from [get_pins u_accel/u_mult/pipe_reg*/Q] -to [get_pins u_accel/u_acc/sum_reg*/D]
+
+# 2. Correct realistic external driver or input transition on interface ports:
+set_driving_cell -lib_cell BUFX4 [remove_from_collection [all_inputs] [get_ports pad_clk]]
+# Or apply realistic PCB transition slew:
+set_input_transition 0.200 [remove_from_collection [all_inputs] [get_ports pad_clk]]
+
+# 3. Re-run timing analysis and audit multicycle edge relationships:
+report_timing -from [get_pins u_accel/u_mult/pipe_reg*/Q] -to [get_pins u_accel/u_acc/sum_reg*/D] -check_type hold
+report_timing -from [all_inputs -no_clocks] -to [all_registers] -check_type setup
+
+# 4. Upsize any real marginal logic stages to close true setup:
+syn_opt -incr`,
+    beforeMetrics: [
+      { label: "Hold Slack WNS (Edge 1T)", val: "-0.890 ns (BOGUS FAIL)", bad: true },
+      { label: "True Input Path Slew", val: "0.200 ns (Constrained 0.05 ns)", bad: true },
+      { label: "Tester Yield Status", val: "SILICON RESPIN RISK", bad: true },
+    ],
+    afterMetrics: [
+      { label: "Hold Slack WNS (Edge 0)", val: "+0.120 ns (MET) ✓", bad: false },
+      { label: "Input Path Slew", val: "0.200 ns (REALISTIC) ✓", bad: false },
+      { label: "Tester Yield Status", val: "100% TIMING CLOSED ✓", bad: false },
+    ],
+    options: [
+      {
+        id: "opt_mcp_hold1_and_realistic_slew",
+        label: "Apply 'set_multicycle_path 1 -hold' to restore same-edge hold checking, constrain realistic 0.20 ns input transition, and close true timing with syn_opt -incr",
+        correct: true,
+        explanation: "Correct! -hold 1 restores the hold check to edge 0, eliminating the false 890 ps hold violations, while realistic 0.20 ns input transition reflects true silicon slew without dangerous optimism.",
+      },
+      {
+        id: "opt_insert_delay_buffers_hold",
+        label: "Insert 35 delay buffers along the multiplier datapath to push arrival delay past 1.04 ns",
+        correct: false,
+        explanation: "Inserting delay buffers to satisfy a false hold check wastes massive silicon area and power, and worsens setup slack on cycle 2.",
+      },
+      {
+        id: "opt_set_false_path_mcp_hold",
+        label: "Declare set_false_path -hold across the entire accelerator datapath",
+        correct: false,
+        explanation: "Blanket false paths on hold checks blind the timing engine to real race conditions that can corrupt state.",
+      },
+    ],
+  },
+];
 

@@ -22,6 +22,7 @@ import {
   Activity,
   CheckSquare,
   Calculator,
+  GraduationCap,
 } from "lucide-react";
 
 type EdaKey = "cadence" | "synopsys" | "opensource";
@@ -168,6 +169,33 @@ export default function VlsiLearnHub() {
         >
           <Calculator className="w-4 h-4" />
           Launch Calculator Hub
+          <ArrowRight className="w-4 h-4" />
+        </Link>
+      </div>
+
+      {/* 🌟 Featured: Semiconductor Interview Prep Masterclass (Standalone One-Time Bundle) */}
+      <div
+        className="rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden transition-all border-2 border-amber-400/50 bg-slate-900"
+      >
+        <div className="space-y-2 relative z-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-400 text-slate-950 shadow-sm">
+            <Sparkles className="w-3.5 h-3.5" />
+            STANDALONE ONE-TIME BUNDLE · LIFETIME ACCESS
+          </div>
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
+            Top Semiconductor Company Interview Prep Masterclass
+          </h2>
+          <p className="text-xs sm:text-sm max-w-xl leading-relaxed text-slate-200">
+            Real technical interview questions, mathematical derivations, Tcl script fixes, and common traps from Nvidia, Qualcomm, Apple, Intel, AMD, TI, and Broadcom. One-time payment (₹2,499 / $29).
+          </p>
+        </div>
+
+        <Link
+          href="/vlsi/interview-masterclass"
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-mono font-black shadow-lg shadow-amber-950/40 transition-all shrink-0 cursor-pointer"
+        >
+          <GraduationCap className="w-4 h-4" />
+          Explore Masterclass
           <ArrowRight className="w-4 h-4" />
         </Link>
       </div>

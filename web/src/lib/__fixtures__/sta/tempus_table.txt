@@ -38,7 +38,7 @@ Exceptions/Constraints:
 #                                                                          (fF)  (ps)  (ps)   (ps)  Location 
 #------------------------------------------------------------------------------------------------------------
   pad_addr_i[2]           -       -      R     (arrival)                1 751.6  4748     0    2839    (-,-) 
-  g_pad_addr_i[2].u_pad/C -       PAD->C R     PDIDWUWSWCDG_V          18  16.5    45   731    3569    (-,-) 
+  g_pad_addr_i[2].u_pad/C -       PAD->C R     IO_IN_PAD          18  16.5    45   731    3569    (-,-) 
   u_core/g26846/ZN        -       I->ZN  F     INVSKND10BWP16P90       16  16.6    17    30    3599    (-,-) 
   u_core/g26727__5477/ZN  -       A1->ZN F     INR2D6BWP16P90           6   6.7    12    33    3632    (-,-) 
   u_core/g26609__5115/ZN  -       A1->ZN R     ND2D1BWP16P90            1   1.1    13    16    3648    (-,-) 
@@ -54,7 +54,7 @@ Exceptions/Constraints:
   u_core/g25959__6260/ZN  -       B3->ZN R     IND4D1BWP16P90           1   1.2    16    19    3861    (-,-) 
   u_core/g25957__2398/ZN  -       A1->ZN R     IND4D4BWP16P90           1   3.2    15    32    3893    (-,-) 
   u_core/g16638/ZN        -       I->ZN  F     INVSKND6BWP16P90         2   4.8     8    13    3906    (-,-) 
-  u_pad_zero_flag/PAD     -       I->PAD F     PDDWUWSWCDG_V            1 941.8   536  1390    5295    (-,-) 
+  u_pad_zero_flag/PAD     -       I->PAD F     IO_OUT_PAD            1 941.8   536  1390    5295    (-,-) 
   pad_zero_flag           -       -      F     (port)                   -     -     -     0    5295    (-,-) 
 #------------------------------------------------------------------------------------------------------------
 

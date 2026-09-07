@@ -1075,6 +1075,7 @@ export function exportVendorEcoScript(
     case "tempus":
       lines.push(`# Tempus (PLAN 11.sta_post_layout.tcl)`);
       lines.push(`set_db delaycal_enable_si true`);
+      lines.push(`set_eco_option -update_timing true`);
       lines.push(`update_timing -full`);
       lines.push(`set_db opt_signoff_verbose true`);
       lines.push(``);

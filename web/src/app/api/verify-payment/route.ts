@@ -5,11 +5,13 @@ import { entitlementsForPlan, publicEntitlements } from "@/lib/entitlements";
 import type { UserPlan } from "@/lib/user-store";
 import { logger } from "@/lib/telemetry";
 import { sendLicenseDeliveryEmail } from "@/lib/email-service";
+import { saveApiKeyToDb } from "@/lib/supabase-keys";
 
 export const runtime = "nodejs";
 
-function normalizePlan(raw: unknown): UserPlan {
+function normalizePlan(raw: unknown): UserPlan | "interview_bundle" {
   const p = String(raw || "pro").toLowerCase();
+  if (p === "interview_bundle" || p === "interview_masterclass") return "interview_bundle";
   if (p === "max" || p === "team" || p === "pro" || p === "free") return p;
   return "pro";
 }
@@ -76,8 +78,8 @@ export async function POST(req: NextRequest) {
       (typeof userId === "string" && userId.trim()) ||
       `pay_${String(razorpay_payment_id)}`;
 
-    const issuedApiKey = apiKeyForUserId(subject, targetPlan);
-    const ent = entitlementsForPlan(targetPlan);
+    const issuedApiKey = apiKeyForUserId(subject, targetPlan === "interview_bundle" ? "pro" : targetPlan);
+    const ent = entitlementsForPlan(targetPlan === "interview_bundle" ? "pro" : targetPlan);
 
     logger.trackAnalytics("payment_verified", {
       paymentId: razorpay_payment_id,
@@ -90,7 +92,9 @@ export async function POST(req: NextRequest) {
     // Dispatch transactional email receipt if customer email is available
     if (email && typeof email === "string" && email.includes("@")) {
       const priceFormatted =
-        targetPlan === "pro"
+        targetPlan === "interview_bundle"
+          ? "₹2,499 (One-Time Lifetime Access · $29 USD)"
+          : targetPlan === "pro"
           ? "₹1,299/mo"
           : targetPlan === "max"
           ? "₹2,999/mo"
@@ -98,14 +102,31 @@ export async function POST(req: NextRequest) {
           ? "₹7,999/mo"
           : "₹0";
 
+      const planTitle =
+        targetPlan === "interview_bundle"
+          ? "VLSI INTERVIEW PREP MASTERCLASS (LIFETIME)"
+          : targetPlan.toUpperCase();
+
       sendLicenseDeliveryEmail({
         toEmail: email,
-        planName: targetPlan.toUpperCase(),
+        planName: planTitle,
         apiKey: issuedApiKey,
         paymentId: String(razorpay_payment_id),
         amountFormatted: priceFormatted,
       }).catch((err) => {
         logger.error("payment.email_dispatch_error", { email }, err);
+      });
+
+      // Save / Upsert license key in Supabase database
+      saveApiKeyToDb({
+        userId: subject,
+        email: email,
+        keyType: "paid",
+        apiKey: issuedApiKey,
+        tier: targetPlan === "interview_bundle" ? "pro" : targetPlan,
+        expiresAt: null, // Lifetime access
+      }).catch((err) => {
+        logger.error("payment.supabase_save_error", { email }, err);
       });
     }
 
@@ -115,9 +136,13 @@ export async function POST(req: NextRequest) {
       payment_id: razorpay_payment_id,
       order_id: razorpay_order_id,
       plan: targetPlan,
+      isInterviewUnlocked: true,
       apiKey: issuedApiKey,
       email: email || undefined,
-      entitlements: publicEntitlements(ent),
+      entitlements: {
+        ...publicEntitlements(ent),
+        hasInterviewMasterclass: true,
+      },
     });
   } catch (err: unknown) {
     logger.error("payment.verify_exception", {}, err);
