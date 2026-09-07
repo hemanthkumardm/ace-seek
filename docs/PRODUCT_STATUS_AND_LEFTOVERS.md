@@ -171,6 +171,8 @@ Ordered by **user impact** and **dependency**.
 | P2.15 | Synopsys / Open-Source **Learn** Master quizzes still ~3 Q each (Cadence exams are 16–20) | Expand before calling Learn Master “complete” |
 | P2.16 | Interview mock timed rounds / PDF cheatsheets | Claimed in early benefits copy — not shipped yet (removed from honest benefits) |
 | P2.17 | ~~Interview → Studio practice CTAs~~ | **Done 2026-09-07** (`studioPracticeForInterviewDomain`) |
+| P2.18 | Interview unlock restore across devices | Partial: paywall now stores verify `apiKey` + entitlement blob; still need server-side `hasInterviewMasterclass` check on page load (Clerk/Supabase) |
+| P2.19 | Tag `company` on interview questions | Metadata lists 8 firms but questions are domain-first (no company field populated) |
 
 ### P3 — Nice later
 

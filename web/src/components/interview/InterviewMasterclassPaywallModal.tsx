@@ -169,7 +169,8 @@ export function InterviewMasterclassPaywallModal({
             if (verifyRes.ok && verifyData.success) {
               unlockMasterclass(
                 response.razorpay_payment_id,
-                emailInput || user?.primaryEmailAddress?.emailAddress
+                emailInput || user?.primaryEmailAddress?.emailAddress || verifyData.email,
+                typeof verifyData.apiKey === "string" ? verifyData.apiKey : undefined
               );
               setUnlockedSuccess(true);
               if (onSuccess) onSuccess();
