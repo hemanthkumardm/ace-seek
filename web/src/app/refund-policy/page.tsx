@@ -4,7 +4,7 @@ import { ShieldCheck, RefreshCw, Building, MapPin, Mail, Phone } from "lucide-re
 
 export const metadata: Metadata = {
   title: "Refund & Return Policy | Ace-Seek",
-  description: "Refund and Return policy for Ace-Seek SaaS plan subscriptions and API licenses.",
+  description: "Refund and Return policy for Ace-Seek SaaS plan subscriptions.",
 };
 
 export default function RefundPolicyPage() {
@@ -37,7 +37,7 @@ export default function RefundPolicyPage() {
               1. Digital Service Fulfillment
             </h2>
             <p>
-              Ace-Seek Technologies (&quot;Ace-Seek&quot;) provides digital Software-as-a-Service (SaaS) subscriptions and API licensing for EDA workstations. Upon payment verification via Razorpay, digital API license keys and plan entitlements are issued instantly.
+              Ace-Seek Technologies (&quot;Ace-Seek&quot;) provides digital Software-as-a-Service (SaaS) subscriptions for EDA workstations. Upon payment verification via Razorpay, plan entitlements are attached to your signed-in account instantly.
             </p>
           </section>
 

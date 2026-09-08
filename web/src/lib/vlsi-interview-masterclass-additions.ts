@@ -2,9 +2,11 @@
  * VLSI Interview Masterclass — Additional Question Banks
  * Auto-generated from docs/interview-masterclass markdown packs.
  * Total additional questions: 199
+ * SERVER ONLY — imported by the full bank module.
  */
 
-import type { InterviewQuestion } from "./vlsi-interview-masterclass-data";
+import "server-only";
+import type { InterviewQuestion } from "./interview-meta";
 
 export const ADDITIONAL_INTERVIEW_QUESTIONS: InterviewQuestion[] = [
   {

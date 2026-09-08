@@ -103,12 +103,11 @@ export default function TrialRequestPage() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-            Request Max access — we verify, then email your API key
+            Request Max access — we verify, then activate your account
           </h1>
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
             Max is not turned on automatically. Tell us who you are (college or company
-            email). After we verify, we email a Max API key to that address. Keys last
-            7 days from approval.
+            email). After we verify, we activate Max on your Ace-Seek account for 7 days.
           </p>
         </div>
 
@@ -122,12 +121,12 @@ export default function TrialRequestPage() {
             {
               icon: ShieldCheck,
               title: "2. We verify",
-              body: "Manual review. You’ll get a mail saying we’ll share the key within 7 days.",
+              body: "Manual review within 7 days. You’ll get a confirmation email either way.",
             },
             {
               icon: KeyRound,
-              title: "3. Key by email",
-              body: "Once approved, the Max API key is sent to your college/company inbox.",
+              title: "3. Account activated",
+              body: "Once approved, Max is enabled on your signed-in account for 7 days.",
             },
           ].map((s) => (
             <div key={s.title} className="sk-panel p-5 space-y-2">
@@ -147,7 +146,7 @@ export default function TrialRequestPage() {
             </div>
             <h2 className="text-xl font-bold">Request received</h2>
             <p className="text-sm text-[var(--muted)] leading-relaxed">
-              We’ll verify your details and share the Max API key to{" "}
+              We’ll verify your details and activate Max on the account for{" "}
               <span className="font-mono text-[var(--accent-cyan)]">{form.email}</span>{" "}
               within 7 days. If we cannot approve, you’ll get an email for that too.
             </p>
@@ -158,12 +157,12 @@ export default function TrialRequestPage() {
             ) : (
               <p className="text-xs text-amber-300 leading-relaxed">
                 Your request is saved. If the confirmation email is delayed, we still
-                review it and send the API key after approval.
+                review it and activate Max after approval.
               </p>
             )}
             <p className="text-xs text-[var(--muted)] flex items-center justify-center gap-2">
               <Clock className="w-3.5 h-3.5" />
-              No key is issued until approval. Free plan still works today.
+              Nothing unlocks until approval. Free plan still works today.
             </p>
             <a href="/pricing" className="sk-btn sk-btn-ghost !text-xs inline-flex">
               Back to pricing
@@ -306,8 +305,8 @@ export default function TrialRequestPage() {
               )}
             </button>
             <p className="text-[11px] text-[var(--muted)] leading-relaxed text-center">
-              Submitting does not unlock Max. You will get a confirmation mail, then the
-              API key only after we approve.
+              Submitting does not unlock Max. You will get a confirmation mail; Max
+              activates on your account only after we approve.
             </p>
           </form>
         )}

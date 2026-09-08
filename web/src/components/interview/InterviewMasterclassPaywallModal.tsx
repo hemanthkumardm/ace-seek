@@ -18,7 +18,7 @@ import {
 import {
   INTERVIEW_BUNDLE_PRICING,
   COMPANIES_METADATA,
-} from "@/lib/vlsi-interview-masterclass-data";
+} from "@/lib/interview-meta";
 import { unlockMasterclass } from "@/lib/interview-access-service";
 
 interface RazorpayOptions {

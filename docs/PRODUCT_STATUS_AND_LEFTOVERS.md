@@ -1,9 +1,9 @@
 # Ace-Seek — Final product verify, gaps & leftover work
 
-**Date:** 2026-08-12 (updated after Learn Hub / Master EDA / Studio cross-link pass)  
-**Branch:** `vlsi.ace-seek` / `main` (synced to origin after FeatureLock + Learn polish)  
+**Date:** 2026-09-08 (session auth + account subscriptions + interview API gating)  
+**Branch:** `vlsi.ace-seek` / `main`  
 **Engines suite:** `npm run verify` → **403/403 assertions PASSED** (prior)  
-**Typecheck:** re-run after UI polish  
+**Typecheck:** required after interview bank split  
 
 > **Note vs `PRODUCTION_STATUS_REPORT.md`:** that report marks many SaaS/ops items ✅ for the *shipped* monetization/security path (Razorpay, key gates, etc.). This leftovers doc still tracks **product depth & UX open loops** (Learn↔Studio, cloud for MMMC/UPF, ECO placeholders). Both can be true: production hardening ≠ every roadmap pillar closed.
 
@@ -32,7 +32,7 @@ Related docs:
 | **Subdomain productization** | **Mostly designed** | Intro pages + API login; brand home fixed; DNS/Vercel not verified here |
 | **Ship readiness** | **Not production-complete** | Uncommitted code, no Stripe, localStorage still primary for many studios, git push blocked earlier |
 
-**Bottom line:** Core **EDA intelligence product (engines + studios)** is in good shape for demos. **SaaS shell (billing, multi-device everything, clean deploy, kill demo auth)** is the main leftover.
+**Bottom line:** Core **EDA intelligence product (engines + studios)** is in good shape. **SaaS shell** advanced: session auth, account-bound Pro/Max, Interview answers server-gated, OpenROAD rejects ephemeral keys. **Ops still required:** Supabase SQL + Razorpay webhook + Clerk satellite domains. Remaining product depth: cloud for MMMC/UPF, auto-renew Subscriptions API, E2E tests, Learn quiz depth.
 
 ---
 

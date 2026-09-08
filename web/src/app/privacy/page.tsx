@@ -42,7 +42,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
               <li><strong>Personal Identity Data:</strong> Name, email address, and phone number provided during registration or checkout.</li>
               <li><strong>Payment Data:</strong> Payment status, order ID, and transaction ID. Payment card credentials, UPI passwords, and bank login details are collected securely by <strong>Razorpay Payment Gateway</strong> and are NEVER stored on Ace-Seek servers.</li>
-              <li><strong>Usage & Telemetry Data:</strong> IP address, device browser type, API key quota usage, and system performance logs.</li>
+              <li><strong>Usage & Telemetry Data:</strong> IP address, device browser type, plan quota usage, and system performance logs.</li>
             </ul>
           </section>
 
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
               2. How We Use Information
             </h2>
             <p>
-              We use collected data to issue API license keys, authenticate users across subdomains (www, vlsi, tools), process payments via Razorpay, send service updates, and maintain platform security.
+              We use collected data to authenticate users across subdomains (www, vlsi, tools), attach subscription entitlements to accounts, process payments via Razorpay, send service updates, and maintain platform security.
             </p>
           </section>
 

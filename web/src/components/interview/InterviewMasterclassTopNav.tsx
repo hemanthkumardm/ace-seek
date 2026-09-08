@@ -3,25 +3,23 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Building2,
   Sparkles,
   ArrowLeft,
   CreditCard,
-  GraduationCap,
-  ExternalLink,
   Layers,
 } from "lucide-react";
 import {
   COMPANIES_METADATA,
   INTERVIEW_BUNDLE_PRICING,
-  INTERVIEW_QUESTIONS_BANK,
-} from "@/lib/vlsi-interview-masterclass-data";
+} from "@/lib/interview-meta";
 
 interface Props {
   selectedDomain: string;
   onSelectDomain: (domainId: string) => void;
   isUnlocked?: boolean;
   onOpenCheckout?: () => void;
+  totalCount?: number;
+  domainCounts?: Record<string, number>;
 }
 
 export function InterviewMasterclassTopNav({
@@ -29,7 +27,11 @@ export function InterviewMasterclassTopNav({
   onSelectDomain,
   isUnlocked = false,
   onOpenCheckout,
+  totalCount,
+  domainCounts,
 }: Props) {
+  const allCount = totalCount ?? 0;
+
   return (
     <header className="relative border-b-2 border-slate-800 bg-[#070b14] shadow-xl">
       {/* Top Row: Brand & CTA */}
@@ -106,7 +108,7 @@ export function InterviewMasterclassTopNav({
                 : "bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white"
             }`}
           >
-            All Questions ({INTERVIEW_QUESTIONS_BANK.length})
+            All Questions ({allCount})
           </button>
 
           {/* Individual Domain Buttons — All 11 Domains Live */}
@@ -123,9 +125,7 @@ export function InterviewMasterclassTopNav({
             { id: "aptitude-quantitative", label: "Quantitative Aptitude", color: "#ec4899" },
             { id: "logical-reasoning-puzzles", label: "Puzzles & Logic", color: "#8b5cf6" },
           ].map((dom) => {
-            const count = INTERVIEW_QUESTIONS_BANK.filter(
-              (q) => q.domain === dom.id
-            ).length;
+            const count = domainCounts?.[dom.id] ?? 0;
             const active = selectedDomain === dom.id;
             const soon = count === 0;
 

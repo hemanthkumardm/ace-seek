@@ -13,8 +13,6 @@ import {
   ShieldCheck,
   Search,
   Sparkles,
-  ChevronDown,
-  ChevronUp,
   CheckCircle2,
   AlertTriangle,
   HelpCircle,
@@ -25,23 +23,24 @@ import {
   Calculator,
   Lightbulb,
   Lock,
-  Unlock,
   Check,
   ArrowRight,
   Dices,
+  Loader2,
 } from "lucide-react";
 import {
   COMPANIES_METADATA,
   DOMAINS_METADATA,
   INTERVIEW_BUNDLE_PRICING,
-  INTERVIEW_QUESTIONS_BANK,
   studioPracticeForInterviewDomain,
-} from "@/lib/vlsi-interview-masterclass-data";
+  type PublicInterviewQuestion,
+  type InterviewQuestion,
+} from "@/lib/interview-meta";
 import {
   isMasterclassUnlocked,
-  isQuestionFreePreview,
   lockMasterclassForTesting,
   unlockMasterclass,
+  syncInterviewUnlockFromAccount,
 } from "@/lib/interview-access-service";
 import { InterviewMasterclassTopNav } from "./InterviewMasterclassTopNav";
 import { InterviewMathSolutionRenderer } from "./InterviewMathSolutionRenderer";
@@ -51,18 +50,61 @@ const BOOKMARK_KEY = "ace_seek_interview_bookmarks";
 const IS_DEV = process.env.NODE_ENV === "development";
 
 export function InterviewMasterclassExplorer() {
+  const [catalog, setCatalog] = useState<PublicInterviewQuestion[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [fullQuestion, setFullQuestion] = useState<InterviewQuestion | null>(null);
+  const [fullQuestionLoading, setFullQuestionLoading] = useState(false);
+
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
   const [freeOnly, setFreeOnly] = useState(false);
   const [bookmarkedOnly, setBookmarkedOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedQuestionId, setSelectedQuestionId] = useState<string>(
-    INTERVIEW_QUESTIONS_BANK[0]?.id || ""
-  );
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string>("");
   const [bookmarkedIds, setBookmarkedIds] = useState<Record<string, boolean>>({});
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+
+  // Load catalog + sync unlock
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCatalog = async () => {
+      setCatalogLoading(true);
+      setCatalogError(null);
+      try {
+        const res = await fetch("/api/interview/catalog", { credentials: "include" });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(body?.error || `Catalog failed (${res.status})`);
+        }
+        const data = (await res.json()) as {
+          unlocked?: boolean;
+          questions?: PublicInterviewQuestion[];
+        };
+        if (cancelled) return;
+        const questions = data.questions ?? [];
+        setCatalog(questions);
+        const unlocked = Boolean(data.unlocked) || isMasterclassUnlocked();
+        setIsUnlocked(unlocked);
+        syncInterviewUnlockFromAccount(Boolean(data.unlocked));
+        setSelectedQuestionId((prev) => prev || questions[0]?.id || "");
+      } catch (err) {
+        if (cancelled) return;
+        setCatalogError(err instanceof Error ? err.message : "Failed to load catalog");
+        setCatalog([]);
+      } finally {
+        if (!cancelled) setCatalogLoading(false);
+      }
+    };
+
+    void loadCatalog();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Sync unlock state + bookmarks from storage
   useEffect(() => {
@@ -84,21 +126,22 @@ export function InterviewMasterclassExplorer() {
     };
   }, []);
 
-  // Filter questions by domain, difficulty, free/bookmarks, and query
+  // Filter questions by domain, difficulty, free/bookmarks, and query (catalog fields only)
   const filteredQuestions = useMemo(() => {
-    return INTERVIEW_QUESTIONS_BANK.filter((q) => {
+    return catalog.filter((q) => {
       if (selectedDomain !== "all" && q.domain !== selectedDomain) return false;
       if (selectedDifficulty !== "all" && q.difficulty !== selectedDifficulty) return false;
       if (freeOnly && !q.isFreeSample) return false;
       if (bookmarkedOnly && !bookmarkedIds[q.id]) return false;
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
-        const matchText = `${q.question} ${q.shortSummary} ${q.detailedAnswer} ${q.domainName} ${q.tags.join(" ")} ${q.companyName || ""}`.toLowerCase();
+        const matchText =
+          `${q.question} ${q.shortSummary} ${q.domainName} ${q.tags.join(" ")} ${q.companyName || ""}`.toLowerCase();
         if (!matchText.includes(query)) return false;
       }
       return true;
     });
-  }, [selectedDomain, selectedDifficulty, freeOnly, bookmarkedOnly, bookmarkedIds, searchQuery]);
+  }, [catalog, selectedDomain, selectedDifficulty, freeOnly, bookmarkedOnly, bookmarkedIds, searchQuery]);
 
   // Keep selected question in sync with filtered list
   useEffect(() => {
@@ -113,16 +156,81 @@ export function InterviewMasterclassExplorer() {
   const activeQuestion = useMemo(() => {
     return (
       filteredQuestions.find((q) => q.id === selectedQuestionId) ||
-      INTERVIEW_QUESTIONS_BANK.find((q) => q.id === selectedQuestionId) ||
+      catalog.find((q) => q.id === selectedQuestionId) ||
       filteredQuestions[0] ||
       null
     );
-  }, [filteredQuestions, selectedQuestionId]);
+  }, [filteredQuestions, selectedQuestionId, catalog]);
+
+  const activeQuestionIsFree = Boolean(activeQuestion?.isFreeSample);
+  const activeQuestionHasAccess = isUnlocked || activeQuestionIsFree;
+
+  // Fetch full question when selection has access
+  useEffect(() => {
+    if (!selectedQuestionId || !activeQuestion) {
+      setFullQuestion(null);
+      return;
+    }
+
+    const hasAccess = isUnlocked || Boolean(activeQuestion.isFreeSample);
+    if (!hasAccess) {
+      setFullQuestion(null);
+      setFullQuestionLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const loadFull = async () => {
+      setFullQuestionLoading(true);
+      setFullQuestion(null);
+      try {
+        const res = await fetch(`/api/interview/question/${selectedQuestionId}`, {
+          credentials: "include",
+          signal: controller.signal,
+        });
+        if (!res.ok) {
+          if (!cancelled) setFullQuestion(null);
+          return;
+        }
+        const data = (await res.json()) as {
+          unlocked?: boolean;
+          question?: InterviewQuestion;
+        };
+        if (cancelled) return;
+        if (data.unlocked && data.question) {
+          setFullQuestion(data.question);
+        } else {
+          setFullQuestion(null);
+        }
+      } catch (err) {
+        if (cancelled || (err instanceof DOMException && err.name === "AbortError")) return;
+        setFullQuestion(null);
+      } finally {
+        if (!cancelled) setFullQuestionLoading(false);
+      }
+    };
+
+    void loadFull();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [selectedQuestionId, activeQuestion, isUnlocked]);
 
   const activeQuestionIndex = useMemo(() => {
     if (!activeQuestion) return -1;
     return filteredQuestions.findIndex((q) => q.id === activeQuestion.id);
   }, [filteredQuestions, activeQuestion]);
+
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const q of catalog) {
+      counts[q.domain] = (counts[q.domain] || 0) + 1;
+    }
+    return counts;
+  }, [catalog]);
 
   const handleNextQuestion = () => {
     if (activeQuestionIndex >= 0 && activeQuestionIndex < filteredQuestions.length - 1) {
@@ -156,16 +264,13 @@ export function InterviewMasterclassExplorer() {
   };
 
   const liveDomains = useMemo(
-    () =>
-      DOMAINS_METADATA.filter((d) =>
-        INTERVIEW_QUESTIONS_BANK.some((q) => q.domain === d.id)
-      ),
-    []
+    () => DOMAINS_METADATA.filter((d) => catalog.some((q) => q.domain === d.id)),
+    [catalog]
   );
 
   const freePreviewCount = useMemo(
-    () => INTERVIEW_QUESTIONS_BANK.filter((q) => q.isFreeSample).length,
-    []
+    () => catalog.filter((q) => q.isFreeSample).length,
+    [catalog]
   );
 
   const handleCopyCode = (code: string) => {
@@ -188,11 +293,34 @@ export function InterviewMasterclassExplorer() {
     "dft-atpg": <ShieldCheck className="w-4 h-4 text-indigo-400" />,
   };
 
-  const activeQuestionIsFree = activeQuestion ? isQuestionFreePreview(activeQuestion.id) : false;
-  const activeQuestionHasAccess = isUnlocked || activeQuestionIsFree;
   const practiceLink = activeQuestion
     ? studioPracticeForInterviewDomain(activeQuestion.domain)
     : null;
+
+  if (catalogLoading) {
+    return (
+      <div className="min-h-screen bg-[#070b14] text-white flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+        <p className="text-sm font-mono text-slate-400">Loading interview catalog…</p>
+      </div>
+    );
+  }
+
+  if (catalogError) {
+    return (
+      <div className="min-h-screen bg-[#070b14] text-white flex flex-col items-center justify-center gap-4 px-4">
+        <AlertTriangle className="w-10 h-10 text-amber-400" />
+        <p className="text-sm font-mono text-slate-300 text-center max-w-md">{catalogError}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold cursor-pointer"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#070b14] text-white flex flex-col selection:bg-cyan-500 selection:text-black">
@@ -202,6 +330,8 @@ export function InterviewMasterclassExplorer() {
         onSelectDomain={setSelectedDomain}
         isUnlocked={isUnlocked}
         onOpenCheckout={() => setShowPaywallModal(true)}
+        totalCount={catalog.length}
+        domainCounts={domainCounts}
       />
 
       {/* TOP COMPACT STATUS & HERO BAR */}
@@ -217,7 +347,7 @@ export function InterviewMasterclassExplorer() {
             </span>
             <span className="text-slate-500 hidden sm:inline">•</span>
             <span className="text-slate-300 hidden sm:inline">
-              {filteredQuestions.length} of {INTERVIEW_QUESTIONS_BANK.length} deep problems
+              {filteredQuestions.length} of {catalog.length} deep problems
               {freePreviewCount > 0 && !isUnlocked
                 ? ` · ${freePreviewCount} free previews`
                 : ""}
@@ -311,11 +441,9 @@ export function InterviewMasterclassExplorer() {
                 onChange={(e) => setSelectedDomain(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-400 cursor-pointer font-sans"
               >
-                <option value="all">All Domains ({INTERVIEW_QUESTIONS_BANK.length})</option>
+                <option value="all">All Domains ({catalog.length})</option>
                 {DOMAINS_METADATA.map((dom) => {
-                  const count = INTERVIEW_QUESTIONS_BANK.filter(
-                    (q) => q.domain === dom.id
-                  ).length;
+                  const count = domainCounts[dom.id] ?? 0;
                   if (count === 0 || dom.comingSoon) {
                     return (
                       <option key={dom.id} value={dom.id} disabled>
@@ -407,7 +535,7 @@ export function InterviewMasterclassExplorer() {
             ) : (
               filteredQuestions.map((q, idx) => {
                 const isSelected = activeQuestion?.id === q.id;
-                const isFree = isQuestionFreePreview(q.id);
+                const isFree = Boolean(q.isFreeSample);
                 const hasAccess = isUnlocked || isFree;
                 const isBookmarked = !!bookmarkedIds[q.id];
 
@@ -564,6 +692,19 @@ export function InterviewMasterclassExplorer() {
 
               {/* SOLUTION CONTENT (UNLOCKED VS LOCKED PAYWALL) */}
               {activeQuestionHasAccess ? (
+                fullQuestionLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
+                    <Loader2 className="w-7 h-7 text-cyan-400 animate-spin" />
+                    <p className="text-xs font-mono">Loading full solution…</p>
+                  </div>
+                ) : !fullQuestion ? (
+                  <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
+                    <AlertTriangle className="w-7 h-7 text-amber-400" />
+                    <p className="text-xs font-mono text-center max-w-sm">
+                      Could not load the full solution. Sign in or unlock lifetime access, then try again.
+                    </p>
+                  </div>
+                ) : (
                 <div className="space-y-6 animate-fadeIn">
                   {/* Step-by-Step Mathematical & Technical Breakdown */}
                   <div className="space-y-3">
@@ -572,21 +713,21 @@ export function InterviewMasterclassExplorer() {
                       <span>Step-by-Step Technical Solution &amp; Mathematical Derivation:</span>
                     </div>
                     <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-inner">
-                      <InterviewMathSolutionRenderer content={activeQuestion.detailedAnswer} />
+                      <InterviewMathSolutionRenderer content={fullQuestion.detailedAnswer} />
                     </div>
                   </div>
 
                   {/* Code Snippet / Script Implementation */}
-                  {activeQuestion.tclOrVerilogSnippet && (
+                  {fullQuestion.tclOrVerilogSnippet && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="text-xs font-mono font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                           <Terminal className="w-4 h-4 text-cyan-400" />
-                          <span>Code / Script Implementation ({activeQuestion.tclOrVerilogSnippet.lang.toUpperCase()}):</span>
+                          <span>Code / Script Implementation ({fullQuestion.tclOrVerilogSnippet.lang.toUpperCase()}):</span>
                         </div>
                         <button
                           type="button"
-                          onClick={() => handleCopyCode(activeQuestion.tclOrVerilogSnippet!.code)}
+                          onClick={() => handleCopyCode(fullQuestion.tclOrVerilogSnippet!.code)}
                           className="text-[11px] font-mono text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 flex items-center gap-1 cursor-pointer transition-all"
                         >
                           {copiedCode ? <Check className="w-3 h-3 text-emerald-400" /> : null}
@@ -594,7 +735,7 @@ export function InterviewMasterclassExplorer() {
                         </button>
                       </div>
                       <pre className="p-5 rounded-2xl bg-black border border-slate-800 text-xs font-mono text-cyan-300 overflow-x-auto leading-relaxed">
-                        {activeQuestion.tclOrVerilogSnippet.code}
+                        {fullQuestion.tclOrVerilogSnippet.code}
                       </pre>
                     </div>
                   )}
@@ -608,7 +749,7 @@ export function InterviewMasterclassExplorer() {
                         <span>Common Traps &amp; Candidate Pitfalls:</span>
                       </div>
                       <ul className="space-y-2 text-xs text-amber-100/90 leading-relaxed list-disc list-inside">
-                        {activeQuestion.commonPitfalls.map((pitfall, i) => (
+                        {fullQuestion.commonPitfalls.map((pitfall, i) => (
                           <li key={i}>{pitfall}</li>
                         ))}
                       </ul>
@@ -621,7 +762,7 @@ export function InterviewMasterclassExplorer() {
                         <span>Onsite Follow-Up Questions:</span>
                       </div>
                       <ul className="space-y-2 text-xs text-cyan-100/90 leading-relaxed list-disc list-inside">
-                        {activeQuestion.interviewerFollowups.map((followup, i) => (
+                        {fullQuestion.interviewerFollowups.map((followup, i) => (
                           <li key={i}>{followup}</li>
                         ))}
                       </ul>
@@ -653,6 +794,7 @@ export function InterviewMasterclassExplorer() {
                     </button>
                   </div>
                 </div>
+                )
               ) : (
                 /* 🔒 LOCKED PAYWALL TEASER */
                 <div className="relative overflow-hidden rounded-2xl border-2 border-amber-400/50 bg-slate-900/90 p-8 md:p-12 text-center space-y-6 shadow-2xl">

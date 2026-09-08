@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { entitlementsFromApiKey } from "@/lib/entitlements";
 import { buildOpenroadFlowScripts } from "@/lib/openroad-scripts-engine";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
+import { resolveRequestEntitlements } from "@/lib/resolve-request-entitlements";
 
 /**
  * Pro: build flow script file list (JSON). Zip is client-side for now.
+ * Auth: Clerk session preferred; verified API key for automation.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -18,7 +19,15 @@ export async function POST(req: NextRequest) {
       req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
       "";
 
-    const ent = entitlementsFromApiKey(apiKey);
+    const { entitlements: ent, source } = await resolveRequestEntitlements({
+      apiKey: apiKey || null,
+    });
+    if (source === "guest") {
+      return NextResponse.json(
+        { error: "Sign in required", code: "AUTH_REQUIRED" },
+        { status: 401 }
+      );
+    }
     if (!ent.canAccessOpenroad || !ent.canOpenroadScripts) {
       return NextResponse.json(
         { error: "OpenROAD Scripts require Pro+.", tier: ent.tier },

@@ -49,7 +49,7 @@ export default function ShippingPolicyPage() {
               Upon successful completion of payment via Razorpay and cryptographic HMAC signature verification:
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-              <li><strong>Instant Fulfillment:</strong> Your digital API license key is generated instantly and rendered on your checkout confirmation modal.</li>
+              <li><strong>Instant Fulfillment:</strong> Your account plan is activated instantly and confirmed on the checkout success screen and dashboard.</li>
               <li><strong>Account Activation:</strong> The tier capabilities (Pro, Max, Team) are activated immediately across all Ace-Seek subdomains (www, vlsi, tools).</li>
               <li><strong>Email Receipt:</strong> A digital transaction receipt is dispatched to your registered email address within 5 minutes of payment.</li>
             </ul>
@@ -60,7 +60,7 @@ export default function ShippingPolicyPage() {
               3. Delivery Issues & Assistance
             </h2>
             <p>
-              If you complete a payment and do not receive your digital API license key on screen or via email within 15 minutes, please check your spam folder or contact our support team with your Razorpay Payment ID:
+              If you complete a payment and do not see your plan activated on the dashboard within 15 minutes, please contact our support team with your Razorpay Payment ID:
             </p>
             <div className="sk-recessed p-4 font-mono text-xs space-y-1 text-slate-300">
               <p>• <strong>Support Email:</strong> <a href="mailto:support@ace-seek.com" className="text-[var(--accent-cyan)] underline">support@ace-seek.com</a></p>

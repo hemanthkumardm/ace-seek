@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       id: trial.id,
       message:
-        "Request submitted. We’ll verify your details and email the Max API key within 7 days.",
+        "Request submitted. We’ll verify your details and activate Max on your account within 7 days.",
       mail: {
         applicant: applicant.sent ? "sent" : "failed",
         admin: admin.sent ? "sent" : "failed",

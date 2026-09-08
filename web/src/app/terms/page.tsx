@@ -52,10 +52,10 @@ export default function TermsPage() {
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-white uppercase tracking-wider text-[var(--accent-cyan)]">
-              3. Account Registration & API Keys
+              3. Account Registration & Subscriptions
             </h2>
             <p>
-              Access to paid subscription tiers (Pro, Max, Team) requires an active API license key issued automatically upon successful payment. Users are responsible for maintaining the security of their API key and account credentials. Commercial resale or unauthorized sharing of API keys is strictly prohibited.
+              Access to paid subscription tiers (Pro, Max, Team) is granted to the signed-in Ace-Seek account upon successful payment verification. Users are responsible for maintaining the security of their account credentials. Sharing accounts or reselling access is strictly prohibited.
             </p>
           </section>
 
@@ -64,7 +64,7 @@ export default function TermsPage() {
               4. Payment Terms & Billing Gateway
             </h2>
             <p>
-              All online payments for subscription plans and API access are processed securely via our merchant payment gateway partner, <strong>Razorpay</strong>. Prices are quoted in Indian Rupees (INR). Payments are charged on a monthly or one-time plan basis as selected by the user during checkout.
+              All online payments for subscription plans are processed securely via our merchant payment gateway partner, <strong>Razorpay</strong>. Prices are quoted in Indian Rupees (INR). Payments are charged on a monthly or one-time plan basis as selected by the user during checkout.
             </p>
           </section>
 

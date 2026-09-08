@@ -7,7 +7,6 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/server";
 import { isSupabaseServerReady } from "@/lib/supabase/config";
 import { getApiKeyRecordFromDb } from "@/lib/supabase-keys";
-import { createHash } from "crypto";
 
 function clerkOn(): boolean {
   return Boolean(
@@ -75,18 +74,19 @@ export async function resolveOpenroadUser(
     "";
   if (apiKey.trim()) {
     const rec = await getApiKeyRecordFromDb(apiKey.trim());
-    if (rec?.user_id) {
+    if (rec?.user_id && rec.status === "active") {
       await ensureProfile(rec.user_id, rec.email, rec.email);
       return { userId: rec.user_id, email: rec.email, name: rec.email };
     }
-    // Ephemeral guest profile for bare keys (dev / max local)
-    const guestId = `key_${createHash("sha256").update(apiKey.trim()).digest("hex").slice(0, 24)}`;
-    await ensureProfile(guestId, undefined, "api-key-user");
-    return { userId: guestId, name: "api-key-user" };
+    // Reject unknown / revoked keys — no ephemeral guest profiles
+    return NextResponse.json(
+      { error: "Invalid or revoked API key", code: "INVALID_KEY" },
+      { status: 401 }
+    );
   }
 
   return NextResponse.json(
-    { error: "Sign in or provide x-api-key for cloud storage" },
+    { error: "Sign in required for cloud storage", code: "AUTH_REQUIRED" },
     { status: 401 }
   );
 }

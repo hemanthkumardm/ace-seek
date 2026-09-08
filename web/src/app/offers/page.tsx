@@ -11,7 +11,7 @@ const OFFERS = [
   {
     title: "7-day Max trial (manual review)",
     badge: "TRIAL",
-    blurb: "Students and engineers can request Max for 7 days. Submit name, college/company email, qualification, and why you need it. We verify, then email your API key — nothing is unlocked automatically.",
+    blurb: "Students and engineers can request Max for 7 days. Submit name, college/company email, qualification, and why you need it. We verify, then activate Max on your account — nothing is unlocked automatically before approval.",
     discount: "7 DAYS MAX",
     code: "REQUEST_TRIAL",
     cta: "Request Max trial",
