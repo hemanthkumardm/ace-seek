@@ -2,7 +2,7 @@
 
 import React, { Suspense, useMemo } from "react";
 import { usePathname } from "next/navigation";
-import { Lock, LogIn, Sparkles } from "lucide-react";
+import { Lock, LogIn } from "lucide-react";
 import { SubdomainClerkLogin } from "@/components/SubdomainClerkLogin";
 import { SITE_URL } from "@/lib/site";
 import { useEntitlements } from "@/hooks/useEntitlements";
@@ -75,29 +75,20 @@ export function WorkstationAuthGuard({ children }: Props) {
             </div>
             <div>
               <h2 className="text-lg font-black uppercase text-white tracking-wide">
-                Sign in required
+                Sign in to continue
               </h2>
-              <p className="text-[11px] font-bold text-rose-400">
-                Sign in to unlock Free tier on this host
+              <p className="text-[11px] font-bold text-slate-400">
+                Access workstations with your Ace-Seek account
               </p>
             </div>
           </div>
-          <span className="brutal-badge brutal-badge-pink">ACCOUNT</span>
+          <span className="brutal-badge brutal-badge-pink">SECURE</span>
         </div>
 
         <p className="text-xs text-slate-300 font-bold leading-relaxed">
-          Log in on this host to open workstations. Your plan (
-          <span className="text-white">Free / Pro / Max / Team</span>) is read from
-          your account. Upgrade anytime — features unlock on the next refresh.
+          Sign in or create a free account to open this workstation. Your
+          subscription applies across VLSI, Tools, and OpenROAD.
         </p>
-
-        <div className="rounded-xl border border-emerald-600/40 bg-emerald-950/30 p-3 text-[11px] font-bold text-emerald-100 flex items-start gap-2">
-          <Sparkles className="w-4 h-4 shrink-0 mt-0.5 text-emerald-300" />
-          <span>
-            Create a free account below. You stay on this subdomain — no need to
-            bounce back to {SITE_URL.replace(/^https?:\/\//, "")} just to sign in.
-          </span>
-        </div>
 
         <Suspense
           fallback={

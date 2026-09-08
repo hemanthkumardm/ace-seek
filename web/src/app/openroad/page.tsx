@@ -230,11 +230,7 @@ export default function OpenroadHome() {
           </div>
         </div>
 
-        <div id="identity-section" className="pt-2 text-center text-xs text-slate-400 font-bold">
-          <a href="/openroad/login" className="underline hover:text-white">
-            Sign in to unlock OpenROAD studio
-          </a>
-        </div>
+
       </div>
     </div>
   );

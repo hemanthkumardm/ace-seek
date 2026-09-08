@@ -270,11 +270,7 @@ export default async function ToolsHome() {
         </div>
       </div>
 
-      <div id="identity-section" className="pt-4 text-center text-xs text-slate-400 font-bold">
-        <a href="/tools/login" className="underline hover:text-white">
-          Sign in to unlock tools — plan follows your account
-        </a>
-      </div>
+
     </div>
   );
 }

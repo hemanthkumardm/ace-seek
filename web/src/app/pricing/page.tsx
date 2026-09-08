@@ -151,7 +151,7 @@ export default function PricingPage() {
 
         <section className="space-y-4">
           <p className="text-xs text-[var(--muted)] max-w-2xl">
-            Sign in on any Ace-Seek host — features unlock from your account plan.
+            Features unlock from your account plan after you sign in.
           </p>
           <PlanFeatureTable />
         </section>

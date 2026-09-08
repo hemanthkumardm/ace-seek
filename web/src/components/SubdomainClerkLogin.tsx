@@ -103,10 +103,7 @@ export function SubdomainClerkLogin({
         />
       )}
 
-      <p className="text-[10px] text-slate-500 font-mono text-center max-w-sm">
-        Your Free / Pro / Max / Team plan is attached to this account and unlocks
-        automatically after sign-in.
-      </p>
+
     </div>
   );
 }

@@ -252,8 +252,8 @@ export function CheckoutModal({
             <div className="space-y-2">
               <h3 className="text-xl font-black text-white">You&apos;re on {activatedPlan}</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Your account plan is active. Open any Ace-Seek host — features unlock
-                automatically. No key paste needed.
+                Your subscription is active. Open VLSI, Tools, or OpenROAD to get
+                started.
               </p>
               {renewsAt && (
                 <p className="text-[11px] font-mono text-cyan-300/90">
@@ -298,8 +298,7 @@ export function CheckoutModal({
                 Log in to buy {planName}
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Like ChatGPT Plus or Cursor Pro, your plan is attached to your Ace-Seek
-                account — not a pasteable license file.
+                Your subscription is linked to your Ace-Seek account after payment.
               </p>
             </div>
             <Link

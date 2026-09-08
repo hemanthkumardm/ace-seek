@@ -24,14 +24,9 @@ export function PricingClient() {
         <div className="sk-panel p-4 md:p-5 flex flex-wrap items-center justify-between gap-3 border border-cyan-500/30 bg-cyan-950/20">
           <div className="flex items-center gap-3">
             <PlanPill tier={ent.tier} ready={ready} />
-            <div>
-              <p className="text-xs font-bold text-white">
-                Signed in · current plan follows your account
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Buy Pro / Max / Team below — unlocks instantly on every Ace-Seek host.
-              </p>
-            </div>
+            <p className="text-xs font-bold text-white">
+              You&apos;re on the {ent.label} plan
+            </p>
           </div>
           <Link
             href="/dashboard"

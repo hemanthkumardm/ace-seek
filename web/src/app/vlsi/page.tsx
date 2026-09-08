@@ -433,11 +433,7 @@ export default function VlsiHome() {
         </div>
       </div>
 
-      <div id="identity-section" className="pt-4 text-center text-xs text-slate-400 font-bold">
-        <a href="/vlsi/login" className="underline hover:text-white">
-          Sign in to unlock VLSI studios — plan follows your account
-        </a>
-      </div>
+
     </div>
   );
 }

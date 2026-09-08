@@ -20,8 +20,7 @@ export default function ToolsLoginPage() {
           Sign in to continue
         </h1>
         <p className="text-xs md:text-sm text-slate-300 font-bold">
-          Free tier unlocks automatically after login. Your plan follows this
-          account across Ace-Seek hosts.
+          Sign in with your Ace-Seek account to access the tools suite.
         </p>
       </div>
       <Suspense fallback={<div className="text-center text-slate-400 text-xs">Loading…</div>}>

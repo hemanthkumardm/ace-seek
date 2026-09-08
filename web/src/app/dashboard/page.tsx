@@ -110,7 +110,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
                   {user.plan.toUpperCase()} plan
                 </h2>
                 <p className="text-xs text-[var(--muted)]">
-                  Attached to this account — unlocks on vlsi / tools / openroad when you sign in.
+                  Active on VLSI, Tools, and OpenROAD when you&apos;re signed in.
                 </p>
               </div>
             </div>
@@ -180,7 +180,7 @@ function DashboardBody({ user, onLogout }: { user: UserProfile; onLogout: () => 
               <span>Available Microservices &amp; Workstations</span>
             </h2>
             <span className="text-xs text-[var(--muted)] font-mono">
-              Sign in on each host — plan follows your account
+              Launch any product below
             </span>
           </div>
 
