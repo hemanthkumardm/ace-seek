@@ -25,7 +25,7 @@ export function VlsiFrame({
   const isInterview = pathname.startsWith("/vlsi/interview-masterclass");
   const isIntro = pathname === "/" || pathname === "/vlsi";
 
-  // Interview Masterclass: Dedicated dark standalone page with company navbar
+  // Interview Masterclass: dark shell — requires account login (including free previews)
   if (isInterview) {
     return (
       <div
@@ -33,7 +33,7 @@ export function VlsiFrame({
         className="min-h-screen flex flex-col bg-[#070b14] text-[#f8fafc] selection:bg-cyan-500 selection:text-black"
       >
         <main className="relative flex-1 min-h-0 flex flex-col">
-          {children}
+          <WorkstationAuthGuard>{children}</WorkstationAuthGuard>
         </main>
       </div>
     );

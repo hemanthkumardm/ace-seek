@@ -25,8 +25,8 @@ export function WorkstationAuthGuard({ children }: Props) {
 
   const isPublicRoute = useMemo(() => {
     if (!pathname) return true;
-    // Marketing intros, auth pages, Interview Masterclass, Learn catalog hub
-    // (lesson/track pages under /learn/... still require sign-in)
+    // Marketing intros + auth pages only.
+    // Interview Masterclass, Learn, and studios all require sign-in.
     const normalized = pathname.replace(/\/$/, "") || "/";
     return (
       normalized === "/" ||
@@ -35,10 +35,7 @@ export function WorkstationAuthGuard({ children }: Props) {
       normalized === "/tools" ||
       normalized === "/login" ||
       normalized.endsWith("/login") ||
-      normalized.startsWith("/signup") ||
-      normalized.includes("/interview-masterclass") ||
-      normalized === "/vlsi/learn" ||
-      normalized === "/learn"
+      normalized.startsWith("/signup")
     );
   }, [pathname]);
 
@@ -64,6 +61,7 @@ export function WorkstationAuthGuard({ children }: Props) {
   }
 
   const redirect = pathname && pathname.startsWith("/") ? pathname : "/";
+  const isInterview = pathname?.includes("/interview-masterclass");
   const backHref = pathname?.startsWith("/tools")
     ? "/tools"
     : pathname?.startsWith("/openroad")
@@ -83,7 +81,9 @@ export function WorkstationAuthGuard({ children }: Props) {
                 Sign in to continue
               </h2>
               <p className="text-[11px] font-bold text-slate-400">
-                Access workstations with your Ace-Seek account
+                {isInterview
+                  ? "Interview Masterclass requires an Ace-Seek account"
+                  : "Access with your Ace-Seek account"}
               </p>
             </div>
           </div>
@@ -91,8 +91,9 @@ export function WorkstationAuthGuard({ children }: Props) {
         </div>
 
         <p className="text-xs text-slate-300 font-bold leading-relaxed">
-          Sign in or create a free account to open this workstation. Your
-          subscription applies across VLSI, Tools, and OpenROAD.
+          {isInterview
+            ? "Sign in or create a free account to browse questions and unlock lifetime access. Free previews are available after login."
+            : "Sign in or create a free account to open this area. Your subscription applies across VLSI, Tools, and OpenROAD."}
         </p>
 
         <Suspense
