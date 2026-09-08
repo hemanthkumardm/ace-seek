@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import {
   Sparkles,
@@ -50,67 +50,17 @@ function formatINR(val: number): string {
   return `${formattedOther},${lastThree}`;
 }
 
-// Spatial 3D Tilt Card Container
+/** Static card shell — heavy 3D tilt + glare was causing scroll jank / “buffering”. */
 function SpatialTiltCard({
   children,
   className = "",
-  glowColor = "rgba(16, 185, 129, 0.25)",
 }: {
   children: React.ReactNode;
   className?: string;
   glowColor?: string;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [glarePos, setGlarePos] = useState({ x: 50, y: 50, opacity: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotX = -((y - centerY) / centerY) * 7;
-    const rotY = ((x - centerX) / centerX) * 7;
-
-    setRotateX(rotX);
-    setRotateY(rotY);
-    setGlarePos({
-      x: (x / rect.width) * 100,
-      y: (y / rect.height) * 100,
-      opacity: 0.15,
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-    setGlarePos((prev) => ({ ...prev, opacity: 0 }));
-  };
-
   return (
-    <div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-        transformStyle: "preserve-3d",
-        transition: "transform 0.15s ease-out",
-      }}
-      className={`relative rounded-2xl overflow-hidden transition-shadow duration-300 ${className}`}
-    >
-      {/* Specular Glare Reflection */}
-      <div
-        className="pointer-events-none absolute inset-0 z-30 transition-opacity duration-300"
-        style={{
-          background: `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, ${glowColor} 0%, transparent 65%)`,
-          opacity: glarePos.opacity,
-        }}
-      />
+    <div className={`relative rounded-2xl overflow-hidden ${className}`}>
       {children}
     </div>
   );
@@ -166,18 +116,16 @@ export default function PortalLandingPage() {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-zinc-100 font-sans selection:bg-emerald-500 selection:text-black relative overflow-x-hidden">
-      {/* Ambient Spatial Background Grid & Glows */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-b from-cyan-500/15 via-emerald-500/10 to-transparent blur-[140px] rounded-full" />
-        <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 blur-[160px] rounded-full" />
-        <div className="absolute bottom-[20%] left-[-10%] w-[600px] h-[600px] bg-cyan-500/10 blur-[160px] rounded-full" />
-        <div className="absolute inset-0 spatial-grid-pattern opacity-40" />
+      {/* Light ambient backdrop — avoid huge fixed blurs (GPU thrash on scroll to #pricing) */}
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[min(100%,720px)] h-[320px] bg-gradient-to-b from-cyan-500/10 to-transparent rounded-full" />
+        <div className="absolute inset-0 spatial-grid-pattern opacity-25" />
       </div>
 
       {/* =========================================================================
           1. STICKY SPATIAL NAVIGATION HEADER
           ========================================================================= */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-zinc-950/80 border-b border-white/10 transition-all">
+      <header className="sticky top-0 z-50 bg-zinc-950/95 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           {/* Logo & Portal Badge */}
           <div className="flex items-center gap-3">
