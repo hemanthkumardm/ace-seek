@@ -23,7 +23,37 @@ export function VlsiFrame({
   const pathname = usePathname();
   const isLearn = pathname.startsWith("/vlsi/learn");
   const isInterview = pathname.startsWith("/vlsi/interview-masterclass");
+  const isLogin =
+    pathname === "/login" ||
+    pathname === "/vlsi/login" ||
+    pathname.endsWith("/login");
   const isIntro = pathname === "/" || pathname === "/vlsi";
+
+  // Auth pages: same dark carbon shell as marketing (never light studio chrome)
+  if (isLogin) {
+    return (
+      <div
+        data-vlsi-shell
+        className="min-h-screen flex flex-col overflow-x-hidden font-mono bg-[#0c0f14] text-[#f1f5f9]"
+      >
+        <Suspense
+          fallback={
+            <header className="shrink-0 border-b border-black h-14 bg-[#161b24]" />
+          }
+        >
+          <VlsiHeaderNav
+            homeHref={homeHref}
+            loginHref={loginHref}
+            signupHref={signupHref}
+            mainSiteUrl={mainSiteUrl}
+          />
+        </Suspense>
+        <main className="relative flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
+          {children}
+        </main>
+      </div>
+    );
+  }
 
   // Interview Masterclass: dark shell — requires account login (including free previews)
   if (isInterview) {

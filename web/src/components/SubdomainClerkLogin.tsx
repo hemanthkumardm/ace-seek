@@ -13,9 +13,64 @@ type Props = {
   defaultRedirect?: string;
 };
 
+/** Dark theme matching VLSI / Tools carbon shells */
+const clerkDarkAppearance = {
+  baseTheme: undefined,
+  variables: {
+    colorPrimary: "#22d3ee",
+    colorBackground: "#0f172a",
+    colorInputBackground: "#020617",
+    colorInputText: "#f8fafc",
+    colorText: "#e2e8f0",
+    colorTextSecondary: "#94a3b8",
+    colorDanger: "#f87171",
+    colorSuccess: "#34d399",
+    colorNeutral: "#94a3b8",
+    borderRadius: "0.75rem",
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  },
+  elements: {
+    rootBox: "mx-auto w-full max-w-md",
+    card: "shadow-none border border-slate-700 bg-slate-950 !text-slate-100",
+    headerTitle: "!text-white font-black",
+    headerSubtitle: "!text-slate-400",
+    socialButtonsBlockButton:
+      "!bg-slate-900 !border !border-slate-700 !text-slate-100 hover:!bg-slate-800",
+    socialButtonsBlockButtonText: "!text-slate-100",
+    dividerLine: "!bg-slate-700",
+    dividerText: "!text-slate-500",
+    formFieldLabel: "!text-slate-300",
+    formFieldInput:
+      "!bg-slate-950 !border !border-slate-700 !text-white placeholder:!text-slate-500 focus:!border-cyan-400",
+    formButtonPrimary:
+      "!bg-cyan-400 !text-slate-950 hover:!bg-cyan-300 !font-bold !shadow-none",
+    footerActionLink: "!text-cyan-400 hover:!text-cyan-300",
+    footerActionText: "!text-slate-400",
+    identityPreviewText: "!text-slate-200",
+    identityPreviewEditButton: "!text-cyan-400",
+    formFieldInputShowPasswordButton: "!text-slate-400",
+    alertText: "!text-slate-200",
+    formFieldErrorText: "!text-rose-400",
+  },
+} as const;
+
+function safeRedirect(raw: string | null, fallback: string): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return fallback;
+  // Never bounce back onto auth pages (fixes ?redirect=/login loops)
+  if (
+    raw === "/login" ||
+    raw.endsWith("/login") ||
+    raw.startsWith("/signup") ||
+    raw.includes("/login?")
+  ) {
+    return fallback;
+  }
+  return raw;
+}
+
 /**
  * Clerk sign-in / sign-up embed for product hosts (vlsi / tools / openroad / apex).
- * Redirect stays on the current host when possible.
+ * Dark-themed to match Ace-Seek product shells.
  */
 export function SubdomainClerkLogin({
   path = "/login",
@@ -27,8 +82,7 @@ export function SubdomainClerkLogin({
 
   const redirectUrl = useMemo(() => {
     const raw = params.get("redirect") || params.get("redirect_url");
-    if (raw && raw.startsWith("/") && !raw.startsWith("//")) return raw;
-    return defaultRedirect;
+    return safeRedirect(raw, defaultRedirect);
   }, [params, defaultRedirect]);
 
   if (!configured) {
@@ -49,7 +103,7 @@ export function SubdomainClerkLogin({
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-3">
+    <div className="w-full flex flex-col items-center gap-4" data-clerk-dark>
       <div className="flex gap-2 text-[11px] font-mono font-bold">
         <button
           type="button"
@@ -75,35 +129,25 @@ export function SubdomainClerkLogin({
         </button>
       </div>
 
-      {mode === "sign-in" ? (
-        <SignIn
-          routing="hash"
-          forceRedirectUrl={redirectUrl}
-          fallbackRedirectUrl={redirectUrl}
-          signUpUrl="#sign-up"
-          appearance={{
-            elements: {
-              rootBox: "mx-auto w-full",
-              card: "shadow-none border-2 border-black bg-slate-950",
-            },
-          }}
-        />
-      ) : (
-        <SignUp
-          routing="hash"
-          forceRedirectUrl={redirectUrl}
-          fallbackRedirectUrl={redirectUrl}
-          signInUrl="#sign-in"
-          appearance={{
-            elements: {
-              rootBox: "mx-auto w-full",
-              card: "shadow-none border-2 border-black bg-slate-950",
-            },
-          }}
-        />
-      )}
-
-
+      <div className="w-full rounded-2xl border border-slate-700/80 bg-slate-950/80 p-2 sm:p-3">
+        {mode === "sign-in" ? (
+          <SignIn
+            routing="hash"
+            forceRedirectUrl={redirectUrl}
+            fallbackRedirectUrl={redirectUrl}
+            signUpUrl="#sign-up"
+            appearance={clerkDarkAppearance}
+          />
+        ) : (
+          <SignUp
+            routing="hash"
+            forceRedirectUrl={redirectUrl}
+            fallbackRedirectUrl={redirectUrl}
+            signInUrl="#sign-in"
+            appearance={clerkDarkAppearance}
+          />
+        )}
+      </div>
     </div>
   );
 }

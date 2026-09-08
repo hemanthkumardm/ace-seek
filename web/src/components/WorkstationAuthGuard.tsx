@@ -60,13 +60,20 @@ export function WorkstationAuthGuard({ children }: Props) {
     return <>{children}</>;
   }
 
-  const redirect = pathname && pathname.startsWith("/") ? pathname : "/";
   const isInterview = pathname?.includes("/interview-masterclass");
   const backHref = pathname?.startsWith("/tools")
     ? "/tools"
     : pathname?.startsWith("/openroad")
       ? "/openroad"
       : "/vlsi";
+  // Never use /login as post-auth redirect (avoids ?redirect=/login loops)
+  const redirect =
+    pathname &&
+    pathname.startsWith("/") &&
+    !pathname.endsWith("/login") &&
+    !pathname.includes("/login")
+      ? pathname
+      : backHref;
 
   return (
     <div className="flex-1 min-h-[80vh] flex items-center justify-center p-6 bg-slate-950 font-mono">
