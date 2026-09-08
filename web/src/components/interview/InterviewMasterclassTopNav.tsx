@@ -37,12 +37,12 @@ export function InterviewMasterclassTopNav({
         {/* Brand & Page Info */}
         <div className="flex items-center gap-3">
           <Link
-            href="/vlsi/learn"
+            href="/vlsi"
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-slate-500 text-xs font-mono text-slate-300 hover:text-white transition-all"
-            title="Return to VLSI Learn Hub"
+            title="Back to VLSI home"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Learn Hub</span>
+            <span className="hidden sm:inline">VLSI Home</span>
           </Link>
 
           <div className="h-5 w-[1px] bg-slate-800 hidden sm:block" />

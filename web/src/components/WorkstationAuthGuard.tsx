@@ -25,15 +25,20 @@ export function WorkstationAuthGuard({ children }: Props) {
 
   const isPublicRoute = useMemo(() => {
     if (!pathname) return true;
+    // Marketing intros, auth pages, Interview Masterclass, Learn catalog hub
+    // (lesson/track pages under /learn/... still require sign-in)
+    const normalized = pathname.replace(/\/$/, "") || "/";
     return (
-      pathname === "/" ||
-      pathname === "/vlsi" ||
-      pathname === "/openroad" ||
-      pathname === "/tools" ||
-      pathname === "/login" ||
-      pathname.endsWith("/login") ||
-      pathname.startsWith("/signup") ||
-      pathname.includes("/interview-masterclass")
+      normalized === "/" ||
+      normalized === "/vlsi" ||
+      normalized === "/openroad" ||
+      normalized === "/tools" ||
+      normalized === "/login" ||
+      normalized.endsWith("/login") ||
+      normalized.startsWith("/signup") ||
+      normalized.includes("/interview-masterclass") ||
+      normalized === "/vlsi/learn" ||
+      normalized === "/learn"
     );
   }, [pathname]);
 
