@@ -1,48 +1,66 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
-import { Tag, Sparkles, Zap, Gift, CheckCircle2, ArrowRight, Clock, Percent, ShieldCheck } from "lucide-react";
+import {
+  Tag,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  GraduationCap,
+  Building2,
+  Percent,
+} from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Offers & Deals",
-  description: "Special promotions, annual discounts, and grants for Ace-Seek engineering teams.",
+  description:
+    "Max trial, academic grants, and subscription offers for Ace-Seek VLSI and engineering tools.",
 };
 
 const OFFERS = [
   {
-    title: "7-day Max trial (manual review)",
+    title: "7-day Max trial",
     badge: "TRIAL",
-    blurb: "Students and engineers can request Max for 7 days. Submit name, college/company email, qualification, and why you need it. We verify, then activate Max on your account — nothing is unlocked automatically before approval.",
-    discount: "7 DAYS MAX",
-    code: "REQUEST_TRIAL",
+    blurb:
+      "Students and working engineers can request Max for 7 days. We manually verify college or company details, then activate Max on your Ace-Seek account.",
+    highlight: "7 DAYS MAX",
+    note: "Manual review · no auto-unlock",
     cta: "Request Max trial",
     href: "/trial",
+    icon: GraduationCap,
   },
   {
-    title: "Annual Billing — 20% Discount",
+    title: "Annual Pro / Max / Team",
     badge: "SAVINGS",
-    blurb: "Switch any Pro or Team subscription from monthly to annual billing and instantly lock in 20% off your total seat cost.",
-    discount: "20% OFF",
-    code: "ANNUAL2026",
-    cta: "Claim Annual Deal",
-    href: "https://www.ace-seek.com/pricing",
+    blurb:
+      "Prefer yearly billing? Choose annual on Pricing when available, or contact us for an annual quote on Pro, Max, or Team seats.",
+    highlight: "ASK FOR ANNUAL",
+    note: "Contact sales for yearly pricing",
+    cta: "View plans",
+    href: "/pricing",
+    icon: Percent,
   },
   {
-    title: "VLSI Startup & Academic Grant",
+    title: "Startup & academic grant",
     badge: "GRANT",
-    blurb: "Verified early-stage semiconductor startups and university research labs get 6 months of Team Plan access completely free.",
-    discount: "100% FREE (6 Months)",
-    code: "HARDWARE_GRANT",
-    cta: "Apply for Grant",
+    blurb:
+      "Early-stage semiconductor startups and university labs can apply for sponsored Team access. We verify eligibility before activating the account.",
+    highlight: "APPLY",
+    note: "Subject to approval",
+    cta: "Apply via signup",
     href: "/signup?plan=team&grant=1",
+    icon: Building2,
   },
   {
-    title: "Doc Compiler Subdomain Credits",
-    badge: "PROMO",
-    blurb: "Every new account receives 1,000 free high-priority TeX compilation tokens on doc.ace-seek.com upon identity creation.",
-    discount: "1,000 TOKENS",
-    code: "DOC_LAUNCH_FREE",
-    cta: "Create Identity & Claim",
-    href: "/signup",
+    title: "Interview Masterclass",
+    badge: "ONE-TIME",
+    blurb:
+      "Lifetime Staff/Principal interview bank (280+ problems). One-time purchase on your account — separate from monthly Pro/Max.",
+    highlight: "₹2,499",
+    note: "Lifetime · account-bound",
+    cta: "Open Interview",
+    href: "https://vlsi.ace-seek.com/vlsi/interview-masterclass",
+    icon: Sparkles,
   },
 ];
 
@@ -52,73 +70,94 @@ export default function OffersPage() {
       <SiteHeader active="offers" />
 
       <main className="flex-1 m-shell py-12 md:py-16 space-y-12">
-        {/* Hero Section */}
         <div className="sk-panel p-8 md:p-12 space-y-4">
           <div className="flex items-center gap-2">
             <div className="sk-icon-well">
               <Tag className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-              Promotional Command Desk
+              Offers
             </span>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--foreground)]">
-            Exclusive Offers & Hardware Team Grants
+            Trials, grants & lifetime add-ons
           </h1>
 
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
-            Maximize your team productivity with special promotional deals, annual subscription discounts, startup grants, and free compiler credits on <span className="font-mono text-[var(--accent-cyan)]">doc.ace-seek.com</span>.
+            Everything below attaches to your signed-in Ace-Seek account and works across{" "}
+            <span className="font-mono text-[var(--accent-cyan)]">vlsi</span>,{" "}
+            <span className="font-mono text-[var(--accent-cyan)]">tools</span>, and{" "}
+            <span className="font-mono text-[var(--accent-cyan)]">openroad</span>.
           </p>
         </div>
 
-        {/* Offers Cards Grid */}
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {OFFERS.map((offer) => (
-            <div key={offer.title} className="sk-panel p-6 flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="sk-badge sk-badge-live">
-                    <Sparkles className="w-3 h-3 text-[var(--accent-cyan)]" />
-                    <span>{offer.badge}</span>
-                  </span>
-                  <span className="font-mono text-[10px] text-[var(--muted)]">LIMITED TIME</span>
+          {OFFERS.map((offer) => {
+            const Icon = offer.icon;
+            return (
+              <div
+                key={offer.title}
+                className="sk-panel p-6 flex flex-col justify-between space-y-6"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="sk-badge sk-badge-live">
+                      <Icon className="w-3 h-3 text-[var(--accent-cyan)]" />
+                      <span>{offer.badge}</span>
+                    </span>
+                  </div>
+
+                  <div className="sk-recessed p-4 space-y-1">
+                    <span className="text-xl font-black font-mono text-[var(--accent-cyan)] block">
+                      {offer.highlight}
+                    </span>
+                    <span className="text-[10px] font-mono text-[var(--muted)]">
+                      {offer.note}
+                    </span>
+                  </div>
+
+                  <h2 className="text-base font-bold text-[var(--foreground)]">
+                    {offer.title}
+                  </h2>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                    {offer.blurb}
+                  </p>
                 </div>
 
-                <div className="sk-recessed p-4 flex items-center justify-between">
-                  <span className="text-2xl font-black font-mono text-[var(--accent-cyan)]">
-                    {offer.discount}
-                  </span>
-                  <span className="sk-badge font-mono text-[10px]">{offer.code}</span>
-                </div>
-
-                <h2 className="text-base font-bold text-[var(--foreground)]">{offer.title}</h2>
-                <p className="text-xs text-[var(--muted)] leading-relaxed">{offer.blurb}</p>
+                <Link
+                  href={offer.href}
+                  className="sk-btn sk-btn-primary !text-xs w-full justify-center"
+                >
+                  <span>{offer.cta}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-
-              <a href={offer.href} className="sk-btn sk-btn-primary !text-xs w-full justify-center">
-                <span>{offer.cta}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Subdomain Notice Panel */}
         <div className="sk-panel p-8 space-y-4 max-w-3xl">
           <div className="flex items-center gap-3">
             <div className="sk-icon-well">
               <ShieldCheck className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <div>
-              <h3 className="text-base font-bold">Unified License & Token Redemption</h3>
+              <h3 className="text-base font-bold">How offers apply</h3>
               <p className="text-xs text-[var(--muted)]">
-                Redeem promotional codes directly from your central dashboard on ace-seek.com.
+                After approval or purchase, your plan updates on the account — sign in on any
+                product host to use it.
               </p>
             </div>
           </div>
           <p className="text-xs text-[var(--muted)] leading-relaxed font-mono sk-recessed p-4">
-            • Promos applied on www.ace-seek.com automatically apply across vlsi.ace-seek.com, tools.ace-seek.com, and other Ace-Seek product sites under the same account.
+            Questions about grants or annual billing?{" "}
+            <a
+              href="mailto:support@ace-seek.com"
+              className="text-[var(--accent-cyan)] underline"
+            >
+              support@ace-seek.com
+            </a>
           </p>
         </div>
       </main>

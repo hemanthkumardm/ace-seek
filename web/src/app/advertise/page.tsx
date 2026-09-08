@@ -1,145 +1,228 @@
-import type { Metadata } from "next";
-import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
-import { Megaphone, Cpu, Users, Eye, Target, Send, CheckCircle2, ArrowRight, ShieldCheck } from "lucide-react";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Advertise & Sponsorship",
-  description: "Reach VLSI designers, STA engineers, and hardware teams on Ace-Seek.",
-};
+import React, { useState } from "react";
+import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
+import {
+  Megaphone,
+  Users,
+  Eye,
+  Target,
+  Send,
+  CheckCircle2,
+  ArrowRight,
+  CheckCircle,
+} from "lucide-react";
+
+const PACKAGES = [
+  {
+    title: "Product host banner",
+    price: "Custom quote",
+    blurb:
+      "Placement on VLSI, Tools, or OpenROAD product shells — seen by engineers while they work.",
+    points: [
+      "Targeted placement on product headers or catalog cards",
+      "Monthly reporting on impressions (when tracking is enabled)",
+    ],
+  },
+  {
+    title: "Sponsored technical post",
+    price: "Custom quote",
+    blurb:
+      "Co-branded case study or workflow article on ace-seek.com for EDA / semiconductor audiences.",
+    points: [
+      "SEO-friendly technical content on your keywords",
+      "Permanent link to your product or docs site",
+    ],
+  },
+];
 
 export default function AdvertisePage() {
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const subject = encodeURIComponent(`Ace-Seek advertising inquiry — ${company || "Company"}`);
+    const body = encodeURIComponent(
+      `Company: ${company}\nEmail: ${email}\n\nMessage:\n${message || "(none)"}\n`
+    );
+    window.location.href = `mailto:advertise@ace-seek.com?subject=${subject}&body=${body}`;
+    setSent(true);
+  };
+
   return (
     <div className="min-h-full flex flex-col">
       <SiteHeader active="advertise" />
 
       <main className="flex-1 m-shell py-12 md:py-16 space-y-12">
-        {/* Header Panel */}
         <div className="sk-panel p-8 md:p-12 space-y-4">
           <div className="flex items-center gap-2">
             <div className="sk-icon-well">
               <Megaphone className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-              Enterprise Sponsorship Desk
+              Advertise
             </span>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--foreground)]">
-            Advertise to Semiconductor & Engineering Teams
+            Reach semiconductor & EDA engineers
           </h1>
 
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
-            Position your EDA tools, IP cores, and cloud compute platforms directly in front of active VLSI architects, timing engineers, and chip designers.
+            Put your IP, tools, or cloud platform in front of people actively using SDC, STA,
+            PnR, and documentation workflows on Ace-Seek.
           </p>
         </div>
 
-        {/* Stats Grid */}
         <div className="grid gap-6 md:grid-cols-3">
           <div className="sk-panel p-6 space-y-3 text-center">
             <div className="sk-icon-well mx-auto w-10 h-10">
               <Users className="w-5 h-5 text-[var(--accent-cyan)]" />
             </div>
-            <p className="text-3xl font-black font-mono text-[var(--foreground)]">25,000+</p>
-            <p className="text-xs font-bold uppercase text-[var(--muted)]">Hardware Engineers</p>
-            <p className="text-xs text-[var(--muted)] leading-relaxed">STA engineers, physical design leads, and firmware architects.</p>
+            <p className="text-lg font-black font-mono text-[var(--foreground)]">
+              VLSI · Tools · OpenROAD
+            </p>
+            <p className="text-xs font-bold uppercase text-[var(--muted)]">Product hosts</p>
+            <p className="text-xs text-[var(--muted)] leading-relaxed">
+              Placement where engineers already work — not generic banner networks.
+            </p>
           </div>
 
           <div className="sk-panel p-6 space-y-3 text-center">
             <div className="sk-icon-well mx-auto w-10 h-10">
               <Eye className="w-5 h-5 text-[var(--accent-cyan)]" />
             </div>
-            <p className="text-3xl font-black font-mono text-[var(--foreground)]">140,000+</p>
-            <p className="text-xs font-bold uppercase text-[var(--muted)]">Subdomain Tool Runs</p>
-            <p className="text-xs text-[var(--muted)] leading-relaxed">High engagement across doc.ace-seek.com, timing, and scripts.</p>
+            <p className="text-lg font-black font-mono text-[var(--foreground)]">
+              High intent
+            </p>
+            <p className="text-xs font-bold uppercase text-[var(--muted)]">Technical audience</p>
+            <p className="text-xs text-[var(--muted)] leading-relaxed">
+              Readers seeking timing closure, constraints, synthesis, and doc tooling.
+            </p>
           </div>
 
           <div className="sk-panel p-6 space-y-3 text-center">
             <div className="sk-icon-well mx-auto w-10 h-10">
               <Target className="w-5 h-5 text-[var(--accent-cyan)]" />
             </div>
-            <p className="text-3xl font-black font-mono text-[var(--foreground)]">100% Focused</p>
-            <p className="text-xs font-bold uppercase text-[var(--muted)]">Technical Intent</p>
-            <p className="text-xs text-[var(--muted)] leading-relaxed">Zero fluff — readers seeking SDC, TeX notes, and synthesis solutions.</p>
+            <p className="text-lg font-black font-mono text-[var(--foreground)]">
+              Custom packages
+            </p>
+            <p className="text-xs font-bold uppercase text-[var(--muted)]">Flexible</p>
+            <p className="text-xs text-[var(--muted)] leading-relaxed">
+              Banners, sponsored posts, or co-branded Learn / Interview placements.
+            </p>
           </div>
         </div>
 
-        {/* Packages Grid */}
         <div className="space-y-6">
           <h2 className="text-xl font-bold tracking-tight border-b border-[var(--bevel-shadow)] pb-3">
-            Sponsorship & Banner Packages
+            Packages
           </h2>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="sk-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold">Subdomain Banner Placement</h3>
-                <span className="sk-badge sk-badge-live">$499 / Month</span>
+            {PACKAGES.map((pkg) => (
+              <div key={pkg.title} className="sk-panel p-6 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-bold">{pkg.title}</h3>
+                  <span className="sk-badge sk-badge-live shrink-0">{pkg.price}</span>
+                </div>
+                <p className="text-xs text-[var(--muted)] leading-relaxed">{pkg.blurb}</p>
+                <ul className="space-y-2 text-xs text-[var(--muted)]">
+                  {pkg.points.map((p) => (
+                    <li key={p} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)] shrink-0 mt-0.5" />
+                      <span>{p}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="text-xs text-[var(--muted)] leading-relaxed">
-                Display prominent high-resolution banner placement on doc.ace-seek.com and timing.ace-seek.com tool headers.
-              </p>
-              <ul className="space-y-2 text-xs text-[var(--muted)]">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-                  <span>Targeted placement on PDF compiler toolbar</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-                  <span>CTR analytics & click tracking dashboard</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="sk-panel p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold">Sponsored Technical Post</h3>
-                <span className="sk-badge sk-badge-live">$799 / Post</span>
-              </div>
-              <p className="text-xs text-[var(--muted)] leading-relaxed">
-                Publish co-branded technical case studies, benchmarking reports, and workflow integration articles on ace-seek.com/blog.
-              </p>
-              <ul className="space-y-2 text-xs text-[var(--muted)]">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-                  <span>Organic SEO indexing for target EDA keywords</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-                  <span>Permanent link back to your product landing page</span>
-                </li>
-              </ul>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Contact Form Box */}
         <div className="sk-panel p-8 space-y-6 max-w-xl mx-auto">
           <div className="text-center space-y-2">
             <div className="sk-icon-well mx-auto w-10 h-10">
               <Send className="w-5 h-5 text-[var(--accent-cyan)]" />
             </div>
-            <h3 className="text-lg font-bold">Inquire About Advertising & Media Kits</h3>
+            <h3 className="text-lg font-bold">Request a media kit</h3>
             <p className="text-xs text-[var(--muted)]">
-              Get in touch with our team for custom corporate sponsorship packages.
+              Opens your email client to{" "}
+              <span className="font-mono text-[var(--accent-cyan)]">advertise@ace-seek.com</span>
             </p>
           </div>
 
-          <form className="space-y-4" action="/advertise" method="get">
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase text-[var(--muted)]">Company Name</label>
-              <input type="text" placeholder="e.g. Cadence, Synopsys, Xilinx, Ansys" className="sk-input w-full" required />
+          {sent ? (
+            <div className="text-center space-y-3 py-4">
+              <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto" />
+              <p className="text-sm text-[var(--muted)]">
+                If your mail app opened, send the draft and we&apos;ll reply with rates and
+                availability.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSent(false)}
+                className="sk-btn sk-btn-ghost !text-xs"
+              >
+                Send another
+              </button>
             </div>
+          ) : (
+            <form className="space-y-4" onSubmit={onSubmit}>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase text-[var(--muted)]">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="e.g. Cadence, Synopsys, Ansys"
+                  className="sk-input w-full"
+                  required
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold uppercase text-[var(--muted)]">Work Email</label>
-              <input type="email" placeholder="marketing@company.com" className="sk-input w-full" required />
-            </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase text-[var(--muted)]">
+                  Work email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="marketing@company.com"
+                  className="sk-input w-full"
+                  required
+                />
+              </div>
 
-            <button type="submit" className="sk-btn sk-btn-primary !text-xs w-full justify-center !py-2.5">
-              <span>Request Media Kit</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </form>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase text-[var(--muted)]">
+                  What are you looking for? (optional)
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Banner on VLSI, sponsored post, Interview sponsorship…"
+                  className="sk-input w-full min-h-[88px] resize-y"
+                  rows={3}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="sk-btn sk-btn-primary !text-xs w-full justify-center !py-2.5"
+              >
+                <span>Request media kit</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </form>
+          )}
         </div>
       </main>
 
