@@ -43,6 +43,9 @@ export const metadata: Metadata = {
   authors: [{ name: "Ace-Seek Team", url: "https://www.ace-seek.com" }],
   creator: "Ace-Seek",
   publisher: "Ace-Seek",
+  verification: {
+    google: "google9773c15e180cf625",
+  },
   robots: {
     index: true,
     follow: true,
