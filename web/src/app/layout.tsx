@@ -165,7 +165,7 @@ export default function RootLayout({
           afterSignOutUrl="/"
         >
           {/* Minimal global auth chrome (pages also have SiteHeader) */}
-          <div className="sr-only" aria-hidden>
+          <div className="sr-only">
             <Show when="signed-out">
               <SignInButton />
               <SignUpButton />
