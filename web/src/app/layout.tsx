@@ -44,7 +44,10 @@ export const metadata: Metadata = {
   creator: "Ace-Seek",
   publisher: "Ace-Seek",
   verification: {
-    google: "google9773c15e180cf625",
+    google: [
+      "google9773c15e180cf625",
+      "wZU20vwDQ4vWafYaQXmOqa30bxwua7-bMOYZKvWSXnE",
+    ],
   },
   robots: {
     index: true,
