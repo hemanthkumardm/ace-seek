@@ -9,9 +9,33 @@ import {
 import { VlsiFrame } from "@/components/VlsiFrame";
 
 export const metadata: Metadata = {
-  title: "VLSI Platform · vlsi.ace-seek.com",
+  title: "Interactive Physical Design & VLSI Design Studios · vlsi.ace-seek.com",
   description:
-    "VLSI Learn: digital design, Verilog, SystemVerilog, synthesis, verification, UVM, SDC, STA. Studios live in VLSI Studio.",
+    "Interactive ASIC design platform: SDC Studio, MMMC multi-corner authoring, UPF Power Studio, STA timing analysis, and 34+ production VLSI engineering calculators.",
+  keywords: [
+    "Physical Design Online Course",
+    "VLSI Training Platform",
+    "SDC Constraint Generator",
+    "MMMC File Generator",
+    "UPF Power Intent Studio",
+    "Static Timing Analysis STA",
+    "ASIC Floorplanning Placement CTS",
+    "VLSI Interview Prep",
+  ],
+  openGraph: {
+    title: "Interactive Physical Design & VLSI Design Studios · Ace-Seek",
+    description:
+      "Author SDC & MMMC files, configure UPF power intent, debug setup/hold slack, and run live VLSI engineering calculators directly in your browser.",
+    url: "https://vlsi.ace-seek.com",
+    siteName: "Ace-Seek VLSI Platform",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Interactive Physical Design & VLSI Design Studios · Ace-Seek",
+    description:
+      "Master ASIC physical design with interactive SDC/MMMC studios, STA timing analysis, and live OpenROAD PnR tools.",
+  },
 };
 
 export default async function VlsiLayout({

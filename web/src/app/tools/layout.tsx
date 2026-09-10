@@ -6,23 +6,37 @@ import {
   platformLoginHref,
   SITE_URL,
 } from "@/lib/site";
-import {
-  Boxes,
-  FileText,
-  GitCompare,
-  RefreshCw,
-  Key,
-  ExternalLink,
-} from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Tools Suite · tools.ace-seek.com",
-  description:
-    "Developer tools suite — Doc Compiler (PDF/TeX/DOCX), Diff, converters, TeX builder.",
-};
-
 import { WorkstationAuthGuard } from "@/components/WorkstationAuthGuard";
 import { ToolsHeaderNav } from "@/components/ToolsHeaderNav";
+
+export const metadata: Metadata = {
+  title: "Engineering Developer Tools & Workstation Suite · tools.ace-seek.com",
+  description:
+    "Zero-token engineering developer suite: Doc Compiler (MD ↔ PDF ↔ TeX ↔ DOCX), Visual Diff Comparator, AI Output Sanitizer, LaTeX Formula Builder, and Multi-Format Converters.",
+  keywords: [
+    "Doc Compiler Markdown PDF TeX",
+    "Visual Diff Comparator",
+    "AI Output Sanitizer",
+    "LaTeX Formula Builder KaTeX",
+    "Wide Table Geometry Builder",
+    "JSON YAML TOML CSV Converter",
+    "Zero Token LLM Tooling",
+  ],
+  openGraph: {
+    title: "Engineering Developer Tools & Workstation Suite · Ace-Seek",
+    description:
+      "Compile engineering documentation, compare code diffs, clean raw LLM responses, and format TeX math equations with zero AI token cost.",
+    url: "https://tools.ace-seek.com",
+    siteName: "Ace-Seek Tools Platform",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Engineering Developer Tools & Workstation Suite · Ace-Seek",
+    description:
+      "Publication-grade document compilers, visual diff tools, AI output sanitizers, and format converters.",
+  },
+};
 
 export default async function ToolsLayout({
   children,

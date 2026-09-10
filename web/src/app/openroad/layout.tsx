@@ -11,9 +11,31 @@ import { OpenroadHeaderNav } from "@/components/OpenroadHeaderNav";
 import { OpenroadPlatformGate } from "@/components/OpenroadPlatformGate";
 
 export const metadata: Metadata = {
-  title: "OpenROAD PnR · openroad.ace-seek.com",
+  title: "Cloud OpenROAD PnR Automation Platform · openroad.ace-seek.com",
   description:
-    "Upload VLSI OpenROAD-format handoff packs — Pro flow scripts, Max container runs.",
+    "Launch cloud-hosted OpenROAD physical design runs, floorplanning, placement, CTS debugging, and routing automation directly in your browser.",
+  keywords: [
+    "OpenROAD Cloud PnR",
+    "Physical Synthesis OpenROAD",
+    "Place and Route Cloud Execution",
+    "ASIC PnR Automation",
+    "Clock Tree Synthesis CTS Debug",
+    "OpenSource EDA Cloud",
+  ],
+  openGraph: {
+    title: "Cloud OpenROAD PnR Automation Platform · Ace-Seek",
+    description:
+      "Run OpenROAD physical design automation, upload handoff packs, and debug floorplan placement and routing in live cloud containers.",
+    url: "https://openroad.ace-seek.com",
+    siteName: "Ace-Seek OpenROAD Platform",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cloud OpenROAD PnR Automation Platform · Ace-Seek",
+    description:
+      "Browser-based OpenROAD cloud runner for ASIC floorplanning, placement, CTS, and routing automation.",
+  },
 };
 
 export default async function OpenroadLayout({
