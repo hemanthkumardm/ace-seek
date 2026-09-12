@@ -528,14 +528,36 @@ SIGNOFF_IRDROP_LOG="$(find_first \
   echo "Ace-Seek OpenROAD Flow - Magic / KLayout Physical DRC Signoff Report"
   echo "==============================================================================="
   echo ""
-  find "$RUNS" -path '*/reports/signoff/*drc*.rpt' -type f 2>/dev/null | while read -r f; do
-    echo "##### $(basename "$f") #####"
+  drc_found=0
+  for f in \
+    "$RUNS"/ace_run/reports/signoff/*drc* \
+    "$RUNS"/*/reports/signoff/*drc* \
+    "$RES"/*signoff*drc* \
+    "$RES"/signoff_*drc* \
+    "$RES"/logs_signoff_*drc* \
+    "$RUNS"/ace_run/logs/signoff/*drc*; do
+    [[ -f "$f" ]] || continue
+    echo "##### Source: $(basename "$f") #####"
     cat "$f"
-  done
-  if [[ -n "${SIGNOFF_MAGIC_LOG:-}" && -f "$SIGNOFF_MAGIC_LOG" ]]; then
     echo ""
-    echo "--- Magic Streamout & DRC Transcript ---"
-    grep -E 'DRC|violation|Error|Feedback|errors' "$SIGNOFF_MAGIC_LOG" 2>/dev/null | tail -50 || true
+    drc_found=1
+  done
+
+  # Search Magic streamout / DRC logs
+  for f in \
+    "$RUNS"/ace_run/logs/signoff/*gdsii.log \
+    "$RUNS"/ace_run/logs/signoff/*magic*.log \
+    "$RES"/logs_signoff_*gdsii.log \
+    "$RES"/logs_signoff_*magic*.log; do
+    [[ -f "$f" ]] || continue
+    echo "--- Source: $(basename "$f") ---"
+    grep -E 'DRC|violation|Error|Feedback|errors|COUNT|clean' "$f" 2>/dev/null | tail -50 || true
+    echo ""
+    drc_found=1
+  done
+
+  if [[ "$drc_found" -eq 0 ]]; then
+    echo "No DRC report or log file located in run artifacts."
   fi
 } | write_rpt "$RES/signoff_drc.rpt"
 
@@ -545,14 +567,23 @@ SIGNOFF_IRDROP_LOG="$(find_first \
   echo "Ace-Seek OpenROAD Flow - Netgen Layout vs. Schematic (LVS) Signoff Report"
   echo "==============================================================================="
   echo ""
-  find "$RUNS" -path '*/reports/signoff/*lvs*.rpt' -type f 2>/dev/null | while read -r f; do
-    echo "##### $(basename "$f") #####"
+  lvs_found=0
+  for f in \
+    "$RUNS"/ace_run/reports/signoff/*lvs* \
+    "$RUNS"/*/reports/signoff/*lvs* \
+    "$RES"/*signoff*lvs* \
+    "$RES"/signoff_*lvs* \
+    "$RES"/logs_signoff_*lvs* \
+    "$RUNS"/ace_run/logs/signoff/*lvs*; do
+    [[ -f "$f" ]] || continue
+    echo "##### Source: $(basename "$f") #####"
     cat "$f"
-  done
-  if [[ -n "${SIGNOFF_LVS_LOG:-}" && -f "$SIGNOFF_LVS_LOG" ]]; then
     echo ""
-    echo "--- Netgen LVS Comparison Summary ---"
-    grep -E 'Circuits match|net mismatch|device mismatch|LVS|unmatched|Property errors' "$SIGNOFF_LVS_LOG" 2>/dev/null || true
+    lvs_found=1
+  done
+
+  if [[ "$lvs_found" -eq 0 ]]; then
+    echo "No LVS comparison report or log located in run artifacts."
   fi
 } | write_rpt "$RES/signoff_lvs.rpt"
 
@@ -564,6 +595,10 @@ SIGNOFF_IRDROP_LOG="$(find_first \
   echo ""
   if [[ -n "${SIGNOFF_IRDROP_LOG:-}" && -f "$SIGNOFF_IRDROP_LOG" ]]; then
     cat "$SIGNOFF_IRDROP_LOG"
+  elif [[ -f "$RES/logs_signoff_34-irdrop.log" ]]; then
+    cat "$RES/logs_signoff_34-irdrop.log"
+  else
+    echo "No IR drop log located."
   fi
 } | write_rpt "$RES/signoff_irdrop.rpt"
 
@@ -573,7 +608,7 @@ SIGNOFF_IRDROP_LOG="$(find_first \
   echo "Ace-Seek OpenROAD Flow - Signoff Metrics Summary"
   echo "==============================================================================="
   echo ""
-  grep -hE '^(tns|wns)|worst slack|DRC|Circuits match|violations|Total\s+[0-9]' \
+  grep -hE '^(tns|wns)|worst slack|DRC|Circuits match|violations|Total\s+[0-9]|Count:\s*[0-9]+' \
     "$RES/signoff_timing_multicorner.rpt" \
     "$RES/signoff_power.rpt" \
     "$RES/signoff_drc.rpt" \

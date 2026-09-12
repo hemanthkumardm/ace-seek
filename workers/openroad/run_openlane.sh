@@ -117,19 +117,19 @@ run_local_docker() {
         done
         # Stage logs across all stages
         for sub in synthesis floorplan placement cts routing signoff; do
-          for f in \"\$RUN_DIR/logs/\$sub\"/*.log \"\$RUN_DIR/logs/\$sub\"/*.warnings \"\$RUN_DIR/logs/\$sub\"/*.errors; do
+          for f in \"\$RUN_DIR/logs/\$sub\"/*; do
             [ -f \"\$f\" ] || continue
             cp -f \"\$f\" \"/openlane/results_out/logs_\${sub}_\$(basename \"\$f\")\" || true
           done
         done
         # Real reports across all stages if any
         for sub in synthesis floorplan placement cts routing signoff; do
-          for f in \"\$RUN_DIR/reports/\$sub\"/*.rpt; do
+          for f in \"\$RUN_DIR/reports/\$sub\"/*; do
             [ -f \"\$f\" ] || continue
             cp -f \"\$f\" \"/openlane/results_out/\${sub}_\$(basename \"\$f\")\" || true
           done
         done
-        for f in \"\$RUN_DIR/reports\"/*.rpt; do
+        for f in \"\$RUN_DIR/reports\"/*; do
           [ -f \"\$f\" ] || continue
           cp -f \"\$f\" \"/openlane/results_out/\$(basename \"\$f\")\" || true
         done

@@ -549,6 +549,27 @@ if { [catch {
 if { [info exists ::env(RUN_MAGIC)] ? $::env(RUN_MAGIC) : 1 } {
     ace_run_step gds_magic { run_magic }
 }
+
+if { [info exists ::env(RUN_MAGIC_DRC)] ? $::env(RUN_MAGIC_DRC) : 1 } {
+    if { [catch {
+        puts "ACE-Seek: === step signoff_magic_drc ==="
+        run_magic_drc
+        puts "ACE-Seek: === step signoff_magic_drc OK ==="
+    } drc_err] } {
+        puts "ACE-Seek: signoff_magic_drc warning: $drc_err"
+    }
+}
+
+if { [info exists ::env(RUN_ANTENNA_CHECK)] ? $::env(RUN_ANTENNA_CHECK) : 1 } {
+    if { [catch {
+        puts "ACE-Seek: === step signoff_antenna ==="
+        run_antenna_check
+        puts "ACE-Seek: === step signoff_antenna OK ==="
+    } ant_err] } {
+        puts "ACE-Seek: signoff_antenna warning: $ant_err"
+    }
+}
+
 if { [catch {
     puts "ACE-Seek: === step signoff_klayout ==="
     run_klayout
