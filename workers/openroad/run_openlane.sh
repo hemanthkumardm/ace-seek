@@ -115,10 +115,12 @@ run_local_docker() {
             cp -f \"\$f\" \"/openlane/results_out/\${sub}_\${bn}\" || true
           done
         done
-        # Placement STA logs (needed to build reports when .rpt dir is empty)
-        for f in \"\$RUN_DIR/logs/placement\"/*sta*.log \"\$RUN_DIR/logs/placement\"/*resizer*.log; do
-          [ -f \"\$f\" ] || continue
-          cp -f \"\$f\" \"/openlane/results_out/logs_placement_\$(basename \"\$f\")\" || true
+        # Stage logs across all stages
+        for sub in synthesis floorplan placement cts routing signoff; do
+          for f in \"\$RUN_DIR/logs/\$sub\"/*.log \"\$RUN_DIR/logs/\$sub\"/*.warnings \"\$RUN_DIR/logs/\$sub\"/*.errors; do
+            [ -f \"\$f\" ] || continue
+            cp -f \"\$f\" \"/openlane/results_out/logs_\$sub_\$(basename \"\$f\")\" || true
+          done
         done
         # Real reports across all stages if any
         for sub in synthesis floorplan placement cts routing signoff; do
@@ -154,6 +156,11 @@ run_ssh_remote() {
   fi
   log "Mode: remote SSH docker on ${user}@${host}"
   local rid
+  rid=$(ssh "${ssh_opts[@]}" "${user}@${host}" "uname -n && which docker" 2>&1) || {
+    echo "ACE-Seek: SSH pre-check failed on ${user}@${host}: $rid" | tee -a "$LOG"
+    return 1
+  }
+  log "Remote host OK ($rid)"
   rid="$(basename "$JOB_DIR")"
   ssh "${ssh_opts[@]}" "${user}@${host}" "mkdir -p ${remote_base}/${rid}/designs ${remote_base}/${rid}/results"
   rsync -az -e "ssh ${ssh_opts[*]}" \
@@ -205,12 +212,11 @@ else
 fi
 set -e
 
-# Light host harvest of final stage results (curated — no tmp DEFs)
+# Curated host harvest of final stage results
 RUNS="$JOB_DIR/designs/$DESIGN_SLUG/runs"
 if [[ -d "$RUNS" ]]; then
   while IFS= read -r -d '' f; do
     rel=${f#"$RUNS/"}
-    # only results/<stage>/final-ish files
     if [[ "$rel" =~ /tmp/ ]]; then continue; fi
     if [[ "$rel" =~ results/(synthesis|floorplan|placement|cts|routing|final|signoff)/ ]]; then
       stage=$(echo "$rel" | sed -n 's|.*/results/\([^/]*\)/.*|\1|p')
@@ -223,24 +229,20 @@ if [[ -d "$RUNS" ]]; then
     fi
   done < <(find "$RUNS" -type f \( -name '*.def' -o -name '*.odb' -o -name '*.v' -o -name '*.sdc' -o -name '*.gds' -o -name '*.gds.gz' -o -name 'metrics.csv' \) -print0 2>/dev/null)
 
-  # Keep STA logs available for pack_placement_reports.sh
-  while IFS= read -r -d '' f; do
-    cp -f "$f" "$JOB_DIR/results/logs_placement_$(basename "$f")" 2>/dev/null || true
-  done < <(find "$RUNS" -type f -path '*/logs/placement/*sta*.log' -print0 2>/dev/null)
+  # Stage logs across all stages
+  for sub in synthesis floorplan placement cts routing signoff; do
+    while IFS= read -r -d '' f; do
+      bn=$(basename "$f")
+      [[ -s "$f" ]] || continue
+      case "$bn" in
+        *.log|*.errors|*.warnings) ;;
+        *) continue ;;
+      esac
+      cp -f "$f" "$JOB_DIR/results/logs_${sub}_${bn}" 2>/dev/null || true
+    done < <(find "$RUNS" -type f -path "*/logs/$sub/*" -print0 2>/dev/null)
+  done
 
-  # Floorplan / PDN / IO / tap / initial_fp logs (including failed steps like 32-initial_fp)
-  while IFS= read -r -d '' f; do
-    bn=$(basename "$f")
-    # Skip empty .errors/.warnings placeholders
-    [[ -s "$f" ]] || continue
-    case "$bn" in
-      *.log|*.errors|*.warnings) ;;
-      *) continue ;;
-    esac
-    cp -f "$f" "$JOB_DIR/results/logs_floorplan_${bn}" 2>/dev/null || true
-  done < <(find "$RUNS" -type f -path '*/logs/floorplan/*' -print0 2>/dev/null)
-
-  # Stage reports (.rpt) across all stages
+  # Stage reports across all stages
   while IFS= read -r -d '' f; do
     rel=${f#"$RUNS/"}
     stage=$(echo "$rel" | sed -n 's|.*/reports/\([^/]*\)/.*|\1|p')
@@ -253,42 +255,32 @@ if [[ -d "$RUNS" ]]; then
   done < <(find "$RUNS" -type f -path '*/reports/*' -name '*.rpt' -print0 2>/dev/null)
 fi
 
-# Only pack placement reports when this run actually reached placement (or later).
-# Floorplan-only runs must NOT refresh/keep placement_*.rpt from an older place step.
+# Run comprehensive stage report packing (timing, power, area, DRC, LVS for each stage)
 UNTIL_NOW="${ACE_OPENLANE_UNTIL:-all}"
-case "$UNTIL_NOW" in
-  synthesis|floorplan|powerplan)
-    echo "ACE-Seek: skipping placement report pack (until=$UNTIL_NOW)" | tee -a "$LOG"
-    # Drop stale placement/cts/route harvest so Studio cannot show "placement ran"
-    rm -f "$JOB_DIR/results"/placement_* \
-          "$JOB_DIR/results"/cts_* \
-          "$JOB_DIR/results"/routing_* \
-          "$JOB_DIR/results"/logs_placement_* 2>/dev/null || true
-    ;;
-  *)
-    PACK_PL="$WORKER_DIR/pack_placement_reports.sh"
-    if [[ -x "$PACK_PL" ]] || [[ -f "$PACK_PL" ]]; then
-      chmod +x "$PACK_PL" 2>/dev/null || true
-      "$PACK_PL" "$JOB_DIR" 2>&1 | tee -a "$LOG" || true
-    fi
-    if ls "$JOB_DIR/results"/placement_*.rpt >/dev/null 2>&1; then
-      {
-        echo "ACE-Seek: === placement metrics summary ==="
-        for rf in \
-          "$JOB_DIR/results"/placement_metrics_summary.rpt \
-          "$JOB_DIR/results"/placement_timing.rpt \
-          "$JOB_DIR/results"/placement_power.rpt \
-          "$JOB_DIR/results"/placement_area_util.rpt; do
-          [[ -f "$rf" ]] || continue
-          echo "--- $(basename "$rf") ---"
-          grep -E '^(tns|wns)|worst slack|report_wns|report_tns|WNS|TNS|Total\s+[0-9]|Design area|utilization|Internal|Switching|Leakage' \
-            "$rf" 2>/dev/null | head -50 || true
-        done
-        echo "ACE-Seek: === end placement metrics ==="
-      } | tee -a "$LOG"
-    fi
-    ;;
-esac
+PACK_STAGES="$WORKER_DIR/pack_stage_reports.sh"
+if [[ -x "$PACK_STAGES" ]] || [[ -f "$PACK_STAGES" ]]; then
+  chmod +x "$PACK_STAGES" 2>/dev/null || true
+  "$PACK_STAGES" "$JOB_DIR" "$UNTIL_NOW" 2>&1 | tee -a "$LOG" || true
+else
+  PACK_PL="$WORKER_DIR/pack_placement_reports.sh"
+  if [[ -x "$PACK_PL" ]] || [[ -f "$PACK_PL" ]]; then
+    chmod +x "$PACK_PL" 2>/dev/null || true
+    "$PACK_PL" "$JOB_DIR" 2>&1 | tee -a "$LOG" || true
+  fi
+fi
+
+# Log stage metrics summary for telemetry and UI
+if ls "$JOB_DIR/results"/*_metrics_summary.rpt >/dev/null 2>&1; then
+  {
+    echo "ACE-Seek: === Flow Stage Metrics Summary ==="
+    for rf in "$JOB_DIR/results"/*_metrics_summary.rpt; do
+      [[ -f "$rf" ]] || continue
+      echo "--- $(basename "$rf") ---"
+      cat "$rf" 2>/dev/null | head -30 || true
+    done
+    echo "ACE-Seek: === End Flow Stage Metrics ==="
+  } | tee -a "$LOG"
+fi
 
 GDS_COUNT=$(find "$JOB_DIR/results" -type f \( -name '*.gds' -o -name '*.gds.gz' \) 2>/dev/null | wc -l | tr -d ' ')
 DEF_COUNT=$(find "$JOB_DIR/results" -type f -name '*.def' 2>/dev/null | wc -l | tr -d ' ')

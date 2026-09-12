@@ -641,6 +641,18 @@ if { $until eq "placement" } {
 # ── CTS ─────────────────────────────────────────────────────────
 if { !$skip_cts } {
     ace_run_step cts { run_cts }
+    # Explicit post-CTS STA pass with propagated clock to generate timing & power reports
+    if { [catch {
+        puts "ACE-Seek: === step cts_sta ==="
+        if { [info exists ::env(cts_logs)] } {
+            run_sta -log $::env(cts_logs)/ace_cts_sta.log
+        } else {
+            run_sta -log ace_cts_sta.log
+        }
+        puts "ACE-Seek: === step cts_sta OK ==="
+    } cterr] } {
+        puts "ACE-Seek: cts_sta warning: $cterr"
+    }
 } else {
     puts "ACE-Seek: skip CTS (resume — cts DEF present)"
 }
@@ -655,6 +667,18 @@ if { $until eq "cts" } {
 # ── routing ─────────────────────────────────────────────────────
 if { !$skip_route } {
     ace_run_step routing { run_routing }
+    # Explicit post-routing STA pass with wire parasitics to generate timing & power reports
+    if { [catch {
+        puts "ACE-Seek: === step routing_sta ==="
+        if { [info exists ::env(routing_logs)] } {
+            run_sta -log $::env(routing_logs)/ace_routing_sta.log
+        } else {
+            run_sta -log ace_routing_sta.log
+        }
+        puts "ACE-Seek: === step routing_sta OK ==="
+    } rterr] } {
+        puts "ACE-Seek: routing_sta warning: $rterr"
+    }
 } else {
     puts "ACE-Seek: skip routing (resume — routing DEF present)"
 }

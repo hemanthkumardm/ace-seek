@@ -7,6 +7,12 @@ RES="$JOB_DIR/results"
 RUNS="$JOB_DIR/designs/ace_design/runs"
 mkdir -p "$RES"
 
+# If comprehensive pack_stage_reports.sh exists, delegate to it
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -x "$SCRIPT_DIR/pack_stage_reports.sh" ]]; then
+  exec "$SCRIPT_DIR/pack_stage_reports.sh" "$JOB_DIR" "all"
+fi
+
 # Prefer real STA logs (OpenLane -no_save often leaves reports/placement empty)
 pick_sta_log() {
   local f

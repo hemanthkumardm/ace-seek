@@ -262,24 +262,24 @@ export function inferStageFromArtifactName(
   fallback: FlowStageId = "synthesis"
 ): FlowStageId {
   const n = name.toLowerCase().replace(/\\/g, "/");
-  if (/synthesis|yosys|synth|nl\.v|_gl_|area_0|pre_synth|tmp_synthesis/.test(n))
+  if (/logs_synthesis|synthesis|yosys|synth|nl\.v|_gl_|area_0|pre_synth|tmp_synthesis/.test(n))
     return "synthesis";
   if (/pin_order|io_plan|fp_pin_order/.test(n)) return "io_plan";
-  if (/floorplan|initial_fp|tap|io\.log|pdn/.test(n)) {
-    if (/pdn|power/.test(n)) return "powerplan";
+  if (/logs_floorplan|floorplan|initial_fp|tap|io\.log|pdn/.test(n)) {
+    if (/pdn|power/.test(n) && !/placement|cts|routing|signoff/.test(n)) return "powerplan";
     return "floorplan";
   }
   if (
-    /placement|global_skip|detailed_place|gpl|dpl|placement_timing|post_place_sta|placement_power|placement_area|placement_metrics|placement_rpt/.test(
+    /logs_placement|placement|global_skip|detailed_place|gpl|dpl|placement_timing|post_place_sta|placement_power|placement_area|placement_metrics|placement_rpt/.test(
       n
     )
   )
     return "placement";
-  if (/\bcts\b|clock_tree/.test(n)) return "cts";
-  if (/routing|route|grt|fill|wire_length/.test(n)) return "route";
+  if (/logs_cts|\bcts\b|clock_tree/.test(n)) return "cts";
+  if (/logs_routing|routing|route|grt|fill|wire_length/.test(n)) return "route";
   if (/\bdrc\b|magic_drc|klayout_drc/.test(n)) return "drc";
   if (/\blvs\b|netgen/.test(n)) return "lvs";
-  if (/\.gds|\.gds\.gz|signoff|stream|magic\.|klayout/.test(n)) return "gds";
+  if (/logs_signoff|\.gds|\.gds\.gz|signoff|stream|magic\.|klayout/.test(n)) return "gds";
   if (/metrics\.csv|manufacturability/.test(n)) return "gds";
   return fallback;
 }
@@ -289,11 +289,10 @@ export function isJunkOpenlaneArtifact(name: string): boolean {
   const n = name.toLowerCase().replace(/\\/g, "/");
   if (/tmp_placement|global_skip_io|tmp_merged|\.lef$/.test(n)) return true;
   if (/ace_run_tmp_|run_ace_run_tmp_/.test(n)) return true;
-  if (/logs_placement_.*(gpl_sta|dpl_sta|ace_post_place).*\.log$/.test(n))
-    return true;
-  // Huge path dumps — keep summary .rpt only
+  // Always keep authentic stage logs (logs_<stage>_*.log)
+  if (/^logs_(synthesis|floorplan|placement|cts|routing|signoff)_/i.test(n)) return false;
+  // Huge intermediate path dumps — keep summary .rpt only
   if (
-    /placement_.*(gpl_sta|dpl_sta)\.(max|min)\.rpt$/i.test(n) ||
     /placement_.*(gpl_sta|dpl_sta)\.(checks|clock|nonpropagated|skew)\.rpt$/i.test(
       n
     )
