@@ -120,10 +120,16 @@ run_local_docker() {
           [ -f \"\$f\" ] || continue
           cp -f \"\$f\" \"/openlane/results_out/logs_placement_\$(basename \"\$f\")\" || true
         done
-        # Real placement .rpt if any
-        for f in \"\$RUN_DIR/reports/placement\"/*.rpt; do
+        # Real reports across all stages if any
+        for sub in synthesis floorplan placement cts routing signoff; do
+          for f in \"\$RUN_DIR/reports/\$sub\"/*.rpt; do
+            [ -f \"\$f\" ] || continue
+            cp -f \"\$f\" \"/openlane/results_out/\${sub}_\$(basename \"\$f\")\" || true
+          done
+        done
+        for f in \"\$RUN_DIR/reports\"/*.rpt; do
           [ -f \"\$f\" ] || continue
-          cp -f \"\$f\" \"/openlane/results_out/placement_\$(basename \"\$f\")\" || true
+          cp -f \"\$f\" \"/openlane/results_out/\$(basename \"\$f\")\" || true
         done
         # metrics / gds anywhere
         find \"\$RUN_DIR\" -type f \( -name 'metrics.csv' -o -name '*.gds' -o -name '*.gds.gz' \) -print0 | while IFS= read -r -d '' f; do
@@ -131,7 +137,7 @@ run_local_docker() {
         done
         echo \"\$RUN_DIR\" > /openlane/results_out/RUN_DIR.txt
         ls -la \"\$RUN_DIR/results\" 2>/dev/null || true
-        ls -la \"\$RUN_DIR/reports/placement\" 2>/dev/null || true
+        ls -la \"\$RUN_DIR/reports\" 2>/dev/null || true
       fi
       ls -la /openlane/results_out | head -50
     " 2>&1 | tee -a "$LOG"
@@ -233,6 +239,18 @@ if [[ -d "$RUNS" ]]; then
     esac
     cp -f "$f" "$JOB_DIR/results/logs_floorplan_${bn}" 2>/dev/null || true
   done < <(find "$RUNS" -type f -path '*/logs/floorplan/*' -print0 2>/dev/null)
+
+  # Stage reports (.rpt) across all stages
+  while IFS= read -r -d '' f; do
+    rel=${f#"$RUNS/"}
+    stage=$(echo "$rel" | sed -n 's|.*/reports/\([^/]*\)/.*|\1|p')
+    bn=$(basename "$f")
+    if [[ -n "$stage" ]]; then
+      cp -f "$f" "$JOB_DIR/results/${stage}_${bn}" 2>/dev/null || true
+    else
+      cp -f "$f" "$JOB_DIR/results/${bn}" 2>/dev/null || true
+    fi
+  done < <(find "$RUNS" -type f -path '*/reports/*' -name '*.rpt' -print0 2>/dev/null)
 fi
 
 # Only pack placement reports when this run actually reached placement (or later).
