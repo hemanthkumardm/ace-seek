@@ -632,6 +632,93 @@ export default function PortalLandingPage() {
       </section>
 
       {/* =========================================================================
+          3.5 SECTION: VERIFIED SILICON PROOF (PRODUCTION RISC-V ON SKY130)
+          ========================================================================= */}
+      <section id="silicon-proof" className="relative z-10 py-20 bg-gradient-to-b from-zinc-950/80 via-zinc-900/60 to-zinc-950/80 border-t border-cyan-500/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-zinc-900/95 via-zinc-900/80 to-zinc-950 border border-cyan-500/30 shadow-2xl shadow-cyan-950/20">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+              <div className="space-y-4 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 uppercase tracking-wider">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Silicon Credibility Proof · Real Production Tapeout</span>
+                </div>
+                <h3 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                  lowRISC Ibex RV32IMC Core on SkyWater 130nm
+                </h3>
+                <p className="text-sm sm:text-base text-zinc-300 leading-relaxed">
+                  We don&apos;t just teach VLSI theory or sell consulting templates. We run full, tapeout-grade silicon implementations through our own cloud OpenROAD/OpenLane pipeline. Here is our verified physical signoff run of the production 32-bit RISC-V Ibex core down to GDSII.
+                </p>
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <a
+                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm transition-all shadow-lg shadow-cyan-500/20"
+                  >
+                    <Terminal className="w-4 h-4" />
+                    <span>View GitHub Tapeout Repo</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </a>
+                  <a
+                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout/blob/main/docs/IBEX_TIMING_CLOSURE_REPORT.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm border border-white/10 transition-all"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    <span>Read Full STA Signoff Report</span>
+                  </a>
+                  <a
+                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout/blob/main/docs/WALKTHROUGH_VIDEO_SCRIPT.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white font-medium text-sm border border-white/5 transition-all"
+                  >
+                    <span>5-Min Video Walkthrough Script</span>
+                  </a>
+                </div>
+              </div>
+
+              {/* Verified Metrics Matrix */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto shrink-0">
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Clock Frequency</span>
+                  <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">66.7 MHz</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">Tclk = 15.00 ns</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Core Area</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">128,125 μm²</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">42% Core Util</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Timing Slack (WNS)</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">0.00 ns</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">Setup & Hold Clean</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Magic DRC</span>
+                  <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">0 Errors</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">Foundry Signoff</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Netgen LVS</span>
+                  <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">Matched</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">100% Net Equivalence</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Foundry PDK</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-1">SkyWater 130</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">sky130_fd_sc_hd</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
           4. SECTION 2: LOCAL BUSINESS AUTOMATION (BENTO GRID 2)
           ========================================================================= */}
       <section id="business-automation" className="relative z-10 py-24 bg-zinc-950/80 border-t border-white/5">

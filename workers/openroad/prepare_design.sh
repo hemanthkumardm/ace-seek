@@ -130,7 +130,7 @@ fi
 PERIOD="10.0"
 SDC_FILE=$(ls "$JOB_DIR/designs/$SLUG/src"/*.sdc 2>/dev/null | head -1 || true)
 if [[ -n "$SDC_FILE" ]]; then
-  P=$(grep -Eo -- '-period[[:space:]]+[0-9.]+' "$SDC_FILE" | head -1 | awk '{print $2}')
+  P=$(grep -Eo -- '-period[[:space:]]+[0-9.]+' "$SDC_FILE" 2>/dev/null | head -1 | awk '{print $2}' || true)
   [[ -n "$P" ]] && PERIOD="$P"
 fi
 
