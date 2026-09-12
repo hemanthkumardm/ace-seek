@@ -48,11 +48,13 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ artifacts: [] });
   }
 
+  const twoDaysAgo = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
   let q = sb
     .from("openroad_artifacts")
     .select("*")
     .eq("project_id", projectId)
     .eq("user_id", userId)
+    .gte("created_at", twoDaysAgo)
     .order("created_at", { ascending: false })
     .limit(200);
   if (stage) q = q.eq("stage", stage);

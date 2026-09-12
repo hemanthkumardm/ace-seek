@@ -150,8 +150,8 @@ export function checkOwnerStorageQuota(
 export function runOpenroadGarbageCollection(opts?: GCOptions): GCReport {
   const now = Date.now();
   const dryRun = Boolean(opts?.dryRun);
-  const jobMaxAgeMs = (opts?.jobMaxAgeHours ?? Number(process.env.OPENROAD_JOB_RETENTION_HOURS || 72)) * 3600 * 1000;
-  const uploadMaxAgeMs = (opts?.uploadMaxAgeHours ?? Number(process.env.OPENROAD_UPLOAD_RETENTION_HOURS || 24)) * 3600 * 1000;
+  const jobMaxAgeMs = (opts?.jobMaxAgeHours ?? Number(process.env.OPENROAD_JOB_RETENTION_HOURS || 48)) * 3600 * 1000;
+  const uploadMaxAgeMs = (opts?.uploadMaxAgeHours ?? Number(process.env.OPENROAD_UPLOAD_RETENTION_HOURS || 48)) * 3600 * 1000;
 
   let scannedOwners = 0;
   let prunedJobs = 0;
