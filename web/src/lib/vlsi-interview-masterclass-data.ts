@@ -4641,7 +4641,7 @@ write_db -common -design soc_top handoff/soc_top_guarded.db`,
     tags: ["correlation", "steiners-vs-routes", "via-resistance", "clock-uncertainty", "crosstalk-si", "genus-cui"],
   },
 
-  // 🟢 DOMAIN: PRACTICE CHIP & Foundry 16NM PAD RING SYNTHESIS
+  // 🟢 DOMAIN: PRACTICE CHIP & PAD RING SYNTHESIS
   {
     id: "chip-01",
     isFreeSample: true,

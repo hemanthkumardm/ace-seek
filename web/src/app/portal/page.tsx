@@ -70,8 +70,8 @@ export default function PortalLandingPage() {
   // Mobile drawer state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Pricing Toggle (Engineering & Research vs Business Automation)
-  const [pricingCategory, setPricingCategory] = useState<"all" | "academic" | "business">("all");
+  // Pricing Toggle (Fixed ASIC Packages, Academic Thesis & Research, or Business Automation)
+  const [pricingCategory, setPricingCategory] = useState<"all" | "asic" | "academic" | "business">("asic");
 
   // Active Engineering Sandbox Tab
   const [activeTab, setActiveTab] = useState<"project" | "latex" | "patent" | "whatsapp">("project");
@@ -84,9 +84,24 @@ export default function PortalLandingPage() {
     name: "",
     email: "",
     phone: "",
-    category: "The Complete Inventor Package (Project + Paper + Patent)",
+    category: "Advanced ASIC Package (SDC/UPF + Timing Closure + Defense — ₹21,999)",
     description: "",
   });
+
+  const selectTierAndScroll = (categoryName: string) => {
+    setFormState((prev) => ({ ...prev, category: categoryName }));
+    const contactEl = document.getElementById("contact");
+    if (contactEl) {
+      contactEl.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const getWhatsAppPackageLink = (packageName: string, price: string) => {
+    const msg = encodeURIComponent(
+      `Hi Ace-Seek, I would like to book the ${packageName} (${price}) for my project.`
+    );
+    return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
+  };
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -295,10 +310,11 @@ export default function PortalLandingPage() {
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
                 <a
                   href="#pricing"
+                  onClick={() => setPricingCategory("asic")}
                   className="w-full sm:w-auto px-8 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-400 text-zinc-950 font-extrabold text-base shadow-xl shadow-cyan-500/25 hover:shadow-emerald-500/40 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2.5 group"
                 >
                   <Cpu className="w-5 h-5 text-zinc-950 group-hover:rotate-12 transition-transform" />
-                  <span>Explore Engineering Packages</span>
+                  <span>Explore Fixed ASIC Tiers</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </a>
 
@@ -366,23 +382,23 @@ export default function PortalLandingPage() {
 
                 {/* Pipeline Dual-Feed Stream */}
                 <div className="py-4 space-y-3 font-sans">
-                  {/* Stream Card 1: Academic / Engineering */}
+                  {/* Stream Card 1: Fixed ASIC & Engineering Package */}
                   <div className="p-3.5 rounded-xl bg-zinc-800/80 border border-cyan-500/30 shadow-lg">
                     <div className="flex items-center justify-between text-xs text-cyan-400 mb-1.5">
                       <span className="font-semibold flex items-center gap-1.5">
-                        <FileCode2 className="w-3.5 h-3.5" /> IEEE Research & Patent Package
+                        <Cpu className="w-3.5 h-3.5" /> ASIC Signoff & Timing Closure
                       </span>
-                      <span className="text-[10px] text-zinc-400 font-mono">LaTeX Engine</span>
+                      <span className="text-[10px] text-zinc-400 font-mono">OpenROAD / Cadence</span>
                     </div>
                     <p className="text-xs text-zinc-200 leading-snug">
-                      ✓ Full Hardware/Software Simulation built.<br />
-                      ✓ Camera-ready LaTeX document + Turnitin &lt; 5% verified.<br />
-                      ✓ Ready-to-file Patent IDF drafted.
+                      ✓ Push-Button RTL-to-GDS + DRC/LVS clean verified.<br />
+                      ✓ Custom SDC + UPF low-power + MMMC STA closed (0 slack violations).<br />
+                      ✓ Comprehensive Capstone Report + Viva Defense Deck prepared.
                     </p>
                     <div className="mt-2.5 flex items-center justify-between pt-2 border-t border-white/5 text-[11px]">
-                      <span className="text-zinc-400">Status: <strong className="text-cyan-300">Ready for Defense / Filing</strong></span>
+                      <span className="text-zinc-400">Status: <strong className="text-cyan-300">Ready for Tapeout / Defense</strong></span>
                       <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px]">
-                        100% PASS
+                        100% TIMING MET
                       </span>
                     </div>
                   </div>
@@ -448,83 +464,83 @@ export default function PortalLandingPage() {
 
           {/* Bento Grid 1: 4 Engineering Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            {/* Card 1: End-to-End Project Execution */}
+            {/* Card 1: Push-Button RTL-to-GDS Execution */}
             <SpatialTiltCard className="spatial-card p-8 bg-gradient-to-br from-zinc-900/95 via-zinc-900/80 to-zinc-950 border-white/10 hover:border-cyan-500/50">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-lg shadow-cyan-500/10">
                   <Cpu className="w-6 h-6" />
                 </div>
                 <span className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 font-mono">
-                  Hardware · Software · VLSI
+                  OpenROAD · Cadence · SkyWater 130nm
                 </span>
               </div>
 
               <div className="mt-6 space-y-2">
                 <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  End-to-End Project Execution
+                  Push-Button RTL-to-GDS Execution
                 </h3>
                 <p className="text-sm font-medium text-cyan-400">
-                  Turnkey Technical Implementation
+                  Automated Synthesis, PnR & Physical Signoff
                 </p>
                 <p className="text-sm text-zinc-300 leading-relaxed pt-1">
-                  Complete technical implementation for hardware, software, electronic design, embedded systems, and simulation workflows. We build working prototypes and reproducible codebases.
+                  Complete push-button ASIC implementation: logic synthesis, floorplanning, standard cell placement, clock tree synthesis (CTS), detailed routing, and final GDSII generation on SkyWater 130nm or your target PDK.
                 </p>
               </div>
 
               <div className="mt-6 p-4 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2.5">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-                  <span>Stack Deliverables</span>
-                  <span className="text-cyan-400 font-bold">Tested & Validated</span>
+                  <span>Signoff Deliverables</span>
+                  <span className="text-cyan-400 font-bold">DRC / LVS Clean</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300">
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Working Architecture</span>
+                    <span>Run Scripts & Logs</span>
                   </div>
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                    <span>Benchmark Data Logs</span>
+                    <span>Clean GDSII Stream</span>
                   </div>
                 </div>
               </div>
             </SpatialTiltCard>
 
-            {/* Card 2: Professional LaTeX Typesetting */}
+            {/* Card 2: Timing Closure & Low-Power UPF */}
             <SpatialTiltCard className="spatial-card p-8 bg-gradient-to-br from-zinc-900/95 via-zinc-900/80 to-zinc-950 border-white/10 hover:border-emerald-500/50">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-lg shadow-emerald-500/10">
-                  <FileCode2 className="w-6 h-6" />
+                  <Zap className="w-6 h-6" />
                 </div>
                 <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-400 font-mono">
-                  IEEE · Springer · Elsevier
+                  SDC · UPF · MMMC STA
                 </span>
               </div>
 
               <div className="mt-6 space-y-2">
                 <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Professional LaTeX Typesetting
+                  Timing Closure & Low-Power Signoff
                 </h3>
                 <p className="text-sm font-medium text-emerald-400">
-                  Pixel-Perfect Mathematical & Academic Layouts
+                  Zero Setup/Hold Slack & Low-Power Intent
                 </p>
                 <p className="text-sm text-zinc-300 leading-relaxed pt-1">
-                  Flawless formatting for thesis documents, research papers, and IEEE-standard journals. Clean TikZ diagrams, vector math formulas, and BibTeX citations without compiler errors.
+                  Custom SDC constraints for complex clock domains, multicycle and false paths. Complete UPF power gating, isolation rules, and multi-corner (PVT) signoff with zero timing violations.
                 </p>
               </div>
 
               <div className="mt-6 p-4 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2.5">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-                  <span>Typesetting Standards</span>
-                  <span className="text-emerald-400 font-bold">100% Error-Free</span>
+                  <span>Timing Verification</span>
+                  <span className="text-emerald-400 font-bold">WNS / TNS = 0 ps</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300">
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Thesis Book Layout</span>
+                    <span>Multi-Corner STA</span>
                   </div>
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>TikZ Flowcharts</span>
+                    <span>UPF Power Checks</span>
                   </div>
                 </div>
               </div>
@@ -571,42 +587,42 @@ export default function PortalLandingPage() {
               </div>
             </SpatialTiltCard>
 
-            {/* Card 4: Technical & Research Writing */}
+            {/* Card 4: Technical Documentation & Viva Defense Coaching */}
             <SpatialTiltCard className="spatial-card p-8 bg-gradient-to-br from-zinc-900/95 via-zinc-900/80 to-zinc-950 border-white/10 hover:border-purple-500/50">
               <div className="flex items-start justify-between">
                 <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shadow-lg shadow-purple-500/10">
                   <BookOpen className="w-6 h-6" />
                 </div>
                 <span className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-xs font-bold text-purple-400 font-mono">
-                  Turnitin & Plagiarism Safe
+                  Report + Viva Deck + Defense Prep
                 </span>
               </div>
 
               <div className="mt-6 space-y-2">
                 <h3 className="text-xl sm:text-2xl font-bold text-white">
-                  Technical & Research Writing
+                  Documentation & Defense Coaching
                 </h3>
                 <p className="text-sm font-medium text-purple-400">
-                  High-Impact Academic Rigor
+                  High-Impact Thesis & Oral Defense Readiness
                 </p>
                 <p className="text-sm text-zinc-300 leading-relaxed pt-1">
-                  Clear, highly accurate technical documentation and research structuring. We provide comprehensive literature reviews, rigorous methodology chapters, and results synthesis.
+                  Professional IEEE / University format capstone reports with high-res architecture diagrams, verified Turnitin compliance, complete presentation decks, and 1-on-1 mock viva defense preparation.
                 </p>
               </div>
 
               <div className="mt-6 p-4 rounded-xl bg-zinc-950/80 border border-white/10 space-y-2.5">
                 <div className="flex items-center justify-between text-xs text-zinc-400 font-mono">
-                  <span>Publication Standards</span>
-                  <span className="text-purple-400 font-bold">Peer-Review Ready</span>
+                  <span>Defense Deliverables</span>
+                  <span className="text-purple-400 font-bold">100% Defense Ready</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300">
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>Original Synthesis</span>
+                    <span>Viva Slide Deck</span>
                   </div>
                   <div className="p-2 rounded bg-zinc-900 border border-white/5 flex items-center gap-1.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                    <span>Plagiarism Report</span>
+                    <span>Turnitin &lt; 5% Verified</span>
                   </div>
                 </div>
               </div>
@@ -709,14 +725,25 @@ export default function PortalLandingPage() {
             </p>
 
             {/* Category Toggle Tabs */}
-            <div className="pt-4 flex items-center justify-center gap-2">
+            <div className="pt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPricingCategory("asic")}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  pricingCategory === "asic"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md ring-1 ring-cyan-500/30"
+                    : "text-zinc-400 hover:text-zinc-200 bg-zinc-900/50"
+                }`}
+              >
+                ⚡ ASIC & VLSI Packages
+              </button>
               <button
                 type="button"
                 onClick={() => setPricingCategory("all")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   pricingCategory === "all"
                     ? "bg-zinc-800 text-white border border-white/20 shadow-md"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    : "text-zinc-400 hover:text-zinc-200 bg-zinc-900/50"
                 }`}
               >
                 All Packages
@@ -726,19 +753,19 @@ export default function PortalLandingPage() {
                 onClick={() => setPricingCategory("academic")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   pricingCategory === "academic"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-md"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-md ring-1 ring-purple-500/30"
+                    : "text-zinc-400 hover:text-zinc-200 bg-zinc-900/50"
                 }`}
               >
-                Academic & Engineering
+                Thesis & LaTeX
               </button>
               <button
                 type="button"
                 onClick={() => setPricingCategory("business")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   pricingCategory === "business"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-md"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-md ring-1 ring-emerald-500/30"
+                    : "text-zinc-400 hover:text-zinc-200 bg-zinc-900/50"
                 }`}
               >
                 Business Automation
@@ -747,72 +774,84 @@ export default function PortalLandingPage() {
           </div>
 
           {/* Pricing Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
-            {/* Plan 1: The Thesis & Documentation Bundle */}
-            {(pricingCategory === "all" || pricingCategory === "academic") && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch">
+            {/* FIXED ASIC TIER 1: Basic ASIC Package */}
+            {(pricingCategory === "all" || pricingCategory === "asic") && (
               <SpatialTiltCard className="spatial-card p-8 bg-zinc-900/90 border-white/10 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-bold text-white">
-                      Thesis & Documentation Bundle
+                      Basic ASIC Package
                     </h3>
-                    <span className="px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-300 text-xs font-semibold border border-cyan-500/30">
-                      Academic
+                    <span className="px-2.5 py-1 rounded bg-cyan-500/10 text-cyan-300 text-xs font-semibold border border-cyan-500/30 font-mono">
+                      Course & Capstone
                     </span>
                   </div>
                   <p className="text-xs text-cyan-400 font-semibold mt-1">
-                    Perfect for: PhD Scholars & Master's Students
+                    RTL-to-GDS Walkthrough & Technical Report
                   </p>
                   <p className="text-xs text-zinc-400 mt-2">
-                    End-to-end academic formatting, chapter restructuring, and Turnitin similarity compliance.
+                    Push-button RTL synthesis, floorplanning, placement, CTS, routing, and DRC/LVS reports with a complete academic capstone report.
                   </p>
 
                   <div className="my-6">
-                    <div className="flex items-baseline gap-1">
+                    <div className="flex items-baseline gap-1.5">
                       <span className="text-3xl sm:text-4xl font-extrabold text-white">
-                        Custom / ₹14,999
+                        ₹12,499
                       </span>
-                      <span className="text-xs text-zinc-400 font-medium">starting</span>
+                      <span className="text-xs text-zinc-400 font-medium">fixed package</span>
                     </div>
                   </div>
 
                   <div className="space-y-3 pt-4 border-t border-white/10 text-sm text-zinc-300">
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Technical content structuring & academic proofing</span>
+                      <span>Push-button RTL-to-GDS execution (SkyWater 130nm / Nangate 45nm)</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Flawless LaTeX typesetting (IEEE / University standard)</span>
+                      <span>DRC & LVS clean verification logs + layout GDSII export</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Custom high-res architecture flowcharts & TikZ plots</span>
+                      <span>Area, power, and worst negative slack (WNS) summary reports</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Plagiarism & Turnitin compliance check (&lt; 10% similarity)</span>
+                      <span>IEEE-standard Capstone Project Report (figures, tables & diagrams)</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>BibTeX reference styling & zero compiler errors</span>
+                      <span>1-on-1 45-min live technical walkthrough session explaining the flow</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-8">
-                  <a
-                    href="#contact"
-                    className="w-full py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 transition-all"
+                <div className="pt-8 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectTierAndScroll("Basic ASIC Package (RTL-to-GDS + Report — ₹12,499)")
+                    }
+                    className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 hover:border-cyan-500/40 transition-all shadow-md"
                   >
-                    Request Thesis Quote →
+                    Book Basic ASIC (₹12,499) →
+                  </button>
+                  <a
+                    href={getWhatsAppPackageLink("Basic ASIC Package", "₹12,499")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp Direct Order</span>
                   </a>
                 </div>
               </SpatialTiltCard>
             )}
 
-            {/* Plan 2: The Complete Inventor Package (Best Value / Highlighted) */}
-            {(pricingCategory === "all" || pricingCategory === "academic") && (
+            {/* FIXED ASIC TIER 2: Advanced ASIC Package (Most Popular / Highlighted) */}
+            {(pricingCategory === "all" || pricingCategory === "asic") && (
               <SpatialTiltCard className="spatial-card p-8 bg-gradient-to-b from-zinc-900 via-zinc-950 to-zinc-900 border-cyan-500/60 shadow-2xl relative flex flex-col justify-between ring-2 ring-cyan-500/40">
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400" />
 
@@ -820,21 +859,96 @@ export default function PortalLandingPage() {
                   <div className="flex items-center justify-between mb-3">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-zinc-950 font-black text-xs uppercase tracking-wider shadow-md">
                       <Sparkles className="w-3.5 h-3.5 fill-current" />
-                      ★ Best Value · Turnkey
+                      ★ Most Popular · High Pass Rate
                     </span>
                     <span className="px-2.5 py-1 rounded bg-cyan-500/20 text-cyan-300 text-xs font-bold border border-cyan-500/40 font-mono">
-                      Full Pipeline
+                      Full Closure
                     </span>
                   </div>
 
                   <h3 className="text-xl font-bold text-white">
-                    The Complete Inventor Package
+                    Advanced ASIC Package
                   </h3>
                   <p className="text-xs text-cyan-300 font-semibold mt-1.5">
-                    Perfect for: Tech Startups, Innovators & Researchers
+                    Custom SDC/UPF + Timing Closure + Defense Prep
                   </p>
                   <p className="text-xs text-zinc-400 mt-2">
-                    Complete project engineering from simulation to Q1/IEEE paper and patent filing documentation.
+                    Full design closure with custom timing constraints, low-power UPF intent, multi-corner STA signoff, and comprehensive viva defense prep.
+                  </p>
+
+                  <div className="my-6">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-3xl sm:text-4xl font-extrabold text-white">
+                        ₹21,999
+                      </span>
+                      <span className="text-xs text-cyan-400 font-semibold">fixed package</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-white/10 text-sm text-zinc-200">
+                    <div className="flex items-start gap-2.5 font-medium">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span><strong>Custom SDC Constraints:</strong> Clocks, IO budgets, multicycle & false paths</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 font-medium">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span><strong>UPF Low-Power Intent:</strong> Power switches, isolation cells & level-shifters</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 font-medium">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span><strong>Timing Closure:</strong> Multi-Corner STA signoff with zero setup & hold violations</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span>CTS skew tuning, congestion resolution & power grid IR-drop report</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span><strong>Defense Ready:</strong> Custom viva slide deck + mock oral defense coaching</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectTierAndScroll("Advanced ASIC Package (SDC/UPF + Timing Closure + Defense — ₹21,999)")
+                    }
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-400 text-zinc-950 font-extrabold text-center block text-sm shadow-lg shadow-cyan-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all"
+                  >
+                    Book Advanced ASIC (₹21,999) →
+                  </button>
+                  <a
+                    href={getWhatsAppPackageLink("Advanced ASIC Package", "₹21,999")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp Direct Order</span>
+                  </a>
+                </div>
+              </SpatialTiltCard>
+            )}
+
+            {/* FLAGSHIP TIER 3: The Complete Inventor Package */}
+            {(pricingCategory === "all" || pricingCategory === "asic" || pricingCategory === "academic") && (
+              <SpatialTiltCard className="spatial-card p-8 bg-zinc-900/90 border-white/10 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-white">
+                      Complete Inventor Package
+                    </h3>
+                    <span className="px-2.5 py-1 rounded bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/40 font-mono">
+                      Silicon + Paper + Patent
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-400 font-semibold mt-1">
+                    Turnkey ASIC Tapeout + IEEE Paper + Patent IDF
+                  </p>
+                  <p className="text-xs text-zinc-400 mt-2">
+                    Complete project engineering from simulation to camera-ready Q1/IEEE paper and patent IDF legal filing documentation.
                   </p>
 
                   <div className="my-6">
@@ -849,39 +963,126 @@ export default function PortalLandingPage() {
                   <div className="space-y-3 pt-4 border-t border-white/10 text-sm text-zinc-200">
                     <div className="flex items-start gap-2.5 font-medium">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span><strong>Full Project Implementation:</strong> Hardware, software, or VLSI workflow</span>
+                      <span><strong>Full Custom RTL & Testbench:</strong> Microarchitecture & UVM/Verilog simulation</span>
                     </div>
                     <div className="flex items-start gap-2.5 font-medium">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span><strong>Comprehensive Research Paper:</strong> Ready for IEEE/SCI submission</span>
+                      <span><strong>Physical Design Signoff:</strong> DRC/LVS clean GDSII + multi-corner timing closure</span>
                     </div>
                     <div className="flex items-start gap-2.5 font-medium">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span><strong>Patent IDF Preparation:</strong> Formal Invention Disclosure Form ready for legal filing</span>
+                      <span><strong>IEEE / SCI Research Paper:</strong> Camera-ready format (Turnitin &lt; 5% verified)</span>
+                    </div>
+                    <div className="flex items-start gap-2.5 font-medium">
+                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                      <span><strong>Patent IDF Preparation:</strong> Formal Invention Disclosure Form for patent attorneys</span>
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>Source code repository, simulation testbenches & readme</span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <Check className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                      <span>1-on-1 technical walkthrough session & defense prep</span>
+                      <span>1-on-1 technical walkthrough session & unlimited defense prep</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-8">
-                  <a
-                    href="#contact"
-                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-400 text-zinc-950 font-extrabold text-center block text-sm shadow-lg shadow-cyan-500/25 hover:shadow-emerald-500/40 hover:scale-[1.02] transition-all"
+                <div className="pt-8 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectTierAndScroll("The Complete Inventor Package (ASIC + Paper + Patent — ₹39,999)")
+                    }
+                    className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 hover:border-cyan-500/40 transition-all shadow-md"
                   >
                     Deploy Complete Inventor Plan →
+                  </button>
+                  <a
+                    href={getWhatsAppPackageLink("Complete Inventor Package", "₹39,999")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp Direct Order</span>
                   </a>
                 </div>
               </SpatialTiltCard>
             )}
 
-            {/* Plan 3: Business Automation Setup */}
+            {/* ACADEMIC TIER: Thesis & Documentation Bundle */}
+            {(pricingCategory === "all" || pricingCategory === "academic") && (
+              <SpatialTiltCard className="spatial-card p-8 bg-zinc-900/90 border-white/10 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-white">
+                      Thesis & Documentation Bundle
+                    </h3>
+                    <span className="px-2.5 py-1 rounded bg-purple-500/10 text-purple-300 text-xs font-semibold border border-purple-500/30 font-mono">
+                      Thesis & Paper
+                    </span>
+                  </div>
+                  <p className="text-xs text-purple-400 font-semibold mt-1">
+                    Perfect for: PhD Scholars & Master's Students
+                  </p>
+                  <p className="text-xs text-zinc-400 mt-2">
+                    End-to-end academic formatting, chapter restructuring, TikZ diagrams, and Turnitin similarity compliance.
+                  </p>
+
+                  <div className="my-6">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl sm:text-4xl font-extrabold text-white">
+                        ₹14,999
+                      </span>
+                      <span className="text-xs text-zinc-400 font-medium">starting</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-4 border-t border-white/10 text-sm text-zinc-300">
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <span>Technical content structuring & academic proofing</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <span>Flawless LaTeX typesetting (IEEE / University standard)</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <span>Custom high-res architecture flowcharts & TikZ plots</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <span>Plagiarism & Turnitin compliance check (&lt; 10% similarity)</span>
+                    </div>
+                    <div className="flex items-start gap-2.5">
+                      <Check className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                      <span>BibTeX reference styling & zero compiler errors</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectTierAndScroll("Thesis & Professional LaTeX Typesetting (₹14,999)")
+                    }
+                    className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 transition-all"
+                  >
+                    Request Thesis Quote →
+                  </button>
+                  <a
+                    href={getWhatsAppPackageLink("Thesis & LaTeX Bundle", "₹14,999")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp Direct Inquiry</span>
+                  </a>
+                </div>
+              </SpatialTiltCard>
+            )}
+
+            {/* BUSINESS TIER: Business Automation Setup */}
             {(pricingCategory === "all" || pricingCategory === "business") && (
               <SpatialTiltCard className="spatial-card p-8 bg-zinc-900/90 border-white/10 flex flex-col justify-between">
                 <div>
@@ -889,7 +1090,7 @@ export default function PortalLandingPage() {
                     <h3 className="text-xl font-bold text-white">
                       Business Automation Setup
                     </h3>
-                    <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
+                    <span className="px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-300 text-xs font-semibold border border-emerald-500/30 font-mono">
                       Local Business
                     </span>
                   </div>
@@ -936,12 +1137,24 @@ export default function PortalLandingPage() {
                   </div>
                 </div>
 
-                <div className="pt-8">
-                  <a
-                    href="#contact"
-                    className="w-full py-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 transition-all"
+                <div className="pt-8 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      selectTierAndScroll("Local Business Automation (WhatsApp & Portal — ₹9,999)")
+                    }
+                    className="w-full py-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-center block text-sm border border-white/10 transition-all"
                   >
                     Deploy Business Portal →
+                  </button>
+                  <a
+                    href={getWhatsAppPackageLink("Business Automation Setup", "₹9,999")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>WhatsApp Direct Inquiry</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1075,20 +1288,20 @@ export default function PortalLandingPage() {
                           }
                           className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/10 text-white text-sm focus:border-cyan-500 focus:outline-none transition-colors"
                         >
-                          <option value="The Complete Inventor Package (Project + Paper + Patent)">
-                            The Complete Inventor Package (Project + Paper + Patent)
+                          <option value="Basic ASIC Package (RTL-to-GDS + Report — ₹12,499)">
+                            Basic ASIC Package (RTL-to-GDS + Report — ₹12,499)
                           </option>
-                          <option value="Engineering Project Execution">
-                            Engineering Project Execution (Hardware/Software)
+                          <option value="Advanced ASIC Package (SDC/UPF + Timing Closure + Defense — ₹21,999)">
+                            Advanced ASIC Package (SDC/UPF + Timing Closure + Defense — ₹21,999)
                           </option>
-                          <option value="Patent & IDF Drafting">
-                            Patent & IDF Drafting
+                          <option value="The Complete Inventor Package (ASIC + Paper + Patent — ₹39,999)">
+                            The Complete Inventor Package (ASIC + Paper + Patent — ₹39,999)
                           </option>
-                          <option value="Thesis & Professional LaTeX Typesetting">
-                            Thesis & LaTeX Typesetting
+                          <option value="Thesis & Professional LaTeX Typesetting (₹14,999)">
+                            Thesis & LaTeX Typesetting (₹14,999)
                           </option>
-                          <option value="Business Automation (WhatsApp & Portal)">
-                            Business Automation (WhatsApp & Portal)
+                          <option value="Local Business Automation (WhatsApp & Portal — ₹9,999)">
+                            Local Business Automation (WhatsApp & Portal — ₹9,999)
                           </option>
                           <option value="Other Custom Requirement">
                             Other Custom Requirement
@@ -1172,6 +1385,10 @@ export default function PortalLandingPage() {
 
           <div className="space-y-4">
             {[
+              {
+                q: "What is the difference between the Basic and Advanced ASIC packages?",
+                a: "The Basic ASIC package (₹12,499) provides push-button RTL-to-GDS flow scripts, DRC/LVS clean logs, and a complete capstone project report. The Advanced ASIC package (₹21,999) includes custom SDC timing constraints, UPF low-power intent, multi-corner (MMMC) STA timing closure with zero setup/hold slack, a PowerPoint defense presentation deck, and 1-on-1 mock viva defense preparation.",
+              },
               {
                 q: "What does 'The Complete Inventor Package' include?",
                 a: "It is our all-in-one flagship package: we develop the complete working engineering implementation/simulation, write the comprehensive research paper formatted for IEEE/SCI standards, and draft a formal Invention Disclosure Form (IDF) ready for patent legal filing.",

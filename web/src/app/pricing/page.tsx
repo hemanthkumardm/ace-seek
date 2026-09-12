@@ -130,21 +130,21 @@ export default function PricingPage() {
           </div>
 
           <p className="text-xs text-slate-300 leading-relaxed max-w-3xl">
-            Our SaaS subscriptions (<strong className="text-white">Free, Pro, Max</strong>) cover the Cloud EDA software toolchain (<code className="text-[var(--accent-cyan)]">openroad</code>, <code className="text-[var(--accent-cyan)]">vlsi</code>, <code className="text-[var(--accent-cyan)]">tools</code>). For <strong>Academic VLSI Design Capstones</strong>, <strong>Enterprise Custom ASIC Engineering</strong>, or <strong>Small-Business WhatsApp Automation Portals</strong>, dedicated project & monthly subscription pricing is available directly on our Solutions Portal.
+            Our SaaS subscriptions (<strong className="text-white">Free, Pro, Max</strong>) cover the Cloud EDA software toolchain (<code className="text-[var(--accent-cyan)]">openroad</code>, <code className="text-[var(--accent-cyan)]">vlsi</code>, <code className="text-[var(--accent-cyan)]">tools</code>). For <strong>Fixed Academic VLSI Packages (Basic & Advanced)</strong>, <strong>Complete Tapeout Signoff</strong>, or <strong>Small-Business WhatsApp Automation</strong>, transparent fixed packages are available directly on our Solutions Portal.
           </p>
 
           <div className="grid sm:grid-cols-3 gap-4 pt-2 border-t border-amber-500/20 text-xs">
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Academic Capstones</span>
-              <p className="text-slate-300 text-[11px]">RTL-to-GDSII verification, clean reports, IEEE documentation.</p>
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Basic ASIC (₹12,499)</span>
+              <p className="text-slate-300 text-[11px]">Push-button RTL-to-GDSII, DRC/LVS logs, capstone project report & live walkthrough.</p>
             </div>
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">ASIC Consulting</span>
-              <p className="text-slate-300 text-[11px]">Custom PDK integration, dedicated flow scripting & tape-out guidance.</p>
+              <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Advanced ASIC (₹21,999)</span>
+              <p className="text-slate-300 text-[11px]">Custom SDC/UPF, MMMC STA timing closure, viva defense deck & 1-on-1 mock coaching.</p>
             </div>
             <div className="p-3 bg-black/40 rounded border border-amber-500/20 space-y-1">
               <span className="text-[10px] font-bold uppercase text-amber-400 font-mono">Business Automation</span>
-              <p className="text-slate-300 text-[11px]">WhatsApp billing pipelines & custom client portals from ₹1,499/mo.</p>
+              <p className="text-slate-300 text-[11px]">WhatsApp billing pipelines & custom client portals from ₹9,999 setup + ₹999/mo.</p>
             </div>
           </div>
         </div>
