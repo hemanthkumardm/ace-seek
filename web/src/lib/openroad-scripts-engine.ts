@@ -554,36 +554,36 @@ help:
 all: synth pnr
 
 synth:
-	@mkdir -p outputs reports/01_synthesis
-	$(YOSYS) -c scripts/synth.ys
+	@mkdir -p outputs reports/01_synthesis logs
+	$(YOSYS) -c scripts/synth.ys 2>&1 | tee logs/synthesis.log
 
 floorplan:
-	@mkdir -p outputs reports/02_floorplan
-	STAGE=floorplan $(OPENROAD) -exit scripts/openroad.tcl
+	@mkdir -p outputs reports/02_floorplan logs
+	STAGE=floorplan $(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/floorplan.log
 
 placement:
-	@mkdir -p outputs reports/03_placement
-	STAGE=placement $(OPENROAD) -exit scripts/openroad.tcl
+	@mkdir -p outputs reports/03_placement logs
+	STAGE=placement $(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/placement.log
 
 cts:
-	@mkdir -p outputs reports/04_cts
-	STAGE=cts $(OPENROAD) -exit scripts/openroad.tcl
+	@mkdir -p outputs reports/04_cts logs
+	STAGE=cts $(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/cts.log
 
 route:
-	@mkdir -p outputs reports/05_routing
-	STAGE=routing $(OPENROAD) -exit scripts/openroad.tcl
+	@mkdir -p outputs reports/05_routing logs
+	STAGE=routing $(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/routing.log
 
 signoff:
-	@mkdir -p outputs reports/06_signoff
-	STAGE=signoff $(OPENROAD) -exit scripts/openroad.tcl
+	@mkdir -p outputs reports/06_signoff logs
+	STAGE=signoff $(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/signoff.log
 
 pnr:
 	@mkdir -p outputs reports logs
-	$(OPENROAD) -exit scripts/openroad.tcl
+	$(OPENROAD) -exit scripts/openroad.tcl 2>&1 | tee logs/run.log
 
 sta-pvt:
-	@mkdir -p reports/sta_analysis
-	$(OPENSTA) -exit scripts/opensta.tcl
+	@mkdir -p reports/sta_analysis logs
+	$(OPENSTA) -exit scripts/opensta.tcl 2>&1 | tee logs/sta_pvt.log
 
 pipeline:
 	@bash scripts/run_pipeline.sh
@@ -593,6 +593,9 @@ docker-run:
 
 reports:
 	@find reports -type f -name "*.rpt" | sort | sed 's/^/  [REPORT] /'
+
+logs:
+	@find logs -type f -name "*.log" | sort | sed 's/^/  [LOG]    /'
 
 clean:
 	rm -rf outputs/*.tmp reports/*/*.tmp
@@ -630,6 +633,21 @@ constraints.sdc              # Primary SDC timing constraints
 Makefile                     # Stage targets (synth, floorplan, placement, cts, route, signoff)
 docker-run.sh                # Container runner helper
 rtl/${top}.v                 # Synthesizable RTL
+logs/                        # Discrete per-stage execution logs
+├── synthesis.log           # Yosys synthesis & mapping log
+├── floorplan.log           # Die sizing, IO pins & PDN log
+├── placement.log           # Global & detailed placement log
+├── cts.log                 # Clock tree synthesis log
+├── routing.log             # FastRoute & TritonRoute log
+├── signoff.log             # Extraction, STA, DRC & LVS log
+└── run.log                 # Master pipeline execution log
+reports/                     # Authentic diagnostic reports by stage
+├── 01_synthesis/           # Cell statistics, pre-layout STA
+├── 02_floorplan/           # Die utilization, IO placements, PDN grid
+├── 03_placement/           # Post-place STA paths, cell density, power
+├── 04_cts/                 # Clock skew, insertion delay, buffer tree
+├── 05_routing/             # Post-route STA, detailed DRC, antenna
+└── 06_signoff/             # Multi-corner PVT STA, DRC, LVS, IR drop
 scripts/
 ├── helpers/
 │   ├── reporting.tcl        # Unified diagnostic & reporting procedures
@@ -652,19 +670,20 @@ make help
 # Run full physical implementation flow
 make all
 
-# Run individual stages
-make synth
-make floorplan
-make placement
-make cts
-make route
-make signoff
+# Run individual stages with dedicated logs
+make synth      # Logs to logs/synthesis.log
+make floorplan  # Logs to logs/floorplan.log
+make placement  # Logs to logs/placement.log
+make cts        # Logs to logs/cts.log
+make route      # Logs to logs/routing.log
+make signoff    # Logs to logs/signoff.log
 
 # Run standalone multi-corner PVT timing analysis
 make sta-pvt
 
-# View all generated diagnostic reports
+# View all generated diagnostic reports and stage logs
 make reports
+make logs
 \`\`\`
 `;
 

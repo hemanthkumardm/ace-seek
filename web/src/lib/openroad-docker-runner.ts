@@ -521,6 +521,25 @@ function collectArtifacts(jobDir: string): {
     addFile(abs, outName, true);
   }
 
+  // Ensure stage logs and master run.log are indexed if present in jobDir or results
+  const primaryLogs = [
+    "run.log",
+    "synthesis.log",
+    "floorplan.log",
+    "placement.log",
+    "cts.log",
+    "routing.log",
+    "signoff.log",
+    "drc.log",
+    "lvs.log",
+  ] as const;
+  for (const pl of primaryLogs) {
+    const p1 = path.join(results, pl);
+    const p2 = path.join(jobDir, pl);
+    if (fs.existsSync(p1)) addFile(p1, pl, false);
+    else if (fs.existsSync(p2)) addFile(p2, pl, true);
+  }
+
   const logTail = readLogTail(logPath, 16_384);
   artifactCache.set(jobDir, { key: cacheKey, artifacts, gdsFiles, logTail });
   return { artifacts, gdsFiles, logTail };

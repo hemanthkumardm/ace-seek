@@ -262,25 +262,25 @@ export function inferStageFromArtifactName(
   fallback: FlowStageId = "synthesis"
 ): FlowStageId {
   const n = name.toLowerCase().replace(/\\/g, "/");
-  if (/logs_synthesis|synthesis|yosys|synth|nl\.v|_gl_|area_0|pre_synth|tmp_synthesis/.test(n))
+  if (/logs_synthesis|^synthesis\.log$|synthesis|yosys|synth|nl\.v|_gl_|area_0|pre_synth|tmp_synthesis/.test(n))
     return "synthesis";
   if (/pin_order|io_plan|fp_pin_order/.test(n)) return "io_plan";
-  if (/logs_floorplan|floorplan|initial_fp|tap|io\.log|pdn/.test(n)) {
+  if (/logs_floorplan|^floorplan\.log$|floorplan|initial_fp|tap|io\.log|pdn/.test(n)) {
     if (/pdn|power/.test(n) && !/placement|cts|routing|signoff/.test(n)) return "powerplan";
     return "floorplan";
   }
   if (
-    /logs_placement|placement|global_skip|detailed_place|gpl|dpl|placement_timing|post_place_sta|placement_power|placement_area|placement_metrics|placement_rpt/.test(
+    /logs_placement|^placement\.log$|placement|global_skip|detailed_place|gpl|dpl|placement_timing|post_place_sta|placement_power|placement_area|placement_metrics|placement_rpt/.test(
       n
     )
   )
     return "placement";
-  if (/logs_cts|\bcts\b|clock_tree/.test(n)) return "cts";
-  if (/logs_routing|routing|route|grt|fill|wire_length/.test(n)) return "route";
-  if (/\bdrc\b|magic_drc|klayout_drc/.test(n)) return "drc";
-  if (/\blvs\b|netgen/.test(n)) return "lvs";
-  if (/logs_signoff|\.gds|\.gds\.gz|signoff|stream|magic\.|klayout/.test(n)) return "gds";
-  if (/metrics\.csv|manufacturability/.test(n)) return "gds";
+  if (/logs_cts|^cts\.log$|\bcts\b|clock_tree/.test(n)) return "cts";
+  if (/logs_routing|^routing\.log$|routing|route|grt|fill|wire_length/.test(n)) return "route";
+  if (/\bdrc\b|magic_drc|klayout_drc|^drc\.log$/.test(n)) return "drc";
+  if (/\blvs\b|netgen|^lvs\.log$/.test(n)) return "lvs";
+  if (/logs_signoff|^signoff\.log$|\.gds|\.gds\.gz|signoff|stream|magic\.|klayout/.test(n)) return "gds";
+  if (/metrics\.csv|manufacturability|^run\.log$/.test(n)) return "gds";
   return fallback;
 }
 
@@ -289,8 +289,9 @@ export function isJunkOpenlaneArtifact(name: string): boolean {
   const n = name.toLowerCase().replace(/\\/g, "/");
   if (/tmp_placement|global_skip_io|tmp_merged|\.lef$/.test(n)) return true;
   if (/ace_run_tmp_|run_ace_run_tmp_/.test(n)) return true;
-  // Always keep authentic stage logs (logs_<stage>_*.log)
+  // Always keep authentic stage logs (logs_<stage>_*.log or clean <stage>.log)
   if (/^logs_(synthesis|floorplan|placement|cts|routing|signoff)_/i.test(n)) return false;
+  if (/^(synthesis|floorplan|placement|cts|routing|signoff|drc|lvs|run)\.log$/i.test(n)) return false;
   // Huge intermediate path dumps — keep summary .rpt only
   if (
     /placement_.*(gpl_sta|dpl_sta)\.(checks|clock|nonpropagated|skew)\.rpt$/i.test(

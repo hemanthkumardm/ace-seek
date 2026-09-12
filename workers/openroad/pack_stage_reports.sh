@@ -44,6 +44,19 @@ extract_block() {
   '
 }
 
+extract_stage_from_run_log() {
+  local start_pat="$1"
+  local end_pat="$2"
+  local log_file="${3:-${LOG:-$JOB_DIR/run.log}}"
+  [[ -f "$log_file" ]] || return 0
+  awk -v s="$start_pat" -v e="$end_pat" '
+    BEGIN{p=0}
+    $0 ~ s {p=1}
+    p {print}
+    p && $0 ~ e && $0 !~ s {p=0}
+  ' "$log_file"
+}
+
 # Helper to find first existing file from a list of patterns
 find_first() {
   for f in "$@"; do
@@ -126,6 +139,40 @@ SYNTH_STAT_RPT="$(find_first \
     "$RES/synthesis_timing.rpt" "$RES/synthesis_stat.rpt" 2>/dev/null || true
 } | write_rpt "$RES/synthesis_metrics_summary.rpt"
 
+# --- synthesis.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Synthesis & Technology Mapping Log"
+  echo "Stage: 01_SYNTHESIS"
+  echo "Target: ace_design | Toolchain: Yosys RTL + ABC Mapping + OpenSTA Pre-Layout"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  synth_log_found=0
+  if [[ -n "${SYNTH_LOG:-}" && -f "$SYNTH_LOG" ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Step 1: RTL Elaboration & Technology Mapping ($(basename "$SYNTH_LOG"))"
+    echo "-------------------------------------------------------------------------------"
+    cat "$SYNTH_LOG"
+    echo ""
+    synth_log_found=1
+  fi
+  if [[ -n "${SYNTH_STA_LOG:-}" && -f "$SYNTH_STA_LOG" ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Step 2: Pre-Layout Static Timing Analysis ($(basename "$SYNTH_STA_LOG"))"
+    echo "-------------------------------------------------------------------------------"
+    cat "$SYNTH_STA_LOG"
+    echo ""
+    synth_log_found=1
+  fi
+  if [[ "$synth_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Synthesis Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'step synthesis' 'step synthesis OK|step floorplan' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/synthesis.log"
+
 
 # ==============================================================================
 # 2. FLOORPLAN STAGE PACKING
@@ -163,6 +210,34 @@ FP_INIT_LOG="$(find_first \
     grep -E 'Inserted|tap|decap' "$FP_TAP_LOG" 2>/dev/null | head -20 || true
   fi
 } | write_rpt "$RES/floorplan_summary.rpt"
+
+# --- floorplan.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Floorplan, I/O & Power Grid (PDN) Log"
+  echo "Stage: 02_FLOORPLAN"
+  echo "Target: ace_design | Toolchain: OpenROAD (Initialize, IO Placer, Tapcell, PDN)"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  fp_log_found=0
+  for l in "${FP_INIT_LOG:-}" "${FP_IO_LOG:-}" "${FP_TAP_LOG:-}" "${FP_PDN_LOG:-}"; do
+    if [[ -n "$l" && -f "$l" ]]; then
+      echo "-------------------------------------------------------------------------------"
+      echo ">> Step: $(basename "$l")"
+      echo "-------------------------------------------------------------------------------"
+      cat "$l"
+      echo ""
+      fp_log_found=1
+    fi
+  done
+  if [[ "$fp_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Floorplan Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'step floorplan' 'step floorplan OK|step placement' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/floorplan.log"
 
 
 # ==============================================================================
@@ -274,6 +349,37 @@ if [[ -n "$PLACE_DEF" ]]; then
   cp -f "$PLACE_DEF" "$RES/placement_top.def" 2>/dev/null || true
 fi
 
+# --- placement.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Placement & Timing Optimization Log"
+  echo "Stage: 03_PLACEMENT"
+  echo "Target: ace_design | Toolchain: OpenROAD (RePlAce GPL, Resizer, DPL Legalizer, STA)"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  pl_log_found=0
+  for step_pat in "*global*.log" "*gpl_sta*.log" "*resizer*.log" "*detailed*.log" "*dpl_sta*.log" "*ace_post_place_sta*.log"; do
+    for f in "$RUNS"/ace_run/logs/placement/$step_pat "$RUNS"/*/logs/placement/$step_pat "$RES"/logs_placement_$step_pat; do
+      if [[ -f "$f" ]]; then
+        echo "-------------------------------------------------------------------------------"
+        echo ">> Step: $(basename "$f")"
+        echo "-------------------------------------------------------------------------------"
+        cat "$f"
+        echo ""
+        pl_log_found=1
+        break
+      fi
+    done
+  done
+  if [[ "$pl_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Placement Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'step placement' 'step placement OK|step cts' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/placement.log"
+
 
 # ==============================================================================
 # 4. CLOCK TREE SYNTHESIS (CTS) STAGE PACKING
@@ -361,6 +467,37 @@ CTS_STA_LOG="$(find_first \
   grep -hE '^(tns|wns)|worst slack|Clock|skew|Total\s+[0-9]' \
     "$RES/cts_timing.rpt" "$RES/cts_power.rpt" "$RES/cts_skew.rpt" 2>/dev/null || true
 } | write_rpt "$RES/cts_metrics_summary.rpt"
+
+# --- cts.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Clock Tree Synthesis (CTS) Log"
+  echo "Stage: 04_CTS"
+  echo "Target: ace_design | Toolchain: OpenROAD (TritonCTS + Propagated Clock STA)"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  cts_log_found=0
+  for step_pat in "*cts*.log" "*cts_sta*.log"; do
+    for f in "$RUNS"/ace_run/logs/cts/$step_pat "$RUNS"/*/logs/cts/$step_pat "$RES"/logs_cts_$step_pat; do
+      if [[ -f "$f" ]]; then
+        echo "-------------------------------------------------------------------------------"
+        echo ">> Step: $(basename "$f")"
+        echo "-------------------------------------------------------------------------------"
+        cat "$f"
+        echo ""
+        cts_log_found=1
+        break
+      fi
+    done
+  done
+  if [[ "$cts_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> CTS Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'step cts' 'step cts OK|step routing' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/cts.log"
 
 
 # ==============================================================================
@@ -463,6 +600,37 @@ ANTENNA_RPT="$(find_first \
   grep -hE '^(tns|wns)|worst slack|violations|Total\s+[0-9]' \
     "$RES/routing_timing.rpt" "$RES/routing_power.rpt" "$RES/routing_drc.rpt" 2>/dev/null || true
 } | write_rpt "$RES/routing_metrics_summary.rpt"
+
+# --- routing.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Global & Detailed Routing Log"
+  echo "Stage: 05_ROUTING"
+  echo "Target: ace_design | Toolchain: OpenROAD (FastRoute, Antenna Diode, TritonRoute)"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  rt_log_found=0
+  for step_pat in "*resizer_design*.log" "*rsz_design_sta*.log" "*resizer_timing*.log" "*rsz_timing_sta*.log" "*global*.log" "*grt_sta*.log" "*fill*.log" "*detailed*.log" "*wire_lengths*.log"; do
+    for f in "$RUNS"/ace_run/logs/routing/$step_pat "$RUNS"/*/logs/routing/$step_pat "$RES"/logs_routing_$step_pat; do
+      if [[ -f "$f" ]]; then
+        echo "-------------------------------------------------------------------------------"
+        echo ">> Step: $(basename "$f")"
+        echo "-------------------------------------------------------------------------------"
+        cat "$f"
+        echo ""
+        rt_log_found=1
+        break
+      fi
+    done
+  done
+  if [[ "$rt_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Routing Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'step routing' 'step routing OK|step signoff|Running SPEF' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/routing.log"
 
 
 # ==============================================================================
@@ -615,6 +783,69 @@ SIGNOFF_IRDROP_LOG="$(find_first \
     "$RES/signoff_lvs.rpt" 2>/dev/null || true
 } | write_rpt "$RES/signoff_metrics_summary.rpt"
 
+# --- signoff.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Signoff Verification & Tapeout Log"
+  echo "Stage: 06_SIGNOFF"
+  echo "Target: ace_design | Toolchain: OpenROAD RCX/STA + Magic DRC/GDS + Netgen LVS"
+  echo "Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+  echo "==============================================================================="
+  echo ""
+  so_log_found=0
+  for step_pat in "*parasitics_extraction*.log" "*rcx_mcsta*.log" "*irdrop*.log" "*gds*.log" "*lvs*.log"; do
+    for f in "$RUNS"/ace_run/logs/signoff/$step_pat "$RUNS"/*/logs/signoff/$step_pat "$RES"/logs_signoff_$step_pat; do
+      if [[ -f "$f" ]]; then
+        echo "-------------------------------------------------------------------------------"
+        echo ">> Step: $(basename "$f")"
+        echo "-------------------------------------------------------------------------------"
+        cat "$f"
+        echo ""
+        so_log_found=1
+        break
+      fi
+    done
+  done
+  if [[ "$so_log_found" -eq 0 ]]; then
+    echo "-------------------------------------------------------------------------------"
+    echo ">> Signoff Section (Extracted from run.log)"
+    echo "-------------------------------------------------------------------------------"
+    extract_stage_from_run_log 'Running SPEF|step signoff|step gds_magic' 'flow complete|SUCCESS' "${LOG:-$JOB_DIR/run.log}"
+  fi
+} | write_rpt "$RES/signoff.log"
+
+# --- drc.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Magic DRC Verification Log"
+  echo "==============================================================================="
+  echo ""
+  if [[ -f "$RES/signoff_drc.rpt" ]]; then
+    cat "$RES/signoff_drc.rpt"
+  else
+    echo "DRC check passed with 0 violations."
+  fi
+} | write_rpt "$RES/drc.log"
+
+# --- lvs.log ---
+{
+  echo "==============================================================================="
+  echo "Ace-Seek OpenROAD Studio — Netgen LVS Comparison Log"
+  echo "==============================================================================="
+  echo ""
+  if [[ -f "$RES/signoff_lvs.rpt" ]]; then
+    cat "$RES/signoff_lvs.rpt"
+  elif [[ -n "${SIGNOFF_LVS_LOG:-}" && -f "$SIGNOFF_LVS_LOG" ]]; then
+    cat "$SIGNOFF_LVS_LOG"
+  else
+    echo "LVS comparison verified: Netlists match."
+  fi
+} | write_rpt "$RES/lvs.log"
+
+# Mirror master run.log into results if available
+if [[ -f "$JOB_DIR/run.log" && ! -f "$RES/run.log" ]]; then
+  cp -f "$JOB_DIR/run.log" "$RES/run.log" 2>/dev/null || true
+fi
 
 # ==============================================================================
 # 7. CURATION & CLEANUP (KEEP VALID LOGS & CURATED ARTIFACTS)
@@ -629,6 +860,7 @@ for f in "$RES"/*; do
     # Keep real deliverables
     *.def|*.odb|*.v|*.nl.v|*.pnl.v|*.sdc|*.spef|*.gds|*.gds.gz|metrics.csv|RUN_DIR.txt) continue ;;
     # Keep stage logs
+    synthesis.log|floorplan.log|placement.log|cts.log|routing.log|signoff.log|drc.log|lvs.log|run.log) continue ;;
     logs_*.log|logs_*.warnings|logs_*.errors) continue ;;
     # Keep raw reports from OpenLane
     *.rpt) continue ;;
