@@ -69,6 +69,16 @@ write_rpt() {
     extract_block 'report_tns' < "$STA_LOG" || true
     echo ""
     extract_block 'report_worst_slack' < "$STA_LOG" || true
+    echo ""
+    echo "==========================================================================="
+    echo "Critical Timing Paths (Setup / Max)"
+    echo "==========================================================================="
+    awk '/Startpoint:/,/slack \((MET|VIOLATED)\)/' "$STA_LOG" | head -150 || true
+    echo ""
+    echo "==========================================================================="
+    echo "Critical Timing Paths (Hold / Min)"
+    echo "==========================================================================="
+    awk '/Path Type:[[:space:]]+min/,/slack \((MET|VIOLATED)\)/' "$STA_LOG" | head -150 || true
   fi
   find "$RUNS" -path '*/reports/placement/*sta*.rpt' -type f 2>/dev/null | while read -r f; do
     echo ""
