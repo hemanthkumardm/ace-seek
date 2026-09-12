@@ -651,7 +651,7 @@ export default function PortalLandingPage() {
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <a
-                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout"
+                    href="https://github.com/hemanthkumardm/ibex"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm transition-all shadow-lg shadow-cyan-500/20"
@@ -661,7 +661,7 @@ export default function PortalLandingPage() {
                     <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout/blob/main/docs/IBEX_TIMING_CLOSURE_REPORT.md"
+                    href="https://github.com/hemanthkumardm/ibex/blob/main/docs/IBEX_TIMING_CLOSURE_REPORT.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm border border-white/10 transition-all"
@@ -670,7 +670,7 @@ export default function PortalLandingPage() {
                     <span>Read Full STA Signoff Report</span>
                   </a>
                   <a
-                    href="https://github.com/hemanthkumardm/ibex-sky130-openroad-tapeout/blob/main/docs/WALKTHROUGH_VIDEO_SCRIPT.md"
+                    href="https://github.com/hemanthkumardm/ibex/blob/main/docs/WALKTHROUGH_VIDEO_SCRIPT.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white font-medium text-sm border border-white/5 transition-all"
