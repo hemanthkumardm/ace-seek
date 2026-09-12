@@ -661,21 +661,19 @@ export default function PortalLandingPage() {
                     <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://github.com/hemanthkumardm/ibex/blob/main/docs/IBEX_TIMING_CLOSURE_REPORT.md"
+                    href="https://github.com/hemanthkumardm/ibex/tree/main/reports"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm border border-white/10 transition-all"
                   >
                     <BookOpen className="w-4 h-4" />
-                    <span>Read Full STA Signoff Report</span>
+                    <span>Explore Stage Reports & Logs</span>
                   </a>
                   <a
-                    href="https://github.com/hemanthkumardm/ibex/blob/main/docs/WALKTHROUGH_VIDEO_SCRIPT.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="/openroad/studio"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700/80 text-zinc-300 hover:text-white font-medium text-sm border border-white/5 transition-all"
                   >
-                    <span>5-Min Video Walkthrough Script</span>
+                    <span>Open in OpenROAD Studio</span>
                   </a>
                 </div>
               </div>
