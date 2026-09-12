@@ -177,42 +177,18 @@ if [[ -n "$PLACE_ODB" ]]; then
   echo "[pack_placement] ODB → placement_top.odb"
 fi
 
-# --- Prune junk duplicates from results/ (keep curated set) ---
-# Keep: placement_*.rpt, placement_top.def, metrics.csv, gds, pin_order, RUN_DIR
+# --- Light cleanup: remove only known temporaries, keep all stage logs/reports ---
 shopt -s nullglob
 for f in "$RES"/*; do
   [[ -f "$f" ]] || continue
   bn=$(basename "$f")
-  keep=0
-  case "$bn" in
-    placement_timing.rpt|placement_power.rpt|placement_area_util.rpt|placement_metrics_summary.rpt) keep=1 ;;
-    placement_top.def|placement_top.odb|placement_*.rpt) keep=1 ;;
-    metrics.csv|*.gds|*.gds.gz|pin_order.cfg|RUN_DIR.txt) keep=1 ;;
-    # keep final netlist once
-    results_placement_top.nl.v|placement_top.nl.v) keep=1 ;;
-    # stage ODBs for OpenROAD GUI
-    floorplan_top.odb|placement_*.odb|*_top.odb) keep=1 ;;
-  esac
-  if [[ $keep -eq 1 ]]; then
-    continue
-  fi
-  # Drop intermediate / duplicate placement noise
-  if [[ "$bn" =~ tmp_placement|global_skip|merged\.(max|min|nom)\.lef|ace_run_tmp_placement|run_ace_run_tmp|logs_placement_|logs_synthesis_|reports_synthesis_|1-synthesis|3-initial|4-io\.def|cmds\.log|errors\.log|openlane\.log|top\.def$|top\.sdc$|top\.v$|final_def|tmp_merged ]]; then
+  # Drop intermediate temporary files only
+  if [[ "$bn" =~ tmp_placement|global_skip|merged\.(max|min|nom)\.lef|ace_run_tmp|run_ace_run_tmp ]]; then
     rm -f "$f" || true
-    continue
-  fi
-  # Drop duplicate path-prefixed copies of the same DEF
-  if [[ "$bn" =~ \.def$ ]] && [[ "$bn" != "placement_top.def" ]]; then
-    rm -f "$f" || true
-    continue
-  fi
-  # Drop huge STA logs from results flat dir (content extracted already)
-  if [[ "$bn" =~ logs_placement_.*(gpl_sta|dpl_sta|ace_post_place).*\.log$ ]]; then
-    rm -f "$f" || true
-    continue
   fi
 done
 
 echo "[pack_placement] curated results:"
 ls -lh "$RES"/placement_* 2>/dev/null || true
 wc -c "$RES"/placement_timing.rpt "$RES"/placement_power.rpt "$RES"/placement_area_util.rpt "$RES"/placement_metrics_summary.rpt 2>/dev/null || true
+

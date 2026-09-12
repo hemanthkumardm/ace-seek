@@ -119,7 +119,7 @@ run_local_docker() {
         for sub in synthesis floorplan placement cts routing signoff; do
           for f in \"\$RUN_DIR/logs/\$sub\"/*.log \"\$RUN_DIR/logs/\$sub\"/*.warnings \"\$RUN_DIR/logs/\$sub\"/*.errors; do
             [ -f \"\$f\" ] || continue
-            cp -f \"\$f\" \"/openlane/results_out/logs_\$sub_\$(basename \"\$f\")\" || true
+            cp -f \"\$f\" \"/openlane/results_out/logs_\${sub}_\$(basename \"\$f\")\" || true
           done
         done
         # Real reports across all stages if any

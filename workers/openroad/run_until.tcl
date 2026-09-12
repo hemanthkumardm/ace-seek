@@ -86,6 +86,45 @@ proc ace_run_step {name body} {
     puts "ACE-Seek: === step $name OK ==="
 }
 
+# Reusable STA + power report runner for every stage.
+# Generates ace_<stage>_sta.log under the stage's log directory so
+# pack_stage_reports.sh can extract timing, power, and area data uniformly.
+proc ace_run_sta_reports {stage} {
+    puts "ACE-Seek: === step ${stage}_sta ==="
+    set log_dir ""
+    if { [info exists ::env(${stage}_logs)] } {
+        set log_dir $::env(${stage}_logs)
+    } elseif { [info exists ::env(RUN_DIR)] } {
+        set log_dir "$::env(RUN_DIR)/logs/$stage"
+        catch { file mkdir $log_dir }
+    }
+    set log_file "ace_${stage}_sta.log"
+    if { $log_dir ne "" } {
+        set log_file "$log_dir/ace_${stage}_sta.log"
+    }
+    puts "ACE-Seek: STA log → $log_file"
+
+    switch -exact -- $stage {
+        synthesis - floorplan - placement {
+            # Pre-CTS: ideal clocks, estimated placement parasitics
+            run_sta -pre_cts -estimate_placement -no_save -log $log_file
+        }
+        cts {
+            # Post-CTS: propagated clock, estimated parasitics
+            run_sta -log $log_file
+        }
+        routing {
+            # Post-route: propagated clock, wire parasitics from global route
+            run_sta -log $log_file
+        }
+        default {
+            # signoff and others — run_parasitics_sta handles SPEF-loaded STA
+            puts "ACE-Seek: skipping generic run_sta for stage $stage (handled separately)"
+        }
+    }
+    puts "ACE-Seek: === step ${stage}_sta OK ==="
+}
+
 # ── prep or resume ──────────────────────────────────────────────
 if { $overwrite || ![file isdirectory $run_dir] } {
     puts "ACE-Seek: prep (fresh/overwrite) → $run_dir"
@@ -371,6 +410,13 @@ if { !$skip_synth } {
     puts "ACE-Seek: skip synthesis (resume — netlist present)"
 }
 
+# Post-synthesis STA: timing + power with ideal clocks, estimated parasitics
+if { !$skip_synth || $until eq "synthesis" } {
+    if { [catch { ace_run_sta_reports synthesis } serr] } {
+        puts "ACE-Seek: synthesis_sta warning: $serr"
+    }
+}
+
 if { $until eq "synthesis" } {
     puts "ACE-Seek: stopped after synthesis (as requested)"
     catch { save_final_views }
@@ -391,6 +437,13 @@ if { !$skip_fp } {
     ace_run_step floorplan { run_floorplan }
 } else {
     puts "ACE-Seek: skip floorplan (resume — floorplan DEF present)"
+}
+
+# Post-floorplan STA: timing + power after die/IO/PDN, before any placement
+if { !$skip_fp || $until eq "floorplan" || $until eq "powerplan" } {
+    if { [catch { ace_run_sta_reports floorplan } ferr] } {
+        puts "ACE-Seek: floorplan_sta warning: $ferr"
+    }
 }
 
 if { $until eq "floorplan" || $until eq "powerplan" } {
@@ -416,218 +469,12 @@ if { !$skip_place } {
     puts "ACE-Seek: skip placement (resume — placement DEF present)"
 }
 
-# Always emit consolidated placement reports for Studio:
-# timing (WNS/TNS), power, area, utilization
-if { $until eq "placement" || !$skip_place || [ace_has_placement] } {
-    if { [catch {
-        puts "ACE-Seek: === step placement_reports ==="
-        set ::env(PL_ESTIMATE_PARASITICS) 1
-        # Extra STA pass so power/timing reports exist even if skipped earlier
-        if { [info exists ::env(placement_logs)] } {
-            run_sta -pre_cts -estimate_placement -no_save \
-                -log $::env(placement_logs)/ace_post_place_sta.log
-        } else {
-            run_sta -pre_cts -estimate_placement -no_save \
-                -log ace_post_place_sta.log
-        }
-        puts "ACE-Seek: === step placement_reports OK ==="
-    } terr] } {
-        puts "ACE-Seek: placement_reports warning: $terr"
-    }
-
-    # Bundle timing + power + area/util into harvest dir
-    if { [catch {
-        set prpt ""
-        if { [info exists ::env(placement_reports)] } {
-            set prpt $::env(placement_reports)
-        }
-        set plogs ""
-        if { [info exists ::env(placement_logs)] } {
-            set plogs $::env(placement_logs)
-        }
-        set outdir ""
-        if { [info exists ::env(RESULTS_DIR)] } {
-            set outdir $::env(RESULTS_DIR)
-        } elseif { [info exists ::env(RUN_DIR)] } {
-            set outdir "$::env(RUN_DIR)/results"
-        }
-        if { [file isdirectory /openlane/results_out] } {
-            set harvest /openlane/results_out
-        } else {
-            set harvest $outdir
-        }
-        if { $harvest eq "" } {
-            puts "ACE-Seek: no harvest dir for placement reports"
-        } else {
-            file mkdir $harvest
-
-            # --- 1) Copy every placement report file ---
-            if { $prpt ne "" && [file isdirectory $prpt] } {
-                foreach f [lsort [glob -nocomplain -directory $prpt *]] {
-                    if { ![file isfile $f] } { continue }
-                    set dest "$harvest/placement_[file tail $f]"
-                    catch { file copy -force $f $dest }
-                }
-            }
-
-            # --- 2) Timing bundle (summary + max/min) ---
-            set tbundle "$harvest/placement_timing_bundle.rpt"
-            set tfp [open $tbundle w]
-            puts $tfp "# Ace-Seek placement TIMING bundle"
-            puts $tfp "# RUN_DIR=$::env(RUN_DIR)"
-            puts $tfp ""
-            if { $prpt ne "" } {
-                foreach f [lsort [glob -nocomplain -directory $prpt *sta*.rpt]] {
-                    puts $tfp "################################################################"
-                    puts $tfp "# FILE: [file tail $f]"
-                    puts $tfp "################################################################"
-                    if { [catch {
-                        set rf [open $f r]
-                        puts $tfp [read $rf]
-                        close $rf
-                    }] } { }
-                    puts $tfp ""
-                }
-            }
-            close $tfp
-            puts "ACE-Seek: wrote $tbundle"
-
-            # --- 3) Power bundle (*power.rpt) ---
-            set pbundle "$harvest/placement_power_bundle.rpt"
-            set pfp [open $pbundle w]
-            puts $pfp "# Ace-Seek placement POWER bundle (report_power)"
-            puts $pfp ""
-            set power_found 0
-            if { $prpt ne "" } {
-                foreach f [lsort [glob -nocomplain -directory $prpt *power*.rpt]] {
-                    set power_found 1
-                    puts $pfp "################################################################"
-                    puts $pfp "# FILE: [file tail $f]"
-                    puts $pfp "################################################################"
-                    if { [catch {
-                        set rf [open $f r]
-                        puts $pfp [read $rf]
-                        close $rf
-                    }] } { }
-                    puts $pfp ""
-                    catch { file copy -force $f "$harvest/placement_power_[file tail $f]" }
-                }
-            }
-            if { !$power_found } {
-                puts $pfp "# (no *power*.rpt under placement_reports yet)"
-            }
-            close $pfp
-            puts "ACE-Seek: wrote $pbundle"
-
-            # --- 4) Area / utilization from placement logs ---
-            set abundle "$harvest/placement_area_util.rpt"
-            set afp [open $abundle w]
-            puts $afp "# Ace-Seek placement AREA / UTILIZATION"
-            puts $afp "# Extracted from OpenLane placement logs (report_design_area)"
-            puts $afp ""
-            set area_found 0
-            if { $plogs ne "" && [file isdirectory $plogs] } {
-                foreach f [lsort [glob -nocomplain -directory $plogs *.log]] {
-                    if { [catch {
-                        set rf [open $f r]
-                        set body [read $rf]
-                        close $rf
-                    } ] } { continue }
-                    # Capture area_report blocks and Design area lines
-                    set has 0
-                    if { [string match "*Design area*" $body] || [string match "*area_report*" $body] || [string match "*utilization*" $body] } {
-                        set has 1
-                    }
-                    if { !$has } { continue }
-                    set area_found 1
-                    puts $afp "################################################################"
-                    puts $afp "# LOG: [file tail $f]"
-                    puts $afp "################################################################"
-                    foreach line [split $body "\n"] {
-                        if { [regexp -nocase {Design area|utilization|area_report|instance|core} $line] } {
-                            puts $afp $line
-                        }
-                    }
-                    puts $afp ""
-                }
-            }
-            # Also scrape STA logs for area_report sections
-            if { $prpt ne "" } {
-                foreach f [lsort [glob -nocomplain -directory $prpt *]] {
-                    # nothing — area is in logs
-                }
-            }
-            if { !$area_found } {
-                puts $afp "# (no Design area lines found in placement logs)"
-            }
-            close $afp
-            puts "ACE-Seek: wrote $abundle"
-
-            # --- 5) Master metrics summary (one short file for Studio scrape) ---
-            set msum "$harvest/placement_metrics_summary.rpt"
-            set mfp [open $msum w]
-            puts $mfp "# Ace-Seek placement metrics summary"
-            puts $mfp "# Keys: wns tns power_w area_um2 util_pct"
-            puts $mfp ""
-            # Prefer latest dpl summary/power if present
-            foreach pair {
-                {*sta*.summary.rpt}
-                {*dpl_sta.summary.rpt}
-                {*gpl_sta.summary.rpt}
-            } {
-                # expanded below via glob
-            }
-            if { $prpt ne "" } {
-                foreach f [lsort -decreasing [glob -nocomplain -directory $prpt *dpl_sta.summary.rpt]] {
-                    if { [catch {
-                        set rf [open $f r]; set b [read $rf]; close $rf
-                        puts $mfp "# from [file tail $f]"
-                        puts $mfp $b
-                    }] } { }
-                    break
-                }
-                foreach f [lsort -decreasing [glob -nocomplain -directory $prpt *dpl_sta.power.rpt]] {
-                    if { [catch {
-                        set rf [open $f r]; set b [read $rf]; close $rf
-                        puts $mfp "# from [file tail $f]"
-                        puts $mfp $b
-                    }] } { }
-                    break
-                }
-            }
-            # Append area/util one-liners
-            if { [file exists $abundle] } {
-                if { [catch {
-                    set rf [open $abundle r]; set b [read $rf]; close $rf
-                    puts $mfp "# area/util extract"
-                    foreach line [split $b "\n"] {
-                        if { [regexp -nocase {Design area} $line] } {
-                            puts $mfp $line
-                        }
-                    }
-                }] } { }
-            }
-            close $mfp
-            puts "ACE-Seek: wrote $msum"
-
-            # Echo key lines for run.log scrapers
-            puts "ACE-Seek: === placement metrics summary ==="
-            if { [file exists $msum] } {
-                if { [catch {
-                    set rf [open $msum r]
-                    set body [read $rf]
-                    close $rf
-                    foreach line [split $body "\n"] {
-                        if { [regexp -nocase {^(tns|wns)|worst slack|Total\s+|Design area|utilization} $line] } {
-                            puts $line
-                        }
-                    }
-                }] } { }
-            }
-            puts "ACE-Seek: === end placement metrics ==="
-        }
-    } berr] } {
-        puts "ACE-Seek: placement report bundle warning: $berr"
+# Post-placement STA: timing + power with estimated parasitics, ideal clocks
+# Report extraction is handled by pack_stage_reports.sh on the host side.
+if { !$skip_place || $until eq "placement" || [ace_has_placement] } {
+    set ::env(PL_ESTIMATE_PARASITICS) 1
+    if { [catch { ace_run_sta_reports placement } perr] } {
+        puts "ACE-Seek: placement_sta warning: $perr"
     }
 }
 
@@ -641,20 +488,15 @@ if { $until eq "placement" } {
 # ── CTS ─────────────────────────────────────────────────────────
 if { !$skip_cts } {
     ace_run_step cts { run_cts }
-    # Explicit post-CTS STA pass with propagated clock to generate timing & power reports
-    if { [catch {
-        puts "ACE-Seek: === step cts_sta ==="
-        if { [info exists ::env(cts_logs)] } {
-            run_sta -log $::env(cts_logs)/ace_cts_sta.log
-        } else {
-            run_sta -log ace_cts_sta.log
-        }
-        puts "ACE-Seek: === step cts_sta OK ==="
-    } cterr] } {
-        puts "ACE-Seek: cts_sta warning: $cterr"
-    }
 } else {
     puts "ACE-Seek: skip CTS (resume — cts DEF present)"
+}
+
+# Post-CTS STA: propagated clock timing + power reports
+if { !$skip_cts || $until eq "cts" } {
+    if { [catch { ace_run_sta_reports cts } cterr] } {
+        puts "ACE-Seek: cts_sta warning: $cterr"
+    }
 }
 
 if { $until eq "cts" } {
@@ -667,20 +509,15 @@ if { $until eq "cts" } {
 # ── routing ─────────────────────────────────────────────────────
 if { !$skip_route } {
     ace_run_step routing { run_routing }
-    # Explicit post-routing STA pass with wire parasitics to generate timing & power reports
-    if { [catch {
-        puts "ACE-Seek: === step routing_sta ==="
-        if { [info exists ::env(routing_logs)] } {
-            run_sta -log $::env(routing_logs)/ace_routing_sta.log
-        } else {
-            run_sta -log ace_routing_sta.log
-        }
-        puts "ACE-Seek: === step routing_sta OK ==="
-    } rterr] } {
-        puts "ACE-Seek: routing_sta warning: $rterr"
-    }
 } else {
     puts "ACE-Seek: skip routing (resume — routing DEF present)"
+}
+
+# Post-routing STA: wire-parasitic-loaded timing + power reports
+if { !$skip_route || $until eq "routing" || $until eq "route" } {
+    if { [catch { ace_run_sta_reports routing } rterr] } {
+        puts "ACE-Seek: routing_sta warning: $rterr"
+    }
 }
 
 if { $until eq "routing" || $until eq "route" } {
@@ -690,14 +527,35 @@ if { $until eq "routing" || $until eq "route" } {
     exit 0
 }
 
-# Signoff chain
-catch { run_parasitics_sta }
-catch { run_irdrop_report }
+# ── signoff chain ───────────────────────────────────────────────
+# Signoff STA: SPEF-extracted multi-corner parasitics
+if { [catch {
+    puts "ACE-Seek: === step signoff_parasitics_sta ==="
+    run_parasitics_sta
+    puts "ACE-Seek: === step signoff_parasitics_sta OK ==="
+} spsta_err] } {
+    puts "ACE-Seek: signoff_parasitics_sta warning: $spsta_err"
+}
+
+# IR drop analysis
+if { [catch {
+    puts "ACE-Seek: === step signoff_irdrop ==="
+    run_irdrop_report
+    puts "ACE-Seek: === step signoff_irdrop OK ==="
+} irdrop_err] } {
+    puts "ACE-Seek: signoff_irdrop warning: $irdrop_err"
+}
 
 if { [info exists ::env(RUN_MAGIC)] ? $::env(RUN_MAGIC) : 1 } {
     ace_run_step gds_magic { run_magic }
 }
-catch { run_klayout }
+if { [catch {
+    puts "ACE-Seek: === step signoff_klayout ==="
+    run_klayout
+    puts "ACE-Seek: === step signoff_klayout OK ==="
+} kl_err] } {
+    puts "ACE-Seek: signoff_klayout warning: $kl_err"
+}
 
 if { $until eq "drc" } {
     puts "ACE-Seek: stopped after DRC (as requested)"
@@ -707,8 +565,20 @@ if { $until eq "drc" } {
 }
 
 if { [info exists ::env(RUN_LVS)] ? $::env(RUN_LVS) : 1 } {
-    catch { run_magic_spice_export }
-    catch { run_lvs }
+    if { [catch {
+        puts "ACE-Seek: === step signoff_spice_export ==="
+        run_magic_spice_export
+        puts "ACE-Seek: === step signoff_spice_export OK ==="
+    } spice_err] } {
+        puts "ACE-Seek: signoff_spice_export warning: $spice_err"
+    }
+    if { [catch {
+        puts "ACE-Seek: === step signoff_lvs ==="
+        run_lvs
+        puts "ACE-Seek: === step signoff_lvs OK ==="
+    } lvs_err] } {
+        puts "ACE-Seek: signoff_lvs warning: $lvs_err"
+    }
 }
 
 if { $until eq "lvs" } {
