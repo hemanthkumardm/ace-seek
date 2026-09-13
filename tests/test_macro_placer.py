@@ -129,6 +129,13 @@ class TestAceAutoMacro(unittest.TestCase):
         self.assertEqual(rudy.shape, (32, 32))
         self.assertGreater(np.max(rudy), 0.0)
 
+    def test_odb_bridge_fallback(self):
+        """Tests that OdbBridge operates correctly in DefDatabase fallback mode."""
+        from workers.engines.macro_placer.io.odb_bridge import OdbBridge
+        bridge = OdbBridge()
+        # Should gracefully report fallback status when odb C++ module is not installed
+        self.assertIsNotNone(bridge.fallback_db)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -195,14 +195,15 @@ ace-seek/
 │           │   ├── wirelength.py        # Differentiable WA/LSE wirelength kernels
 │           │   ├── electrostatics.py    # 2D DCT Poisson solver (NumPy/PyTorch)
 │           │   ├── inflation.py         # Dynamic virtual bloating schedule
-│           │   ├── orientation.py       # Pin torque evaluation & rotation
+│           │   ├── orientation.py       # Pin-facing-core orientation solver
+│           │   ├── flightline.py        # Flyline interconnect analysis & RUDY heatmap
 │           │   └── optimizer.py         # Nesterov gradient descent
 │           ├── legalizer/
 │           │   ├── constraint_graph.py  # DAG longest-path overlap remover
-│           │   └── snap_grid.py         # PDK site row & PDN pitch alignment
+│           │   └── snap_grid.py         # Sky130 row (2.72 um) + PDN strap pitch (16 um) + anti-notch
 │           ├── io/
-│           │   ├── lef_def_parser.py    # High-speed LEF/DEF reader & writer
-│           │   └── odb_bridge.py        # Direct OpenROAD Python C++ binding
+│           │   ├── def_parser.py        # High-speed DEF parser & BLOCKAGES PLACEMENT emitter
+│           │   └── odb_bridge.py        # Direct OpenROAD Python C++ binding with fallback
 │           └── cli.py                   # ace-macro-place entry point
 ```
 
