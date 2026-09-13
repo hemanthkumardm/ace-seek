@@ -152,7 +152,7 @@ function nOk(p: string, hint?: string): boolean {
   return base.toLowerCase().includes(h.slice(0, 8));
 }
 
-/** Save uploaded ODB under owners/<id>/uploads */
+/** Save uploaded ODB or DEF under owners/<id>/uploads */
 export function saveUploadedOdb(
   buf: Buffer,
   filename: string,
@@ -163,13 +163,18 @@ export function saveUploadedOdb(
   fs.mkdirSync(dir, { recursive: true });
   writeOwnerMeta(dir, owner, { kind: "odb_upload" });
   const safe = path.basename(filename).replace(/[^a-zA-Z0-9._-]+/g, "_");
-  const dest = path.join(dir, safe.endsWith(".odb") ? safe : `${safe}.odb`);
+  const isDef = /\.def$/i.test(filename) || buf.subarray(0, 30).toString("ascii").includes("VERSION");
+  const ext = isDef ? ".def" : ".odb";
+  const dest = path.join(
+    dir,
+    safe.endsWith(".odb") || safe.endsWith(".def") ? safe : `${safe}${ext}`
+  );
   fs.writeFileSync(dest, buf);
   return { path: dest, id };
 }
 
 /**
- * Headless OpenROAD read_db smoke test — catches truncated / version-mismatch ODBs
+ * Headless OpenROAD read_db / read_def smoke test — catches truncated / version-mismatch files
  * before spawning the GUI (ORD-0054).
  */
 export function validateOdbReadable(odbPath: string): {
@@ -178,12 +183,41 @@ export function validateOdbReadable(odbPath: string): {
 } {
   const abs = path.resolve(odbPath);
   if (!fs.existsSync(abs)) {
-    return { ok: false, message: `ODB not found: ${abs}` };
+    return { ok: false, message: `File not found: ${abs}` };
   }
   const st = fs.statSync(abs);
-  if (st.size < 100) {
-    return { ok: false, message: `ODB too small (${st.size} bytes)` };
+  if (st.size < 50) {
+    return { ok: false, message: `File too small (${st.size} bytes)` };
   }
+
+  // Handle DEF text files
+  if (abs.toLowerCase().endsWith(".def")) {
+    try {
+      const fd = fs.openSync(abs, "r");
+      const sample = Buffer.alloc(Math.min(st.size, 2048));
+      fs.readSync(fd, sample, 0, sample.length, 0);
+      fs.closeSync(fd);
+      const text = sample.toString("utf8");
+      if (
+        !text.includes("VERSION") &&
+        !text.includes("DESIGN") &&
+        !text.includes("DIEAREA") &&
+        !text.includes("COMPONENTS")
+      ) {
+        return {
+          ok: false,
+          message: "Invalid DEF format (missing VERSION / DESIGN / DIEAREA header)",
+        };
+      }
+      return { ok: true, message: `DEF OK (${st.size} bytes)` };
+    } catch (e) {
+      return {
+        ok: false,
+        message: e instanceof Error ? e.message : "Failed to read DEF header",
+      };
+    }
+  }
+
   try {
     const fd = fs.openSync(abs, "r");
     const hdr = Buffer.alloc(8);
@@ -201,6 +235,7 @@ export function validateOdbReadable(odbPath: string): {
       message: e instanceof Error ? e.message : "Failed to read ODB header",
     };
   }
+
 
   const image =
     process.env.OPENLANE_IMAGE ||

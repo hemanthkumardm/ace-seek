@@ -28,6 +28,18 @@ OPENLANE_TIMEOUT="${OPENLANE_TIMEOUT:-3600}"
 LOG="$JOB_DIR/run.log"
 STATUS="$JOB_DIR/status.json"
 
+run_with_timeout() {
+  local dur="$1"
+  shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$dur" "$@"
+  elif command -v gtimeout >/dev/null 2>&1; then
+    gtimeout "$dur" "$@"
+  else
+    "$@"
+  fi
+}
+
 log() { echo "[$(date -Iseconds)] $*" | tee -a "$LOG"; }
 
 write_status() {
@@ -72,10 +84,13 @@ run_local_docker() {
   # that contains config.json + src/
   # Place ace_run_until.tcl inside the shared /designs folder to avoid host path mount issues
   cp -f "${UNTIL_TCL}" "${JOB_DIR}/designs/ace_run_until.tcl" 2>/dev/null || true
-  # Bundle Ace-AutoMacro engine into /openlane/designs/ace_macro_placer
+  # Bundle Ace-AutoMacro engine into /openlane/designs
+  mkdir -p "${JOB_DIR}/designs/workers/engines" 2>/dev/null || true
+  cp -rf "${WORKER_DIR}/../engines"/* "${JOB_DIR}/designs/workers/engines/" 2>/dev/null || true
+  touch "${JOB_DIR}/designs/workers/__init__.py" "${JOB_DIR}/designs/workers/engines/__init__.py" 2>/dev/null || true
   cp -rf "${WORKER_DIR}/../engines/macro_placer" "${JOB_DIR}/designs/ace_macro_placer" 2>/dev/null || true
 
-  timeout "$OPENLANE_TIMEOUT" docker run --rm \
+  run_with_timeout "$OPENLANE_TIMEOUT" docker run --rm \
     --name "ace-openlane-${DESIGN_SLUG}-$$" \
     --entrypoint bash \
     -e PDK_ROOT="/pdk" \
@@ -87,6 +102,7 @@ run_local_docker() {
     -e ACE_OPENLANE_UNTIL="${ACE_OPENLANE_UNTIL}" \
     -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE}" \
     -v "${PDK_ROOT}:/pdk:ro" \
+    -v "${PDK_ROOT}:/root/.volare:ro" \
     -v "${JOB_DIR}/designs:/openlane/designs" \
     -v "${JOB_DIR}/results:/openlane/results_out" \
     "$OPENLANE_IMAGE" \
@@ -295,8 +311,10 @@ THIS_LOG=$(tail -n +"$((THIS_START_LINE))" "$LOG" 2>/dev/null || cat "$LOG")
 
 # Hard failures that must never look like success
 PREP_EXISTS_ERR=$(echo "$THIS_LOG" | grep -c "already exists. Pass the -overwrite" || true)
-# OpenLane often continues after a sub-step error and still exits 0 — detect those.
-STEP_FAIL=$(echo "$THIS_LOG" | grep -cE "ACE-Seek: step .* FAILED|child process exited abnormally|Only one entry allowed per line|\[ERROR\]: Exit code:" || true)
+# OpenLane often continues after a sub-step error and still exits 0 — detect real step failures.
+# Ignore non-fatal warnings (such as optional macro placer warnings)
+CLEAN_LOG_FOR_FAIL=$(echo "$THIS_LOG" | grep -v "ACE-Seek: Ace-AutoMacro" | grep -v "warning:" || true)
+STEP_FAIL=$(echo "$CLEAN_LOG_FOR_FAIL" | grep -cE "ACE-Seek: step .* FAILED|child process exited abnormally|Only one entry allowed per line|\[ERROR\]: Exit code:" || true)
 # If IO placement was attempted and OpenLane logged an ERROR in the same window, force fail
 if echo "$THIS_LOG" | grep -q "Running IO Placement" && \
    echo "$THIS_LOG" | grep -qE "\[ERROR\]: Exit code:|Only one entry allowed per line"; then

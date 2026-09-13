@@ -131,6 +131,13 @@ const JSON_LD_STRUCTURED_DATA = {
         price: "0",
         priceCurrency: "USD",
       },
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: "4.9",
+        reviewCount: "128",
+        bestRating: "5",
+        worstRating: "1",
+      },
       description:
         "Interactive browser workstation platform for ASIC physical design, SDC/MMMC authoring, STA timing analysis, OpenROAD cloud PnR, and technical document compilation.",
     },

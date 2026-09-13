@@ -19,6 +19,9 @@
 # Local trial request cache (when Supabase table is missing)
 web/.data/
 .data/
+jobs/
+artifacts/
+.freebuff/
 
 # Editor / OS
 .DS_Store

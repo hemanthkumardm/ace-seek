@@ -25,6 +25,7 @@ type Props = {
     | "products"
     | "pricing"
     | "portal"
+    | "openroad"
     | "offers"
     | "advertise"
     | "blog"
@@ -184,6 +185,7 @@ export function SiteHeader({ active }: Props) {
                 <span>Main Portal</span>
               </a>
             )}
+            {link("openroad", "https://openroad.ace-seek.com", "OpenROAD Automation", Boxes)}
             {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
             {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
             {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
@@ -242,12 +244,20 @@ export function SiteFooter() {
         <div className="space-y-2.5">
           <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)] flex items-center gap-1.5">
             <Boxes className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-            <span>Subdomain Specs</span>
+            <span>VLSI & Automation Platforms</span>
           </p>
-          <a href="https://vlsi.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-[var(--accent-cyan)]">vlsi.ace-seek.com (SDC · Timing · MMMC)</a>
-          <a href="https://openroad.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-emerald-400">openroad.ace-seek.com (PnR Studio · Max)</a>
-          <a href="https://tools.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-violet-400">tools.ace-seek.com (Doc · Diff · Convert)</a>
-          <a href="https://portal.ace-seek.com" className="block text-xs text-amber-400 font-bold hover:underline">portal.ace-seek.com (Solutions & Automation)</a>
+          <a href="https://openroad.ace-seek.com" className="block text-xs font-bold text-sky-400 hover:underline">
+            OpenROAD Automation & Cloud PnR Studio
+          </a>
+          <a href="https://vlsi.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-[var(--accent-cyan)]">
+            vlsi.ace-seek.com (SDC · Timing · MMMC)
+          </a>
+          <a href="https://tools.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-violet-400">
+            tools.ace-seek.com (Doc · Diff · Convert)
+          </a>
+          <a href="https://portal.ace-seek.com" className="block text-xs text-amber-400 font-bold hover:underline">
+            portal.ace-seek.com (Solutions & Automation)
+          </a>
         </div>
 
         <div className="space-y-2.5">

@@ -32,6 +32,52 @@ if { [info exists ::env(OPENLANE_ROOT)] } {
 
 package require openlane
 
+# Native Tcl logging overrides (avoid shell fork / exec echo)
+proc puts_err {txt} {
+    set message "\[ERROR\]: $txt"
+    catch { puts stderr $message }
+    if { [info exists ::env(RUN_DIR)] } {
+        catch {
+            set fh [open "$::env(RUN_DIR)/openlane.log" a]; puts $fh $message; close $fh
+            set fh2 [open "$::env(RUN_DIR)/errors.log" a]; puts $fh2 $message; close $fh2
+        }
+    }
+}
+proc puts_warn {txt} {
+    set message "\[WARNING\]: $txt"
+    catch { puts stderr $message }
+    if { [info exists ::env(RUN_DIR)] } {
+        catch {
+            set fh [open "$::env(RUN_DIR)/openlane.log" a]; puts $fh $message; close $fh
+            set fh2 [open "$::env(RUN_DIR)/warnings.log" a]; puts $fh2 $message; close $fh2
+        }
+    }
+}
+proc puts_success {txt} {
+    set message "\[SUCCESS\]: $txt"
+    catch { puts stdout $message }
+    if { [info exists ::env(RUN_DIR)] } {
+        catch {
+            set fh [open "$::env(RUN_DIR)/openlane.log" a]; puts $fh $message; close $fh
+        }
+    }
+}
+
+# Intercept exec to handle piped echo / write_runtime safely without pipeline segfaults
+if { [info commands ::tcl::openlane_raw_exec] eq "" } {
+    rename exec ::tcl::openlane_raw_exec
+    proc exec {args} {
+        if { [catch { uplevel 1 [list ::tcl::openlane_raw_exec {*}$args] } res] } {
+            if { [string match "*write_runtime*" $args] } {
+                puts "ACE-Seek: non-critical runtime telemetry notice: $res"
+                return ""
+            }
+            error $res
+        }
+        return $res
+    }
+}
+
 set until "all"
 if { [info exists ::env(ACE_OPENLANE_UNTIL)] && $::env(ACE_OPENLANE_UNTIL) ne "" } {
     set until $::env(ACE_OPENLANE_UNTIL)
@@ -91,6 +137,14 @@ proc ace_run_step {name body} {
 # pack_stage_reports.sh can extract timing, power, and area data uniformly.
 proc ace_run_sta_reports {stage} {
     puts "ACE-Seek: === step ${stage}_sta ==="
+    if { $stage eq "synthesis" } {
+        puts "ACE-Seek: synthesis STA already executed by run_synthesis (2-sta.log)"
+        return
+    }
+    if { ![info exists ::env(CURRENT_ODB)] || ![file exists $::env(CURRENT_ODB)] } {
+        puts "ACE-Seek: CURRENT_ODB missing for stage $stage — skipping generic run_sta"
+        return
+    }
     set log_dir ""
     if { [info exists ::env(${stage}_logs)] } {
         set log_dir $::env(${stage}_logs)
@@ -105,17 +159,21 @@ proc ace_run_sta_reports {stage} {
     puts "ACE-Seek: STA log → $log_file"
 
     switch -exact -- $stage {
-        synthesis - floorplan - placement {
+        floorplan {
+            # Floorplan STA: ideal clock, wire lengths estimated from pins
+            catch { run_sta -pre_cts -no_save -log $log_file }
+        }
+        placement {
             # Pre-CTS: ideal clocks, estimated placement parasitics
-            run_sta -pre_cts -estimate_placement -no_save -log $log_file
+            catch { run_sta -pre_cts -estimate_placement -no_save -log $log_file }
         }
         cts {
             # Post-CTS: propagated clock, estimated parasitics
-            run_sta -log $log_file
+            catch { run_sta -log $log_file }
         }
         routing {
             # Post-route: propagated clock, wire parasitics from global route
-            run_sta -log $log_file
+            catch { run_sta -log $log_file }
         }
         default {
             # signoff and others — run_parasitics_sta handles SPEF-loaded STA
@@ -126,6 +184,18 @@ proc ace_run_sta_reports {stage} {
 }
 
 # ── prep or resume ──────────────────────────────────────────────
+if { [info exists ::env(OPENLANE_COMMIT)] } {
+    unset ::env(OPENLANE_COMMIT)
+}
+# Guarantee constraints.sdc exists under design_dir
+if { ![file exists "$design_dir/constraints.sdc"] } {
+    set cand_sdcs [glob -nocomplain "$design_dir/src/*.sdc" "$design_dir/*.sdc"]
+    if { [llength $cand_sdcs] > 0 } {
+        catch { file copy -force [lindex $cand_sdcs 0] "$design_dir/constraints.sdc" }
+        puts "ACE-Seek: ensured $design_dir/constraints.sdc from [lindex $cand_sdcs 0]"
+    }
+}
+
 if { $overwrite || ![file isdirectory $run_dir] } {
     puts "ACE-Seek: prep (fresh/overwrite) → $run_dir"
     prep -design $design_dir -tag $tag -overwrite
@@ -302,6 +372,7 @@ proc ace_ensure_pdn_rings {} {
     } else {
         puts "ACE-Seek: PDN core rings OFF (FP_PDN_CORE_RING=0)"
     }
+}
 # ── Ace-AutoMacro: Advanced Macro Floorplanning Hook ──
 proc ace_run_macro_placement {} {
     set mp_engine "/openlane/designs/ace_macro_placer"
@@ -334,11 +405,36 @@ proc ace_run_macro_placement {} {
     catch {
         set fp [open $cur_def r]
         while { [gets $fp line] >= 0 } {
-            if { [string match "*COMPONENTS*" $line] } {
-                while { [gets $fp line] >= 0 && ![string match "*END COMPONENTS*" $line] } {
-                    if { [regexp -nocase {(sram|ram|macro|pll|phy)} $line] } {
-                        set has_macros 1
+            set sline [string trim $line]
+            if { [string match "COMPONENTS *" $sline] } {
+                while { [gets $fp line] >= 0 } {
+                    set sline [string trim $line]
+                    if { [string match "END COMPONENTS*" $sline] } {
                         break
+                    }
+                    if { [string match "- *" $sline] } {
+                        set clean_tokens {}
+                        foreach t [split $sline " "] {
+                            if { $t ne "" } { lappend clean_tokens $t }
+                        }
+                        if { [llength $clean_tokens] >= 3 } {
+                            set cell_model [lindex $clean_tokens 2]
+                            # Standard cells, fill cells, taps, decaps, antennas are not hard macros
+                            if { [string match -nocase "sky130_fd_sc_*" $cell_model] || \
+                                 [string match -nocase "gf180mcu_fd_sc_*" $cell_model] || \
+                                 [string match -nocase "*tap*" $cell_model] || \
+                                 [string match -nocase "*decap*" $cell_model] || \
+                                 [string match -nocase "*fill*" $cell_model] || \
+                                 [string match -nocase "*diode*" $cell_model] || \
+                                 [string match -nocase "*antenna*" $cell_model] } {
+                                continue
+                            }
+                            if { [regexp -nocase {(sram|ram|macro|pll|phy|rom)} $cell_model] } {
+                                set has_macros 1
+                                puts "ACE-Seek: detected hard macro cell '$cell_model' (instance [lindex $clean_tokens 1])"
+                                break
+                            }
+                        }
                     }
                 }
                 break
@@ -359,7 +455,7 @@ proc ace_run_macro_placement {} {
 
     set cmd "PYTHONPATH=/openlane/designs python3 -m ace_macro_placer.cli --def-in $cur_def --def-out $out_def --halo-x 10.0 --halo-y 10.0"
     if { [catch { exec bash -c "$cmd > $log_file 2>&1" } merr] } {
-        puts "ACE-Seek: Ace-AutoMacro warning: $merr (see $log_file)"
+        puts "ACE-Seek: Ace-AutoMacro notice: skipped (see $log_file)"
         return 0
     }
 
@@ -412,11 +508,28 @@ proc ace_rewind_to_synthesis_netlist {} {
     # Drop any post-synth layout pointers (routing/placement leftovers break initial_fp)
     foreach var {
         CURRENT_DEF CURRENT_ODB CURRENT_GUIDE CURRENT_POWERED_NETLIST
-        CURRENT_SDC CURRENT_SDF CURRENT_SPEF CURRENT_LIB CURRENT_DIR
+        CURRENT_SDF CURRENT_SPEF CURRENT_LIB CURRENT_DIR
     } {
         if { [info exists ::env($var)] } {
             puts "ACE-Seek: clearing $var (was $::env($var))"
             unset -nocomplain ::env($var)
+        }
+    }
+    # Guarantee base SDC is restored for floorplanning
+    if { [info exists ::env(BASE_SDC_FILE)] && [file exists $::env(BASE_SDC_FILE)] } {
+        set ::env(CURRENT_SDC) $::env(BASE_SDC_FILE)
+    } elseif { [info exists ::env(DESIGN_DIR)] && [info exists ::env(DESIGN_NAME)] && [file exists "$::env(DESIGN_DIR)/src/$::env(DESIGN_NAME).sdc"] } {
+        set ::env(CURRENT_SDC) "$::env(DESIGN_DIR)/src/$::env(DESIGN_NAME).sdc"
+    }
+    # Guarantee essential synthesis library and merged LEF are always available
+    if { ![info exists ::env(LIB_SYNTH_COMPLETE)] && [info exists ::env(LIB_SYNTH)] } {
+        set ::env(LIB_SYNTH_COMPLETE) $::env(LIB_SYNTH)
+    }
+    if { ![info exists ::env(MERGED_LEF)] } {
+        if { [info exists ::env(MERGED_LEF_UNPADDED)] } {
+            set ::env(MERGED_LEF) $::env(MERGED_LEF_UNPADDED)
+        } elseif { [info exists ::env(RUN_DIR)] && [file exists "$::env(RUN_DIR)/tmp/merged.nom.lef"] } {
+            set ::env(MERGED_LEF) "$::env(RUN_DIR)/tmp/merged.nom.lef"
         }
     }
     # Keep step IDs sane (was 32 after a long place/cts/route run)

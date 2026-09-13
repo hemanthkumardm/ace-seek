@@ -300,7 +300,11 @@ function isRunnerEnabled(): boolean {
   // Default enable when docker binary exists (local max runs)
   if (v === "1" || v === "true") return true;
   try {
-    return fs.existsSync("/usr/bin/docker") || fs.existsSync("/usr/local/bin/docker");
+    return (
+      fs.existsSync("/usr/bin/docker") ||
+      fs.existsSync("/usr/local/bin/docker") ||
+      fs.existsSync("/opt/homebrew/bin/docker")
+    );
   } catch {
     return false;
   }
@@ -1358,7 +1362,10 @@ export function runnerDiagnostics(): Record<string, string | boolean | object> {
   }
   return {
     enabled: isRunnerEnabled(),
-    docker: fs.existsSync("/usr/bin/docker") || fs.existsSync("/usr/local/bin/docker"),
+    docker:
+      fs.existsSync("/usr/bin/docker") ||
+      fs.existsSync("/usr/local/bin/docker") ||
+      fs.existsSync("/opt/homebrew/bin/docker"),
     pdkRoot,
     pdkPath: path.join(pdkRoot, pdk),
     pdkExists: fs.existsSync(path.join(pdkRoot, pdk)),

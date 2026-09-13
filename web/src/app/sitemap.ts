@@ -75,9 +75,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
 
-    // Cloud OpenROAD PnR Automation Host
+    // Cloud OpenROAD PnR Automation Host & Paths
     {
       url: "https://openroad.ace-seek.com",
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.95,
+    },
+    {
+      url: `${baseUrl}/openroad`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,

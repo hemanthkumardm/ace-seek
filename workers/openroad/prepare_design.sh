@@ -33,7 +33,16 @@ is_tb_file() {
 # Move flat inputs if present (single top.v — avoid duplicate module definitions)
 if [[ -f "$JOB_DIR/input/constraints.sdc" ]]; then
   cp "$JOB_DIR/input/constraints.sdc" "$JOB_DIR/designs/$SLUG/src/${TOP}.sdc"
+  cp "$JOB_DIR/input/constraints.sdc" "$JOB_DIR/designs/$SLUG/constraints.sdc"
 fi
+# Ensure constraints.sdc always exists in designs/$SLUG if any SDC is present
+for s in "$JOB_DIR/input"/*.sdc "$JOB_DIR/designs/$SLUG/src"/*.sdc; do
+  if [[ -f "$s" ]]; then
+    cp -f "$s" "$JOB_DIR/designs/$SLUG/constraints.sdc" 2>/dev/null || true
+    cp -f "$s" "$JOB_DIR/designs/$SLUG/src/${TOP}.sdc" 2>/dev/null || true
+    break
+  fi
+done
 # Prefer explicit top.v, else rtl.v, else first non-TB *.v
 if [[ -f "$JOB_DIR/input/${TOP}.v" ]] && ! is_tb_file "$JOB_DIR/input/${TOP}.v"; then
   cp "$JOB_DIR/input/${TOP}.v" "$JOB_DIR/designs/$SLUG/src/${TOP}.v"

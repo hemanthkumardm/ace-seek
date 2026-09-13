@@ -77,9 +77,26 @@ if ! pgrep -f "websockify.*${NOVNC_PORT}" >/dev/null 2>&1; then
   fi
 fi
 
-# 5. Create ODB startup TCL script directly inside $ODB_DIR so it mounts seamlessly
+# 5. Create ODB/DEF startup TCL script directly inside $ODB_DIR so it mounts seamlessly
 TCL_FILE="${ODB_DIR}/.open_${ODB_BN}.tcl"
-cat >"$TCL_FILE" <<EOF
+if [[ "$ODB_BN" =~ \.def$ ]]; then
+  cat >"$TCL_FILE" <<EOF
+# Ace-Seek — load DEF in OpenROAD GUI
+puts "ACE-Seek: Loading LEF & DEF /odb/$ODB_BN into OpenROAD GUI..."
+if {[file exists /pdk/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.tlef]} {
+  read_lef /pdk/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.tlef
+}
+if {[file exists /pdk/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef]} {
+  read_lef /pdk/sky130A/libs.ref/sky130_fd_sc_hd/lef/sky130_fd_sc_hd.lef
+}
+if {[catch { read_def /odb/$ODB_BN } err]} {
+  puts "ACE-Seek ERROR loading DEF: \$err"
+} else {
+  puts "ACE-Seek: DEF /odb/$ODB_BN loaded successfully into OpenROAD GUI."
+}
+EOF
+else
+  cat >"$TCL_FILE" <<EOF
 # Ace-Seek — load ODB in OpenROAD GUI
 puts "ACE-Seek: Loading ODB /odb/$ODB_BN into OpenROAD GUI..."
 if {[catch { read_db /odb/$ODB_BN } err]} {
@@ -88,6 +105,8 @@ if {[catch { read_db /odb/$ODB_BN } err]} {
   puts "ACE-Seek: ODB /odb/$ODB_BN loaded successfully. Inspect IO pins, PDN core rings, and cell placements."
 }
 EOF
+fi
+
 
 # Allow local Docker to write to the X11 socket
 if command -v xhost >/dev/null 2>&1; then

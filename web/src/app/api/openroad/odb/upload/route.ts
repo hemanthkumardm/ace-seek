@@ -71,18 +71,27 @@ export async function POST(req: NextRequest) {
       buf = Buffer.from(ab);
     }
 
-    name = name.replace(/[^a-zA-Z0-9._-]+/g, "_");
-    if (!/\.odb$/i.test(name)) name = `${name}.odb`;
+    const isDef =
+      /\.def$/i.test(name) ||
+      buf.subarray(0, 50).toString("ascii").includes("VERSION") ||
+      buf.subarray(0, 50).toString("ascii").includes("DESIGN");
 
-    if (buf.length < 100) {
+    name = name.replace(/[^a-zA-Z0-9._-]+/g, "_");
+    if (isDef) {
+      if (!/\.def$/i.test(name)) name = `${name}.def`;
+    } else {
+      if (!/\.odb$/i.test(name)) name = `${name}.odb`;
+    }
+
+    if (buf.length < 50) {
       return NextResponse.json(
-        { error: "ODB file too small / empty body" },
+        { error: "File too small / empty body" },
         { status: 400 }
       );
     }
     if (buf.length > 800_000_000) {
       return NextResponse.json(
-        { error: "ODB too large (>800MB)" },
+        { error: "File too large (>800MB)" },
         { status: 400 }
       );
     }
@@ -92,7 +101,7 @@ export async function POST(req: NextRequest) {
     if (declared > 0 && buf.length < declared) {
       return NextResponse.json(
         {
-          error: `ODB upload truncated: received ${buf.length} of ${declared} bytes. Raise experimental.proxyClientMaxBodySize (needs Next restart) or open the stage ODB from the job instead of re-uploading.`,
+          error: `Upload truncated: received ${buf.length} of ${declared} bytes. Raise experimental.proxyClientMaxBodySize (needs Next restart) or open the stage ODB from the job instead of re-uploading.`,
           received: buf.length,
           contentLength: declared,
           hint: "Prefer «Open stage ODB» — it mounts the file from disk with no upload.",
@@ -101,17 +110,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // OpenROAD ODB magic is little-endian "NADBATHE" → bytes EHTABDAN
-    const magic = buf.subarray(0, 8).toString("ascii");
-    if (magic !== "EHTABDAN") {
-      return NextResponse.json(
-        {
-          error: `Not a valid OpenROAD ODB (magic="${magic}", expected EHTABDAN). File may be corrupt or not an .odb.`,
-          size: buf.length,
-        },
-        { status: 400 }
-      );
+    if (!isDef) {
+      // OpenROAD ODB magic is little-endian "NADBATHE" → bytes EHTABDAN
+      const magic = buf.subarray(0, 8).toString("ascii");
+      if (magic !== "EHTABDAN") {
+        return NextResponse.json(
+          {
+            error: `Not a valid OpenROAD ODB (magic="${magic}", expected EHTABDAN) or DEF. File may be corrupt or not an .odb/.def.`,
+            size: buf.length,
+          },
+          { status: 400 }
+        );
+      }
     }
+
 
     const saved = saveUploadedOdb(buf, name, owner);
 

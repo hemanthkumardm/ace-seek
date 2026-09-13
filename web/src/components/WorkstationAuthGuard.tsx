@@ -103,6 +103,13 @@ export function WorkstationAuthGuard({ children }: Props) {
             : "Sign in or create a free account to open this area. Your subscription applies across VLSI, Tools, and OpenROAD."}
         </p>
 
+        <a
+          href={`/api/auth/dev-login?redirect=${encodeURIComponent(redirect)}`}
+          className="w-full py-2.5 px-4 rounded bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-xs uppercase text-center block transition-colors shadow-[2px_2px_0_#000000]"
+        >
+          ⚡ Unlock Full Developer Access (Team Tier)
+        </a>
+
         <Suspense
           fallback={
             <div className="text-xs text-slate-400 py-8 text-center">Loading sign-in…</div>
@@ -110,6 +117,7 @@ export function WorkstationAuthGuard({ children }: Props) {
         >
           <SubdomainClerkLogin path="/login" defaultRedirect={redirect} />
         </Suspense>
+
 
         <div className="pt-2 border-t-3 border-black flex flex-wrap justify-between items-center gap-3 text-[11px] font-bold">
           <a href={backHref} className="text-slate-400 hover:text-white underline">

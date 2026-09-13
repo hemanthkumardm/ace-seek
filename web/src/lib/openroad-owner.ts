@@ -51,7 +51,7 @@ export function getOpenroadJobsRoot(): string {
     }
     return resolved;
   }
-  return env || path.join(os.tmpdir(), "ace-openroad-jobs");
+  return env || path.join(os.homedir(), ".ace-openroad-jobs");
 }
 
 export function safeOwnerId(raw: string): string {

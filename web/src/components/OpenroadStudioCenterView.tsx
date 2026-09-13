@@ -340,6 +340,7 @@ export function OpenroadStudioCenterView({
     const [vncUrl, setVncUrl] = useState("");
     const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
     const [vncSessionId, setVncSessionId] = useState("");
+    const [showDieViewer, setShowDieViewer] = useState(true);
 
     const openStageOdb = async () => {
       setErr("");
@@ -400,22 +401,22 @@ export function OpenroadStudioCenterView({
         });
         const data = await res.json();
         if (!res.ok || data.error) {
-          setErr(data.error || data.message || "ODB upload/open failed");
+          setErr(data.error || data.message || "Upload/open failed");
           setRunHint("");
           return;
         }
         if (data.webUrl) {
           setVncUrl(data.webUrl);
-          setVncOdbLabel(file.name || "uploaded.odb");
+          setVncOdbLabel(file.name || "uploaded_design");
           setVncSessionId(data.sessionId || "");
           setVncModalOpen(true);
         }
         setRunHint(
           data.message ||
-            `OpenROAD GUI opened uploaded ODB (${data.odb || file.name})`
+            `OpenROAD GUI opened uploaded design (${data.odb || file.name})`
         );
       } catch (e) {
-        setErr(e instanceof Error ? e.message : "ODB upload failed");
+        setErr(e instanceof Error ? e.message : "Upload failed");
         setRunHint("");
       }
     };
@@ -433,12 +434,13 @@ export function OpenroadStudioCenterView({
         />
         <div>
           <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
-            Layout viewer · real OpenROAD
+            Layout viewer · real OpenROAD & Ace-AutoMacro
           </p>
           <h2 className="text-lg font-black uppercase">{stageMeta.label}</h2>
           <p className="text-[11px] font-bold text-[var(--neu-text-muted)] mt-1 max-w-2xl">
-            Stream the native <strong className="text-[var(--neu-text)]">OpenROAD Desktop GUI</strong>{" "}
-            in your browser to inspect exact IO ports, well taps, endcaps, and PDN rings/straps.
+            Inspect exact IO ports, well taps, macro halos, and cell placements via the native{" "}
+            <strong className="text-[var(--neu-text)]">OpenROAD Desktop GUI</strong> or interactive{" "}
+            <strong className="text-cyan-400">Die Floorplan Viewer</strong>.
           </p>
         </div>
 
@@ -460,11 +462,31 @@ export function OpenroadStudioCenterView({
               Resume OpenROAD Stream
             </button>
           )}
+          <button
+            type="button"
+            className={`neu-btn !text-[11px] font-black ${
+              showDieViewer
+                ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/50"
+                : "text-slate-300 hover:text-white"
+            }`}
+            onClick={() => setShowDieViewer((prev) => !prev)}
+          >
+            {showDieViewer ? "Hide Die Floorplan" : "🗺️ View 100-Macro Floorplan"}
+          </button>
+          <a
+            href="/die_viewer_100_macros.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="neu-btn !text-[11px] font-black text-cyan-400 border-cyan-400/40 hover:bg-cyan-500/10 inline-flex items-center gap-1"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Open Floorplan in Tab
+          </a>
           <label className="neu-btn !text-[11px] font-black cursor-pointer inline-flex items-center">
-            Upload .odb → OpenROAD
+            Upload .odb / .def → OpenROAD
             <input
               type="file"
-              accept=".odb"
+              accept=".odb,.def"
               className="hidden"
               onChange={(e) =>
                 void onUploadOdb(e.target.files?.[0] || null)
@@ -472,6 +494,31 @@ export function OpenroadStudioCenterView({
             />
           </label>
         </div>
+
+        {showDieViewer && (
+          <div className="neu-inset p-2 rounded-xl border border-cyan-500/30 space-y-2">
+            <div className="flex justify-between items-center px-3 py-1 border-b border-slate-800 text-[11px] font-bold">
+              <span className="text-cyan-400 font-mono flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Ace-AutoMacro Die Floorplan (2600 × 2600 µm · 100 Macros · 0 Overlaps)
+              </span>
+              <a
+                href="/die_viewer_100_macros.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-white underline text-[10px] inline-flex items-center gap-1"
+              >
+                Fullscreen ↗
+              </a>
+            </div>
+            <iframe
+              src="/die_viewer_100_macros.html"
+              className="w-full h-[620px] rounded-lg border border-slate-800 bg-[#020617]"
+              title="Interactive Die Floorplan"
+            />
+          </div>
+        )}
+
 
         <div className="neu-inset p-3 text-[10px] font-bold text-[var(--neu-text-muted)] space-y-1">
           <p>
