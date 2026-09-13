@@ -2309,8 +2309,8 @@ export default function OpenroadPnRStudioPage() {
             <p className="text-[9px] font-bold text-emerald-700">
               From finalized reports
               {metricsCsv ? " + metrics.csv" : ""}
-              {parsed.metrics.wnsNs === 0 && parsed.metrics.tnsNs === 0
-                ? " · WNS/TNS 0 = no violations"
+              {parsed.metrics.tnsNs === 0
+                ? ` · Timing Closed (WNS ${parsed.metrics.wnsNs !== undefined && parsed.metrics.wnsNs >= 0 ? "+" : ""}${parsed.metrics.wnsNs ?? 0} ns, TNS 0.00 ns)`
                 : ""}
             </p>
           )}

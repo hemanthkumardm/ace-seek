@@ -682,23 +682,23 @@ export default function PortalLandingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full lg:w-auto shrink-0">
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
                   <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Clock Frequency</span>
-                  <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">66.7 MHz</span>
-                  <span className="text-[11px] text-zinc-500 mt-0.5">Tclk = 15.00 ns</span>
+                  <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">50.0 MHz</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">Tclk = 20.00 ns (Closed)</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
                   <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Core Area</span>
-                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">128,125 μm²</span>
-                  <span className="text-[11px] text-zinc-500 mt-0.5">42% Core Util</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">370,000 μm²</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">680 × 680 μm Die</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Timing Slack (WNS)</span>
-                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">0.00 ns</span>
-                  <span className="text-[11px] text-zinc-500 mt-0.5">Setup & Hold Clean</span>
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Timing Margin</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">+0.32 ns</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">WNS &gt; 0, TNS = 0.00 ns</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
                   <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Magic DRC</span>
                   <span className="text-xl sm:text-2xl font-black text-cyan-400 mt-1">0 Errors</span>
-                  <span className="text-[11px] text-zinc-500 mt-0.5">Foundry Signoff</span>
+                  <span className="text-[11px] text-zinc-500 mt-0.5">Foundry Signoff Clean</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
                   <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Netgen LVS</span>
@@ -706,8 +706,8 @@ export default function PortalLandingPage() {
                   <span className="text-[11px] text-zinc-500 mt-0.5">100% Net Equivalence</span>
                 </div>
                 <div className="p-4 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col justify-center">
-                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Foundry PDK</span>
-                  <span className="text-xl sm:text-2xl font-black text-white mt-1">SkyWater 130</span>
+                  <span className="text-xs text-zinc-400 uppercase font-mono tracking-wider">Standard Cells</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-1">32,862</span>
                   <span className="text-[11px] text-zinc-500 mt-0.5">sky130_fd_sc_hd</span>
                 </div>
               </div>
