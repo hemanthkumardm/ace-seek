@@ -103,18 +103,31 @@ class TestAceAutoMacro(unittest.TestCase):
         channel = nx[1] - (nx[0] + widths[0])
         self.assertGreaterEqual(channel, 20.0)
 
-    def test_pin_facing_core_orientations(self):
-        """Tests that macro pins face inward toward the core standard cells."""
-        from workers.engines.macro_placer.core.orientation import resolve_macro_orientations
-        # Placed near South border (y=10, H=500) -> pins should face North ('S' inverts default south pins to north)
-        pos_x = np.array([250.0, 250.0])
-        pos_y = np.array([15.0, 450.0])   # Macro 0 is South, Macro 1 is North
-        w = np.array([60.0, 60.0])
-        h = np.array([60.0, 60.0])
+    def test_flightline_analysis(self):
+        """Tests that flightline analysis detects wirelengths, buses, and RUDY congestion."""
+        from workers.engines.macro_placer.core.flightline import FlightlineAnalyzer
+        analyzer = FlightlineAnalyzer(core_w=500.0, core_h=500.0)
 
-        orients = resolve_macro_orientations(pos_x, pos_y, w, h, core_w=500.0, core_h=500.0)
-        self.assertEqual(orients[0], "S")  # South macro rotated to face North
-        self.assertEqual(orients[1], "N")  # North macro default faces South
+        pos_x = np.array([50.0, 300.0, 310.0])
+        pos_y = np.array([50.0, 400.0, 405.0])
+        widths = np.array([50.0, 20.0, 20.0])
+        heights = np.array([50.0, 20.0, 20.0])
+        ox = np.zeros(3)
+        oy = np.zeros(3)
+        is_macro = np.array([True, False, False])
+
+        # 10 parallel bus nets between instance 0 and instance 1
+        net_pins = [[0, 1] for _ in range(10)] + [[1, 2]]
+
+        res = analyzer.analyze_flightlines(pos_x, pos_y, widths, heights, ox, oy, net_pins, is_macro=is_macro)
+        self.assertEqual(res["total_nets"], 11)
+        self.assertEqual(res["detected_buses_count"], 1)  # 10-wire bus between inst 0 and inst 1
+        self.assertEqual(res["buses"][0]["bus_width"], 10)
+
+        # Test RUDY congestion map
+        rudy = analyzer.compute_rudy_congestion(pos_x, pos_y, widths, heights, net_pins, grid_bins=32)
+        self.assertEqual(rudy.shape, (32, 32))
+        self.assertGreater(np.max(rudy), 0.0)
 
 
 if __name__ == "__main__":

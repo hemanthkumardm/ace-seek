@@ -131,14 +131,31 @@ def run_synthetic_benchmark(num_macros: int = 8,
             if not (x1 + w1 <= x2 or x2 + w2 <= x1 or y1 + h1 <= y2 or y2 + h2 <= y1):
                 overlaps += 1
 
+    # 8. Flightline Analysis
+    from .core.flightline import FlightlineAnalyzer
+    analyzer = FlightlineAnalyzer(core_w=core_w, core_h=core_h)
+    fl_summary = analyzer.analyze_flightlines(
+        final_full_x, final_full_y, widths, heights, pin_ox, pin_oy, net_pins, is_macro=is_macro
+    )
+
     print("\n===============================================================================")
     print(f"Results Summary:")
-    print(f"  * Optimization Runtime: {opt_time:.2f} seconds")
-    print(f"  * Initial HPWL:         {init_hpwl:.1f} um")
-    print(f"  * Final Legalized HPWL: {final_hpwl:.1f} um (Reduction: {hpwl_reduction:.2f}%)")
-    print(f"  * Macro Overlaps:       {overlaps} (Strictly 0 required)")
-    print(f"  * Status:               {'SUCCESS (PASSED)' if overlaps == 0 else 'FAILED'}")
+    print(f"  * Optimization Runtime:     {opt_time:.2f} seconds")
+    print(f"  * Initial HPWL:             {init_hpwl:.1f} um")
+    print(f"  * Final Legalized HPWL:     {final_hpwl:.1f} um (Reduction: {hpwl_reduction:.2f}%)")
+    print(f"  * Macro Overlaps:           {overlaps} (Strictly 0 required)")
+    print(f"  * Total Flightlines:        {fl_summary['total_flightlines']}")
+    print(f"  * Avg Flightline Length:    {fl_summary['avg_flightline_um']:.1f} um")
+    print(f"  * Max Flightline Length:    {fl_summary['max_flightline_um']:.1f} um")
+    print(f"  * Multi-Bit Buses Detected: {fl_summary['detected_buses_count']} parallel bundles")
+    print(f"  * Status:                   {'SUCCESS (PASSED)' if overlaps == 0 else 'FAILED'}")
     print(f"===============================================================================\n")
+
+    if fl_summary["buses"]:
+        print("  Top Detected Datapath Buses:")
+        for b in fl_summary["buses"][:5]:
+            print(f"    - {b['source']} <==> {b['target']} : {b['bus_width']}-bit bus (avg dist: {b['avg_distance_um']:.1f} um)")
+        print()
 
     for i in range(num_macros):
         print(f"  Macro {i:2d}: (X={final_macro_x[i]:7.2f}, Y={final_macro_y[i]:7.2f}) orient={orientations[i]:2s} size=({macro_w[i]:5.1f} x {macro_h[i]:5.1f}) um")
