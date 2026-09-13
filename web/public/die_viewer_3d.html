@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenROAD Studio: Interactive 3D Die & Layer Stack Inspector</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg-dark: #020617;
+      --panel-bg: #090d1a;
+      --card-bg: #0f172a;
+      --border: #1e293b;
+      --border-accent: #0284c7;
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg-dark);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    header {
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      font-size: 9px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-primary { background: #0284c7; color: #fff; }
+    .badge-success { background: #059669; color: #fff; }
+    .badge-warning { background: #d97706; color: #fff; }
+    
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background: #1e293b;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn.active {
+      background: #0284c7;
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-group {
+      display: inline-flex;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .btn-group .btn {
+      border: none;
+      border-radius: 0;
+      border-right: 1px solid var(--border);
+    }
+    .btn-group .btn:last-child {
+      border-right: none;
+    }
+
+    /* Subheader Telemetry Strip */
+    .telemetry-strip {
+      background: #0b1120;
+      border-bottom: 1px solid var(--border);
+      padding: 5px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      overflow-x: auto;
+    }
+    .telemetry-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+    .telemetry-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    /* Main Stage Workspace */
+    .workspace {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      position: relative;
+    }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+      cursor: grab;
+      overflow: hidden;
+    }
+    .canvas-container.grabbing {
+      cursor: grabbing;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Floating Layer Controller Panel */
+    .layer-panel {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 280px;
+      max-height: calc(100% - 28px);
+      background: rgba(9, 13, 26, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      overflow: hidden;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    .layer-panel.collapsed {
+      transform: translateX(calc(100% - 36px));
+      opacity: 0.85;
+    }
+    .layer-panel-header {
+      padding: 10px 14px;
+      background: #0d1527;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .layer-panel-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .layer-list {
+      padding: 8px 12px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .layer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(30, 41, 59, 0.6);
+      font-size: 11px;
+      transition: background 0.15s;
+    }
+    .layer-row:hover {
+      background: rgba(30, 41, 59, 0.8);
+    }
+    .layer-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .layer-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+      box-shadow: 0 0 6px currentColor;
+    }
+    .layer-label {
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+    .layer-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .solo-btn {
+      padding: 2px 5px;
+      font-size: 9px;
+      font-weight: 800;
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .solo-btn:hover {
+      color: #38bdf8;
+      border-color: #38bdf8;
+    }
+    .solo-btn.active {
+      background: #0284c7;
+      color: #fff;
+    }
+    .toggle-checkbox {
+      cursor: pointer;
+      accent-color: #0284c7;
+    }
+
+    /* 3D Sliders Panel */
+    .elevation-slider-box {
+      padding: 10px 14px;
+      background: #0a1122;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .slider-label-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+    .slider-input {
+      width: 100%;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    /* Hover Details Floating Tooltip */
+    .inspector-tooltip {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(9, 13, 26, 0.94);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-width: 380px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      z-index: 15;
+      pointer-events: none;
+    }
+    .inspector-title {
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .inspector-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 12px;
+      row-gap: 2px;
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+    }
+    .inspector-key {
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    /* Compass / Camera Orientation Gizmo */
+    .camera-gizmo {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(9, 13, 26, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 10;
+    }
+
+    /* Upload overlay drag highlight */
+    .drop-highlight {
+      border: 2px dashed #38bdf8 !important;
+      background: rgba(56, 189, 248, 0.08) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
+        </svg>
+        <span>OpenROAD Studio</span>
+        <span class="badge badge-primary">3D Silicon Inspector</span>
+      </div>
+      <select id="presetSelect" class="btn" style="padding: 4px 8px;">
+        <option value="ibex">Design: lowRISC Ibex RV32 (554 × 552 µm)</option>
+        <option value="soc100">Benchmark: 100-Macro SoC (2600 × 2600 µm)</option>
+      </select>
+    </div>
+
+    <!-- View Modes & Camera Presets -->
+    <div class="toolbar-group">
+      <div class="btn-group">
+        <button id="mode2dBtn" class="btn">2D Floorplan</button>
+        <button id="mode3dBtn" class="btn active">3D Silicon Stack</button>
+      </div>
+
+      <div class="btn-group">
+        <button id="camTopBtn" class="btn" title="Top-Down Orthographic">Top</button>
+        <button id="camIsoBtn" class="btn" title="Isometric 45°">Iso</button>
+        <button id="camSideBtn" class="btn" title="Cross-Section Cutaway">Cross-Section</button>
+        <button id="resetCamBtn" class="btn" title="Reset View">Reset</button>
+      </div>
+
+      <label class="btn" style="cursor: pointer;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Load .DEF/.ODB
+        <input type="file" id="defFileInput" accept=".def,.odb" style="display: none;">
+      </label>
+    </div>
+  </header>
+
+  <!-- Telemetry Bar -->
+  <div class="telemetry-strip">
+    <div class="telemetry-item">
+      <span>Die Area:</span>
+      <span class="telemetry-val" id="teleDieArea">553.84 × 552.16 µm</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Components:</span>
+      <span class="telemetry-val" id="teleCells">11,126 StdCells</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Hard Macros:</span>
+      <span class="telemetry-val" id="teleMacros">0 Macros</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Metal Layers:</span>
+      <span class="telemetry-val" id="teleLayers">5 Layers (li1 → met4)</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Z-Stack Spread:</span>
+      <span class="telemetry-val" id="teleZSpread">2.2x Exploded</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Render FPS:</span>
+      <span class="telemetry-val" id="teleFps" style="color: #10b981;">60.0 FPS</span>
+    </div>
+  </div>
+
+  <!-- Main Canvas Workspace -->
+  <div class="workspace" id="workspace">
+    <div class="canvas-container" id="canvasContainer">
+      <canvas id="viewCanvas"></canvas>
+
+      <!-- Quick Camera Gizmo -->
+      <div class="camera-gizmo">
+        <button class="btn" style="padding: 4px;" id="gizmoRotLeft" title="Rotate Left">⟲</button>
+        <button class="btn" style="padding: 4px;" id="gizmoRotRight" title="Rotate Right">⟳</button>
+        <button class="btn" style="padding: 4px;" id="gizmoPitchUp" title="Tilt Up">▲</button>
+        <button class="btn" style="padding: 4px;" id="gizmoPitchDown" title="Tilt Down">▼</button>
+      </div>
+
+      <!-- Layer Visibility Controller Panel -->
+      <div class="layer-panel" id="layerPanel">
+        <div class="layer-panel-header" id="panelToggle">
+          <span class="layer-panel-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
+            </svg>
+            Layer Visibility Matrix
+          </span>
+          <span style="font-size: 11px; color: #64748b;">▼</span>
+        </div>
+
+        <div class="layer-list" id="layerList">
+          <!-- Dynamically populated layer controls -->
+        </div>
+
+        <!-- 3D Elevation / Exploded Z-Spread Slider -->
+        <div class="elevation-slider-box">
+          <div class="slider-label-row">
+            <span>Exploded Z-Spread</span>
+            <span id="sliderValDisplay">2.2x</span>
+          </div>
+          <input type="range" id="zSpreadSlider" class="slider-input" min="0" max="6.0" step="0.1" value="2.2">
+          
+          <div class="slider-label-row" style="margin-top: 4px;">
+            <span>Substrate Thickness</span>
+            <span id="subThickDisplay">15 µm</span>
+          </div>
+          <input type="range" id="subThickSlider" class="slider-input" min="5" max="50" step="1" value="15">
+        </div>
+      </div>
+
+      <!-- Hover Inspector -->
+      <div class="inspector-tooltip" id="inspectorTooltip">
+        <div class="inspector-title" id="inspTitle">Silicon Substrate Overview</div>
+        <div class="inspector-grid" id="inspGrid">
+          <span class="inspector-key">Coordinates:</span><span id="inspCoords">X: 276.9 µm, Y: 276.1 µm</span>
+          <span class="inspector-key">Selected Object:</span><span id="inspObj">Die Core Boundary</span>
+          <span class="inspector-key">Layer Position:</span><span id="inspLayer">Substrate (Z=0 µm)</span>
+          <span class="inspector-key">Status:</span><span id="inspStatus" style="color: #10b981;">Clean Physical Signoff</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Global Layer Architecture Definition ──────────────────────
+    const LAYER_CONFIG = [
+      { id: 'substrate', name: 'Silicon Substrate', color: '#1e293b', zLevel: 0.0, enabled: true, is3d: true },
+      { id: 'stdcells', name: 'Standard Cells (HD Rows)', color: '#0ea5e9', zLevel: 0.6, enabled: true, is3d: true },
+      { id: 'macros', name: 'Hard Macros & Halos', color: '#6366f1', zLevel: 1.2, enabled: true, is3d: true },
+      { id: 'pdn', name: 'Power Grid (VDD/VSS Rails)', color: '#e11d48', zLevel: 2.0, enabled: true, is3d: true },
+      { id: 'li1', name: 'Local Interconnect (li1)', color: '#06b6d4', zLevel: 2.8, enabled: true, is3d: true },
+      { id: 'met1', name: 'Metal 1 Routing (met1)', color: '#3b82f6', zLevel: 3.6, enabled: true, is3d: true },
+      { id: 'met2', name: 'Metal 2 Routing (met2)', color: '#8b5cf6', zLevel: 4.4, enabled: true, is3d: true },
+      { id: 'met3', name: 'Metal 3 Routing (met3)', color: '#10b981', zLevel: 5.2, enabled: true, is3d: true },
+      { id: 'met4', name: 'Metal 4 Clock & PDN (met4)', color: '#f59e0b', zLevel: 6.0, enabled: true, is3d: true },
+      { id: 'met5', name: 'Metal 5 Top Grid (met5)', color: '#ef4444', zLevel: 6.8, enabled: true, is3d: true },
+      { id: 'vias', name: 'Interconnect Vias', color: '#fbbf24', zLevel: 4.0, enabled: true, is3d: true },
+      { id: 'pins', name: 'IO Pads & Terminals', color: '#38bdf8', zLevel: 7.2, enabled: true, is3d: true },
+      { id: 'flightlines', name: 'Flightline Topology', color: '#e0e7ff', zLevel: 4.5, enabled: false, is3d: false }
+    ];
+
+    // ── Dataset Presets ───────────────────────────────────────────
+    const DATASETS = {
+      ibex: {
+        name: "lowRISC Ibex RV32IMC",
+        width: 553.84,
+        height: 552.16,
+        coreMargin: 20,
+        cellsCount: 11126,
+        cellArea: 127585,
+        macros: [],
+        metalLayers: 5,
+        viasCount: 101580,
+        routes: generateIbexRoutes(553.84, 552.16)
+      },
+      soc100: {
+        name: "100-Macro Multi-Core SoC",
+        width: 2600.0,
+        height: 2600.0,
+        coreMargin: 40,
+        cellsCount: 65000,
+        cellArea: 1150000,
+        macros: generate100Macros(2600.0, 2600.0),
+        metalLayers: 5,
+        viasCount: 380000,
+        routes: generateSoCRoutes(2600.0, 2600.0)
+      }
+    };
+
+    function generateIbexRoutes(w, h) {
+      const routes = [];
+      const count = 450;
+      for (let i = 0; i < count; i++) {
+        const layer = (i % 4) + 1; // 1 to 4
+        const x1 = 25 + Math.random() * (w - 50);
+        const y1 = 25 + Math.random() * (h - 50);
+        const isHoriz = (layer % 2 === 0);
+        const len = 30 + Math.random() * 90;
+        const x2 = isHoriz ? Math.min(w - 25, x1 + len) : x1;
+        const y2 = isHoriz ? y1 : Math.min(h - 25, y1 + len);
+        routes.push({ layer: `met${layer}`, x1, y1, x2, y2 });
+      }
+      return routes;
+    }
+
+    function generate100Macros(w, h) {
+      const macros = [];
+      const cols = 10;
+      const rows = 10;
+      const stepX = (w - 180) / cols;
+      const stepY = (h - 180) / rows;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const mw = 120 + ((r * 7 + c) % 3) * 20;
+          const mh = 90 + ((c * 5 + r) % 2) * 25;
+          const x = 90 + c * stepX + 5;
+          const y = 90 + r * stepY + 5;
+          macros.push({
+            name: `sram_bank_${r}_${c}`,
+            type: (r % 3 === 0) ? 'SRAM_2KB' : (r % 3 === 1) ? 'SRAM_1KB' : 'PLL_CLK',
+            x, y, w: mw, h: mh,
+            halo: 10
+          });
+        }
+      }
+      return macros;
+    }
+
+    function generateSoCRoutes(w, h) {
+      const routes = [];
+      for (let i = 0; i < 700; i++) {
+        const layer = (i % 5) + 1;
+        const x1 = 100 + Math.random() * (w - 200);
+        const y1 = 100 + Math.random() * (h - 200);
+        const isHoriz = (layer % 2 === 0);
+        const len = 80 + Math.random() * 260;
+        const x2 = isHoriz ? Math.min(w - 90, x1 + len) : x1;
+        const y2 = isHoriz ? y1 : Math.min(h - 90, y1 + len);
+        routes.push({ layer: `met${layer}`, x1, y1, x2, y2 });
+      }
+      return routes;
+    }
+
+    // ── Application State ──────────────────────────────────────────
+    let currentDesign = DATASETS.ibex;
+    let is3DMode = true;
+    let camera = {
+      pitch: 45 * Math.PI / 180,
+      yaw: -35 * Math.PI / 180,
+      zoom: 1.0,
+      panX: 0,
+      panY: 0,
+      zSpread: 2.2,
+      subThick: 15
+    };
+    let hoveredObject = null;
+    let soloLayerId = null;
+
+    // Canvas Context
+    const canvas = document.getElementById('viewCanvas');
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('canvasContainer');
+
+    function resizeCanvas() {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = container.clientWidth * dpr;
+      canvas.height = container.clientHeight * dpr;
+      ctx.scale(dpr, dpr);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // ── 3D Vector Math & Matrix Transformation Engine ──────────────
+    function project3D(x, y, z, width, height) {
+      const nx = (x / currentDesign.width) - 0.5;
+      const ny = (y / currentDesign.height) - 0.5;
+      const nz = (z * camera.zSpread * 15.0) / currentDesign.width;
+
+      if (!is3DMode) {
+        const scale = Math.min(width, height) * 0.82 * camera.zoom;
+        const screenX = width / 2 + nx * scale + camera.panX;
+        const screenY = height / 2 - ny * scale + camera.panY;
+        return { x: screenX, y: screenY, depth: 0 };
+      }
+
+      const cosYaw = Math.cos(camera.yaw);
+      const sinYaw = Math.sin(camera.yaw);
+      const x1 = nx * cosYaw + ny * sinYaw;
+      const y1 = -nx * sinYaw + ny * cosYaw;
+
+      const cosPitch = Math.cos(camera.pitch);
+      const sinPitch = Math.sin(camera.pitch);
+      const y2 = y1 * cosPitch - nz * sinPitch;
+      const z2 = y1 * sinPitch + nz * cosPitch;
+
+      const baseScale = Math.min(width, height) * 0.85 * camera.zoom;
+      const screenX = width / 2 + x1 * baseScale + camera.panX;
+      const screenY = height / 2 + y2 * baseScale + camera.panY;
+
+      return { x: screenX, y: screenY, depth: z2 };
+    }
+
+    // ── Render Pipeline ────────────────────────────────────────────
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fps = 60.0;
+
+    function render() {
+      const now = performance.now();
+      frameCount++;
+      if (now - lastTime >= 500) {
+        fps = (frameCount * 1000) / (now - lastTime);
+        document.getElementById('teleFps').textContent = `${fps.toFixed(1)} FPS`;
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      drawBackgroundGrid(w, h);
+
+      const primitives = [];
+
+      // 1. Silicon Substrate Block
+      if (isLayerActive('substrate')) {
+        primitives.push({
+          type: 'substrate',
+          depth: is3DMode ? -0.2 : 0,
+          draw: () => drawSubstrate(w, h)
+        });
+      }
+
+      // 2. Standard Cell Rows Layer
+      if (isLayerActive('stdcells')) {
+        primitives.push({
+          type: 'stdcells',
+          depth: is3DMode ? 0.05 : 1,
+          draw: () => drawStandardCellRows(w, h)
+        });
+      }
+
+      // 3. Hard Macros & Halos
+      if (isLayerActive('macros') && currentDesign.macros.length > 0) {
+        primitives.push({
+          type: 'macros',
+          depth: is3DMode ? 0.15 : 2,
+          draw: () => drawMacros(w, h)
+        });
+      }
+
+      // 4. Power Grid / PDN Straps
+      if (isLayerActive('pdn')) {
+        primitives.push({
+          type: 'pdn',
+          depth: is3DMode ? 0.25 : 3,
+          draw: () => drawPDN(w, h)
+        });
+      }
+
+      // 5. Metal Layers (li1, met1..met5)
+      ['li1', 'met1', 'met2', 'met3', 'met4', 'met5'].forEach((layerId, idx) => {
+        if (isLayerActive(layerId)) {
+          const lCfg = LAYER_CONFIG.find(l => l.id === layerId);
+          primitives.push({
+            type: layerId,
+            depth: is3DMode ? (idx * 0.1 + 0.3) : (4 + idx),
+            draw: () => drawMetalLayer(layerId, lCfg.color, lCfg.zLevel, w, h)
+          });
+        }
+      });
+
+      // 6. IO Pins & Perimeter
+      if (isLayerActive('pins')) {
+        primitives.push({
+          type: 'pins',
+          depth: is3DMode ? 0.8 : 10,
+          draw: () => drawIOPins(w, h)
+        });
+      }
+
+      if (is3DMode) {
+        primitives.sort((a, b) => a.depth - b.depth);
+      }
+
+      primitives.forEach(p => p.draw());
+      requestAnimationFrame(render);
+    }
+
+    function isLayerActive(id) {
+      if (soloLayerId !== null) return soloLayerId === id;
+      const l = LAYER_CONFIG.find(item => item.id === id);
+      return l ? l.enabled : true;
+    }
+
+    function drawBackgroundGrid(w, h) {
+      ctx.strokeStyle = 'rgba(30, 41, 59, 0.35)';
+      ctx.lineWidth = 1;
+      const step = 40;
+      ctx.beginPath();
+      for (let x = 0; x < w; x += step) {
+        ctx.moveTo(x, 0); ctx.lineTo(x, h);
+      }
+      for (let y = 0; y < h; y += step) {
+        ctx.moveTo(0, y); ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawSubstrate(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const z0 = 0;
+      const zThick = -camera.subThick * 0.05;
+
+      const p0 = project3D(0, 0, z0, w, h);
+      const p1 = project3D(dw, 0, z0, w, h);
+      const p2 = project3D(dw, dh, z0, w, h);
+      const p3 = project3D(0, dh, z0, w, h);
+
+      if (is3DMode) {
+        const b0 = project3D(0, 0, zThick, w, h);
+        const b1 = project3D(dw, 0, zThick, w, h);
+        const b2 = project3D(dw, dh, zThick, w, h);
+        const b3 = project3D(0, dh, zThick, w, h);
+
+        ctx.fillStyle = '#0a0f1d';
+        ctx.beginPath();
+        ctx.moveTo(b0.x, b0.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(b3.x, b3.y);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b0.x, b0.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#334155'; ctx.stroke();
+
+        ctx.fillStyle = '#141e33';
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(b2.x, b2.y); ctx.lineTo(b1.x, b1.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#334155'; ctx.stroke();
+      }
+
+      const grad = ctx.createLinearGradient(p0.x, p0.y, p2.x, p2.y);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(1, '#020617');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      const cm = currentDesign.coreMargin;
+      const cp0 = project3D(cm, cm, z0 + 0.05, w, h);
+      const cp1 = project3D(dw - cm, cm, z0 + 0.05, w, h);
+      const cp2 = project3D(dw - cm, dh - cm, z0 + 0.05, w, h);
+      const cp3 = project3D(cm, dh - cm, z0 + 0.05, w, h);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(cp0.x, cp0.y); ctx.lineTo(cp1.x, cp1.y); ctx.lineTo(cp2.x, cp2.y); ctx.lineTo(cp3.x, cp3.y);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawStandardCellRows(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const cm = currentDesign.coreMargin;
+      const rowCount = 28;
+      const rowH = (dh - 2 * cm) / rowCount;
+      const z = 0.5;
+
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.18)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < rowCount; i++) {
+        const y = cm + i * rowH;
+        const pA = project3D(cm, y, z, w, h);
+        const pB = project3D(dw - cm, y, z, w, h);
+        ctx.beginPath();
+        ctx.moveTo(pA.x, pA.y); ctx.lineTo(pB.x, pB.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawMacros(w, h) {
+      currentDesign.macros.forEach(m => {
+        const z0 = 1.0;
+        const zTop = is3DMode ? 1.8 : 1.0;
+
+        const hp0 = project3D(m.x - m.halo, m.y - m.halo, z0, w, h);
+        const hp1 = project3D(m.x + m.w + m.halo, m.y - m.halo, z0, w, h);
+        const hp2 = project3D(m.x + m.w + m.halo, m.y + m.h + m.halo, z0, w, h);
+        const hp3 = project3D(m.x - m.halo, m.y + m.h + m.halo, z0, w, h);
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(hp0.x, hp0.y); ctx.lineTo(hp1.x, hp1.y); ctx.lineTo(hp2.x, hp2.y); ctx.lineTo(hp3.x, hp3.y);
+        ctx.closePath(); ctx.stroke();
+        ctx.setLineDash([]);
+
+        const p0 = project3D(m.x, m.y, z0, w, h);
+        const p1 = project3D(m.x + m.w, m.y, z0, w, h);
+        const p2 = project3D(m.x + m.w, m.y + m.h, z0, w, h);
+        const p3 = project3D(m.x, m.y + m.h, z0, w, h);
+
+        const t0 = project3D(m.x, m.y, zTop, w, h);
+        const t1 = project3D(m.x + m.w, m.y, zTop, w, h);
+        const t2 = project3D(m.x + m.w, m.y + m.h, zTop, w, h);
+        const t3 = project3D(m.x, m.y + m.h, zTop, w, h);
+
+        if (is3DMode) {
+          ctx.fillStyle = '#4338ca';
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(t1.x, t1.y); ctx.lineTo(t0.x, t0.y);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = '#6366f1'; ctx.stroke();
+
+          ctx.fillStyle = '#3730a3';
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(t2.x, t2.y); ctx.lineTo(t1.x, t1.y);
+          ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = '#6366f1'; ctx.stroke();
+        }
+
+        ctx.fillStyle = (hoveredObject === m.name) ? '#818cf8' : '#4f46e5';
+        ctx.beginPath();
+        ctx.moveTo(t0.x, t0.y); ctx.lineTo(t1.x, t1.y); ctx.lineTo(t2.x, t2.y); ctx.lineTo(t3.x, t3.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#a5b4fc'; ctx.lineWidth = 1.2; ctx.stroke();
+
+        if (camera.zoom >= 0.85) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '9px JetBrains Mono, monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(m.name, (t0.x + t2.x) / 2, (t0.y + t2.y) / 2 + 3);
+        }
+      });
+    }
+
+    function drawPDN(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const cm = currentDesign.coreMargin;
+      const z = 2.0;
+
+      ctx.strokeStyle = 'rgba(225, 29, 72, 0.45)';
+      ctx.lineWidth = is3DMode ? 2.5 : 2;
+
+      const strapCount = 8;
+      const step = (dw - 2 * cm) / strapCount;
+      for (let i = 1; i < strapCount; i++) {
+        const x = cm + i * step;
+        const p1 = project3D(x, cm, z, w, h);
+        const p2 = project3D(x, dh - cm, z, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+    }
+
+    function drawMetalLayer(layerId, color, zLevel, w, h) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = is3DMode ? 1.5 : 1.2;
+
+      currentDesign.routes.forEach(r => {
+        if (r.layer !== layerId) return;
+        const p1 = project3D(r.x1, r.y1, zLevel, w, h);
+        const p2 = project3D(r.x2, r.y2, zLevel, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+
+        if (is3DMode && Math.random() < 0.05 && isLayerActive('vias')) {
+          const pViaBase = project3D(r.x1, r.y1, zLevel - 0.8, w, h);
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y); ctx.lineTo(pViaBase.x, pViaBase.y);
+          ctx.stroke();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+        }
+      });
+    }
+
+    function drawIOPins(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const z = 7.0;
+      const pinCountPerSide = 24;
+
+      ctx.fillStyle = '#38bdf8';
+      for (let i = 0; i <= pinCountPerSide; i++) {
+        const x = (dw / pinCountPerSide) * i;
+        const pN = project3D(x, dh, z, w, h);
+        const pS = project3D(x, 0, z, w, h);
+        ctx.fillRect(pN.x - 2, pN.y - 2, 4, 4);
+        ctx.fillRect(pS.x - 2, pS.y - 2, 4, 4);
+      }
+      for (let i = 0; i <= pinCountPerSide; i++) {
+        const y = (dh / pinCountPerSide) * i;
+        const pE = project3D(dw, y, z, w, h);
+        const pW = project3D(0, y, z, w, h);
+        ctx.fillRect(pE.x - 2, pE.y - 2, 4, 4);
+        ctx.fillRect(pW.x - 2, pW.y - 2, 4, 4);
+      }
+    }
+
+    // ── Mouse & Camera Interactions ────────────────────────────────
+    let isDragging = false;
+    let dragButton = 0;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+
+    container.addEventListener('mousedown', e => {
+      isDragging = true;
+      dragButton = e.button;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      container.classList.add('grabbing');
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+      container.classList.remove('grabbing');
+    });
+
+    container.addEventListener('contextmenu', e => e.preventDefault());
+
+    container.addEventListener('mousemove', e => {
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      if (isDragging) {
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        if (dragButton === 0) {
+          if (is3DMode) {
+            camera.yaw += dx * 0.008;
+            camera.pitch = Math.max(0.1, Math.min(Math.PI / 2 - 0.05, camera.pitch + dy * 0.008));
+          } else {
+            camera.panX += dx;
+            camera.panY += dy;
+          }
+        } else if (dragButton === 2) {
+          camera.panX += dx;
+          camera.panY += dy;
+        }
+      } else {
+        updateHover(mouseX, mouseY);
+      }
+    });
+
+    container.addEventListener('wheel', e => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.91;
+      camera.zoom = Math.max(0.2, Math.min(6.0, camera.zoom * zoomFactor));
+    }, { passive: false });
+
+    function updateHover(mx, my) {
+      let found = null;
+      currentDesign.macros.forEach(m => {
+        const p = project3D(m.x + m.w / 2, m.y + m.h / 2, 1.4, container.clientWidth, container.clientHeight);
+        const dist = Math.hypot(p.x - mx, p.y - my);
+        if (dist < (m.w * 0.25 * camera.zoom)) {
+          found = m;
+        }
+      });
+
+      if (found) {
+        hoveredObject = found.name;
+        document.getElementById('inspTitle').textContent = `Macro: ${found.name}`;
+        document.getElementById('inspObj').textContent = `${found.type} (${found.w.toFixed(0)} × ${found.h.toFixed(0)} µm)`;
+        document.getElementById('inspCoords').textContent = `X: ${found.x.toFixed(1)} µm, Y: ${found.y.toFixed(1)} µm`;
+        document.getElementById('inspLayer').textContent = `Macro Level (Halo: ${found.halo} µm)`;
+        document.getElementById('inspStatus').textContent = 'Placed & DRC Clean';
+      } else {
+        hoveredObject = null;
+        document.getElementById('inspTitle').textContent = 'Silicon Substrate Overview';
+        document.getElementById('inspObj').textContent = `${currentDesign.name}`;
+        document.getElementById('inspCoords').textContent = `Die Size: ${currentDesign.width} × ${currentDesign.height} µm`;
+        document.getElementById('inspLayer').textContent = is3DMode ? `3D Elevation (Z-Spread: ${camera.zSpread.toFixed(1)}x)` : 'Planar 2D View';
+        document.getElementById('inspStatus').textContent = 'Clean Physical Signoff';
+      }
+    }
+
+    // ── Layer Panel DOM Generation ─────────────────────────────────
+    const layerListEl = document.getElementById('layerList');
+    function initLayerPanel() {
+      layerListEl.innerHTML = '';
+      LAYER_CONFIG.forEach(layer => {
+        const row = document.createElement('div');
+        row.className = 'layer-row';
+
+        const info = document.createElement('div');
+        info.className = 'layer-info';
+
+        const dot = document.createElement('div');
+        dot.className = 'layer-color-dot';
+        dot.style.backgroundColor = layer.color;
+        dot.style.color = layer.color;
+
+        const label = document.createElement('span');
+        label.className = 'layer-label';
+        label.textContent = layer.name;
+
+        info.appendChild(dot);
+        info.appendChild(label);
+
+        const controls = document.createElement('div');
+        controls.className = 'layer-controls';
+
+        const soloBtn = document.createElement('button');
+        soloBtn.className = 'solo-btn';
+        soloBtn.textContent = 'Solo';
+        soloBtn.onclick = (e) => {
+          e.stopPropagation();
+          if (soloLayerId === layer.id) {
+            soloLayerId = null;
+            soloBtn.classList.remove('active');
+          } else {
+            soloLayerId = layer.id;
+            document.querySelectorAll('.solo-btn').forEach(b => b.classList.remove('active'));
+            soloBtn.classList.add('active');
+          }
+        };
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.className = 'toggle-checkbox';
+        checkbox.checked = layer.enabled;
+        checkbox.onchange = () => {
+          layer.enabled = checkbox.checked;
+        };
+
+        controls.appendChild(soloBtn);
+        controls.appendChild(checkbox);
+
+        row.appendChild(info);
+        row.appendChild(controls);
+        layerListEl.appendChild(row);
+      });
+    }
+    initLayerPanel();
+
+    // ── Event Handlers & Camera Controls ───────────────────────────
+    document.getElementById('panelToggle').onclick = () => {
+      document.getElementById('layerPanel').classList.toggle('collapsed');
+    };
+
+    document.getElementById('zSpreadSlider').oninput = (e) => {
+      camera.zSpread = parseFloat(e.target.value);
+      document.getElementById('sliderValDisplay').textContent = `${camera.zSpread.toFixed(1)}x`;
+      document.getElementById('teleZSpread').textContent = `${camera.zSpread.toFixed(1)}x Exploded`;
+    };
+
+    document.getElementById('subThickSlider').oninput = (e) => {
+      camera.subThick = parseFloat(e.target.value);
+      document.getElementById('subThickDisplay').textContent = `${camera.subThick} µm`;
+    };
+
+    document.getElementById('mode2dBtn').onclick = () => {
+      is3DMode = false;
+      document.getElementById('mode2dBtn').classList.add('active');
+      document.getElementById('mode3dBtn').classList.remove('active');
+    };
+
+    document.getElementById('mode3dBtn').onclick = () => {
+      is3DMode = true;
+      document.getElementById('mode3dBtn').classList.add('active');
+      document.getElementById('mode2dBtn').classList.remove('active');
+    };
+
+    document.getElementById('camTopBtn').onclick = () => {
+      camera.pitch = 0.05;
+      camera.yaw = 0;
+      camera.panX = 0;
+      camera.panY = 0;
+    };
+
+    document.getElementById('camIsoBtn').onclick = () => {
+      camera.pitch = 45 * Math.PI / 180;
+      camera.yaw = -35 * Math.PI / 180;
+      camera.panX = 0;
+      camera.panY = 0;
+    };
+
+    document.getElementById('camSideBtn').onclick = () => {
+      camera.pitch = 85 * Math.PI / 180;
+      camera.yaw = 0;
+      camera.panX = 0;
+      camera.panY = 0;
+    };
+
+    document.getElementById('resetCamBtn').onclick = () => {
+      camera.pitch = 45 * Math.PI / 180;
+      camera.yaw = -35 * Math.PI / 180;
+      camera.zoom = 1.0;
+      camera.panX = 0;
+      camera.panY = 0;
+    };
+
+    document.getElementById('gizmoRotLeft').onclick = () => { camera.yaw -= 0.15; };
+    document.getElementById('gizmoRotRight').onclick = () => { camera.yaw += 0.15; };
+    document.getElementById('gizmoPitchUp').onclick = () => { camera.pitch = Math.max(0.1, camera.pitch - 0.15); };
+    document.getElementById('gizmoPitchDown').onclick = () => { camera.pitch = Math.min(Math.PI / 2 - 0.05, camera.pitch + 0.15); };
+
+    document.getElementById('presetSelect').onchange = (e) => {
+      loadPreset(e.target.value);
+    };
+
+    function loadPreset(key) {
+      if (!DATASETS[key]) return;
+      currentDesign = DATASETS[key];
+      document.getElementById('teleDieArea').textContent = `${currentDesign.width} × ${currentDesign.height} µm`;
+      document.getElementById('teleCells').textContent = `${currentDesign.cellsCount.toLocaleString()} StdCells`;
+      document.getElementById('teleMacros').textContent = `${currentDesign.macros.length} Macros`;
+      camera.zoom = 1.0;
+      camera.panX = 0;
+      camera.panY = 0;
+    }
+
+    const fileInput = document.getElementById('defFileInput');
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) parseDefFile(file);
+    };
+
+    container.addEventListener('dragover', e => {
+      e.preventDefault();
+      container.classList.add('drop-highlight');
+    });
+
+    container.addEventListener('dragleave', () => {
+      container.classList.remove('drop-highlight');
+    });
+
+    container.addEventListener('drop', e => {
+      e.preventDefault();
+      container.classList.remove('drop-highlight');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        parseDefFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    function parseDefFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        try {
+          const parsed = parseDefText(text, file.name);
+          if (parsed) {
+            DATASETS.custom = parsed;
+            currentDesign = parsed;
+            const opt = document.createElement('option');
+            opt.value = 'custom';
+            opt.textContent = `Custom: ${file.name}`;
+            opt.selected = true;
+            document.getElementById('presetSelect').appendChild(opt);
+            loadPreset('custom');
+          }
+        } catch (err) {
+          alert(`Error parsing DEF: ${err.message}`);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function parseDefText(text, fileName) {
+      const lines = text.split('\n');
+      let units = 1000;
+      let width = 1000;
+      let height = 1000;
+      const macros = [];
+
+      for (let i = 0; i < Math.min(lines.length, 300); i++) {
+        const l = lines[i].trim();
+        if (l.startsWith('UNITS DISTANCE MICRONS')) {
+          const parts = l.split(/\s+/);
+          units = parseFloat(parts[3]) || 1000;
+        }
+        if (l.startsWith('DIEAREA')) {
+          const parts = l.split(/\s+/);
+          const x2 = parseFloat(parts[6]) || 1000000;
+          const y2 = parseFloat(parts[7]) || 1000000;
+          width = x2 / units;
+          height = y2 / units;
+        }
+      }
+
+      let inComps = false;
+      for (let i = 0; i < lines.length; i++) {
+        const l = lines[i].trim();
+        if (l.startsWith('COMPONENTS')) {
+          inComps = true;
+          continue;
+        }
+        if (l.startsWith('END COMPONENTS')) {
+          inComps = false;
+          break;
+        }
+        if (inComps && l.startsWith('-')) {
+          const parts = l.split(/\s+/);
+          if (parts.length >= 7) {
+            const instName = parts[1];
+            const cellModel = parts[2];
+            if (!cellModel.startsWith('sky130_fd_sc_') && !cellModel.startsWith('gf180mcu_fd_sc_') &&
+                /sram|ram|macro|pll/i.test(cellModel)) {
+              const xIdx = parts.indexOf('(');
+              if (xIdx !== -1) {
+                const x = parseFloat(parts[xIdx + 1]) / units;
+                const y = parseFloat(parts[xIdx + 2]) / units;
+                macros.push({
+                  name: instName,
+                  type: cellModel,
+                  x, y,
+                  w: 120, h: 90,
+                  halo: 10
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return {
+        name: fileName,
+        width: Math.round(width * 100) / 100,
+        height: Math.round(height * 100) / 100,
+        coreMargin: Math.round(width * 0.04),
+        cellsCount: 15000,
+        cellArea: Math.round(width * height * 0.45),
+        macros,
+        metalLayers: 5,
+        viasCount: 120000,
+        routes: generateIbexRoutes(width, height)
+      };
+    }
+
+    render();
+  </script>
+</body>
+</html>

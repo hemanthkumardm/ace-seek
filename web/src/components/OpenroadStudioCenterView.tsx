@@ -2,13 +2,26 @@
 
 /**
  * Center stage panel for OpenROAD PnR Studio (lint / sim / io / synth / chip / report).
+ * Enhanced with 3D Silicon Die Viewer, Multi-Layer GDS/DEF Inspector, and Automated Timing Violation Cockpit.
  */
 
 import React, { useState } from "react";
-import { Download, ExternalLink } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Box,
+  Zap,
+  Monitor,
+  FileSpreadsheet,
+  FileText,
+  Layers,
+  Sparkles,
+  ShieldCheck,
+} from "lucide-react";
 import { OpenroadIoPlanner } from "@/components/OpenroadIoPlanner";
 import { DigitalWaveform } from "@/components/OpenroadCharts";
 import { OpenroadVncModal } from "@/components/openroad/openroad-vnc-modal";
+import { OpenroadTimingInspector } from "@/components/openroad/OpenroadTimingInspector";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import type { StageInputValues } from "@/lib/openroad-stage-config";
@@ -302,247 +315,371 @@ export function OpenroadStudioCenterView({
   }
 
   if (view === "chip") {
-    // Accurate layout = OpenROAD GUI on real ODB (not DEF canvas snapshot)
-    const placeTimingArts = selectedArtifacts.filter(
-      (a) =>
-        a.stage === "placement" &&
-        /^(placement_timing|placement_power|placement_area_util|placement_metrics_summary)\.rpt$/i.test(
-          a.name
-        )
-    );
-    type PlaceM = {
-      wnsNs?: number;
-      tnsNs?: number;
-      powerMw?: number;
-      areaUm2?: number;
-      utilizationPct?: number;
-      dynamicMw?: number;
-      leakageMw?: number;
-    };
-    const timingFromArts = placeTimingArts.reduce(
-      (acc, a) => {
-        if (!a.content) return acc;
-        const t = parsePlacementTimingReport(a.content);
-        return {
-          wnsNs: acc.wnsNs ?? t.wnsNs,
-          tnsNs: acc.tnsNs ?? t.tnsNs,
-          powerMw: acc.powerMw ?? t.powerMw,
-          areaUm2: acc.areaUm2 ?? t.areaUm2,
-          utilizationPct: acc.utilizationPct ?? t.utilizationPct,
-          dynamicMw: acc.dynamicMw ?? t.dynamicMw,
-          leakageMw: acc.leakageMw ?? t.leakageMw,
-        };
-      },
-      {} as PlaceM
-    );
-
-    const [vncModalOpen, setVncModalOpen] = useState(false);
-    const [vncUrl, setVncUrl] = useState("");
-    const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
-    const [vncSessionId, setVncSessionId] = useState("");
-    const [showDieViewer, setShowDieViewer] = useState(true);
-
-    const openStageOdb = async () => {
-      setErr("");
-      setRunHint(`Opening ${selectedStage} ODB in OpenROAD GUI…`);
-      try {
-        const key = apiKeyResolved();
-        const res = await fetch("/api/openroad/odb/open", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": key,
-          },
-          body: JSON.stringify({
-            stage: selectedStage,
-            jobId: job?.jobId,
-            designHint: project?.designName,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.ok) {
-          setErr(data.error || data.message || "Failed to open ODB");
-          setRunHint("");
-          return;
-        }
-        if (data.webUrl) {
-          setVncUrl(data.webUrl);
-          setVncOdbLabel(data.label || `${selectedStage} / top.odb`);
-          setVncSessionId(data.sessionId || "");
-          setVncModalOpen(true);
-        }
-        setRunHint(
-          data.message ||
-            `OpenROAD GUI: ${data.label || data.odb} (DISPLAY=${data.display})`
-        );
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : "ODB open failed");
-        setRunHint("");
-      }
-    };
-
-    const onUploadOdb = async (file: File | null) => {
-      if (!file) return;
-      setErr("");
-      setRunHint(
-        `Uploading ${file.name} (${(file.size / 1e6).toFixed(1)} MB) → OpenROAD…`
-      );
-      try {
-        const key = apiKeyResolved();
-        // Raw octet-stream avoids Next.js FormData parse failures on large ODBs
-        const res = await fetch("/api/openroad/odb/upload?open=1", {
-          method: "POST",
-          headers: {
-            "x-api-key": key,
-            "content-type": "application/octet-stream",
-            "x-odb-filename": file.name || "design.odb",
-          },
-          body: file,
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          setErr(data.error || data.message || "Upload/open failed");
-          setRunHint("");
-          return;
-        }
-        if (data.webUrl) {
-          setVncUrl(data.webUrl);
-          setVncOdbLabel(file.name || "uploaded_design");
-          setVncSessionId(data.sessionId || "");
-          setVncModalOpen(true);
-        }
-        setRunHint(
-          data.message ||
-            `OpenROAD GUI opened uploaded design (${data.odb || file.name})`
-        );
-      } catch (e) {
-        setErr(e instanceof Error ? e.message : "Upload failed");
-        setRunHint("");
-      }
-    };
-
     return (
-      <div className="neu-panel p-4 h-full space-y-3 overflow-auto">
-        <OpenroadVncModal
-          isOpen={vncModalOpen}
-          onClose={() => setVncModalOpen(false)}
-          webUrl={vncUrl}
-          stageName={stageMeta.label}
-          odbLabel={vncOdbLabel}
-          sessionId={vncSessionId}
-          apiKey={apiKeyResolved()}
-        />
+      <ChipViewPanel
+        stageMeta={stageMeta}
+        project={project}
+        selectedArtifacts={selectedArtifacts}
+        selectedStage={selectedStage}
+        job={job}
+        running={running}
+        apiKeyResolved={apiKeyResolved}
+        setErr={setErr}
+        setRunHint={setRunHint}
+      />
+    );
+  }
+
+  // view === "report" (DRC / LVS / GDS Signoff)
+  return (
+    <ReportViewPanel
+      stageMeta={stageMeta}
+      job={job}
+      stageLogLines={stageLogLines}
+      selectedArtifacts={selectedArtifacts}
+      project={project}
+    />
+  );
+}
+
+/**
+ * Enhanced Physical Design & Signoff Studio Cockpit
+ */
+function ChipViewPanel({
+  stageMeta,
+  project,
+  selectedArtifacts,
+  selectedStage,
+  job,
+  running,
+  apiKeyResolved,
+  setErr,
+  setRunHint,
+}: {
+  stageMeta: Pick<FlowStageDef, "id" | "label" | "short" | "description">;
+  project: OpenroadProjectState;
+  selectedArtifacts: StageArtifact[];
+  selectedStage: FlowStageId;
+  job: OpenroadJobResult | null;
+  running: boolean;
+  apiKeyResolved: () => string;
+  setErr: (msg: string) => void;
+  setRunHint: (msg: string) => void;
+}) {
+  const [activeTab, setActiveTab] = useState<"die3d" | "timing" | "vnc" | "reports">("die3d");
+  const [vncModalOpen, setVncModalOpen] = useState(false);
+  const [vncUrl, setVncUrl] = useState("");
+  const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
+  const [vncSessionId, setVncSessionId] = useState("");
+
+  // Parse placement metrics
+  const placeTimingArts = selectedArtifacts.filter(
+    (a) =>
+      a.stage === "placement" &&
+      /^(placement_timing|placement_power|placement_area_util|placement_metrics_summary)\.rpt$/i.test(
+        a.name
+      )
+  );
+
+  type PlaceM = {
+    wnsNs?: number;
+    tnsNs?: number;
+    powerMw?: number;
+    areaUm2?: number;
+    utilizationPct?: number;
+    dynamicMw?: number;
+    leakageMw?: number;
+  };
+
+  const timingFromArts = placeTimingArts.reduce((acc, a) => {
+    if (!a.content) return acc;
+    const t = parsePlacementTimingReport(a.content);
+    return {
+      wnsNs: acc.wnsNs ?? t.wnsNs,
+      tnsNs: acc.tnsNs ?? t.tnsNs,
+      powerMw: acc.powerMw ?? t.powerMw,
+      areaUm2: acc.areaUm2 ?? t.areaUm2,
+      utilizationPct: acc.utilizationPct ?? t.utilizationPct,
+      dynamicMw: acc.dynamicMw ?? t.dynamicMw,
+      leakageMw: acc.leakageMw ?? t.leakageMw,
+    };
+  }, {} as PlaceM);
+
+  const openStageOdb = async () => {
+    setErr("");
+    setRunHint(`Opening ${selectedStage} ODB in OpenROAD GUI…`);
+    try {
+      const key = apiKeyResolved();
+      const res = await fetch("/api/openroad/odb/open", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": key,
+        },
+        body: JSON.stringify({
+          stage: selectedStage,
+          jobId: job?.jobId,
+          designHint: project?.designName,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setErr(data.error || data.message || "Failed to open ODB");
+        setRunHint("");
+        return;
+      }
+      if (data.webUrl) {
+        setVncUrl(data.webUrl);
+        setVncOdbLabel(data.label || `${selectedStage} / top.odb`);
+        setVncSessionId(data.sessionId || "");
+        setVncModalOpen(true);
+      }
+      setRunHint(
+        data.message ||
+          `OpenROAD GUI: ${data.label || data.odb} (DISPLAY=${data.display})`
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "ODB open failed");
+      setRunHint("");
+    }
+  };
+
+  const onUploadOdb = async (file: File | null) => {
+    if (!file) return;
+    setErr("");
+    setRunHint(
+      `Uploading ${file.name} (${(file.size / 1e6).toFixed(1)} MB) → OpenROAD…`
+    );
+    try {
+      const key = apiKeyResolved();
+      const res = await fetch("/api/openroad/odb/upload?open=1", {
+        method: "POST",
+        headers: {
+          "x-api-key": key,
+          "content-type": "application/octet-stream",
+          "x-odb-filename": file.name || "design.odb",
+        },
+        body: file,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        setErr(data.error || data.message || "Upload/open failed");
+        setRunHint("");
+        return;
+      }
+      if (data.webUrl) {
+        setVncUrl(data.webUrl);
+        setVncOdbLabel(file.name || "uploaded_design");
+        setVncSessionId(data.sessionId || "");
+        setVncModalOpen(true);
+      }
+      setRunHint(
+        data.message ||
+          `OpenROAD GUI opened uploaded design (${data.odb || file.name})`
+      );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Upload failed");
+      setRunHint("");
+    }
+  };
+
+  return (
+    <div className="neu-panel p-4 h-full flex flex-col space-y-3 overflow-hidden">
+      <OpenroadVncModal
+        isOpen={vncModalOpen}
+        onClose={() => setVncModalOpen(false)}
+        webUrl={vncUrl}
+        stageName={stageMeta.label}
+        odbLabel={vncOdbLabel}
+        sessionId={vncSessionId}
+        apiKey={apiKeyResolved()}
+      />
+
+      {/* Top Header & Stage Title */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
-            Layout viewer · real OpenROAD & Ace-AutoMacro
-          </p>
-          <h2 className="text-lg font-black uppercase">{stageMeta.label}</h2>
-          <p className="text-[11px] font-bold text-[var(--neu-text-muted)] mt-1 max-w-2xl">
-            Inspect exact IO ports, well taps, macro halos, and cell placements via the native{" "}
-            <strong className="text-[var(--neu-text)]">OpenROAD Desktop GUI</strong> or interactive{" "}
-            <strong className="text-cyan-400">Die Floorplan Viewer</strong>.
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-black uppercase text-white">{stageMeta.label}</h2>
+            <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+              Sky130 Physical Signoff
+            </span>
+          </div>
+          <p className="text-[11px] font-bold text-[var(--neu-text-muted)] mt-0.5 max-w-2xl">
+            {stageMeta.description} · Interactive 3D silicon perspective, layer visibility matrix, & timing closure.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 items-center">
+        {/* Feature Segmented Tab Switcher */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#060a14] border border-white/10 shadow-inner">
           <button
             type="button"
-            className="neu-btn neu-btn-primary !text-[11px] font-black"
-            onClick={() => void openStageOdb()}
-            disabled={running}
-          >
-            Open {stageMeta.short} in OpenROAD GUI
-          </button>
-          {vncUrl && (
-            <button
-              type="button"
-              className="neu-btn !text-[11px] font-black text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10"
-              onClick={() => setVncModalOpen(true)}
-            >
-              Resume OpenROAD Stream
-            </button>
-          )}
-          <button
-            type="button"
-            className={`neu-btn !text-[11px] font-black ${
-              showDieViewer
-                ? "bg-cyan-500/20 text-cyan-300 border-cyan-400/50"
-                : "text-slate-300 hover:text-white"
+            onClick={() => setActiveTab("die3d")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeTab === "die3d"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
             }`}
-            onClick={() => setShowDieViewer((prev) => !prev)}
           >
-            {showDieViewer ? "Hide Die Floorplan" : "🗺️ View 100-Macro Floorplan"}
+            <Box className="w-3.5 h-3.5" />
+            3D Die & Metal Stack
           </button>
-          <a
-            href="/die_viewer_100_macros.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="neu-btn !text-[11px] font-black text-cyan-400 border-cyan-400/40 hover:bg-cyan-500/10 inline-flex items-center gap-1"
+          <button
+            type="button"
+            onClick={() => setActiveTab("timing")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeTab === "timing"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
           >
-            <ExternalLink className="w-3 h-3" />
-            Open Floorplan in Tab
-          </a>
-          <label className="neu-btn !text-[11px] font-black cursor-pointer inline-flex items-center">
-            Upload .odb / .def → OpenROAD
-            <input
-              type="file"
-              accept=".odb,.def"
-              className="hidden"
-              onChange={(e) =>
-                void onUploadOdb(e.target.files?.[0] || null)
-              }
-            />
-          </label>
+            <Zap className="w-3.5 h-3.5" />
+            Timing & Slack Inspector
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("vnc")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeTab === "vnc"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Monitor className="w-3.5 h-3.5" />
+            OpenROAD GUI (VNC)
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("reports")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeTab === "reports"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            Stage Reports
+          </button>
         </div>
+      </div>
 
-        {showDieViewer && (
-          <div className="neu-inset p-2 rounded-xl border border-cyan-500/30 space-y-2">
-            <div className="flex justify-between items-center px-3 py-1 border-b border-slate-800 text-[11px] font-bold">
-              <span className="text-cyan-400 font-mono flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Ace-AutoMacro Die Floorplan (2600 × 2600 µm · 100 Macros · 0 Overlaps)
+      {/* Tab 1: 3D Die & Silicon Stacking Viewer */}
+      {activeTab === "die3d" && (
+        <div className="flex-1 flex flex-col min-h-0 space-y-2">
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#070e1c] border border-cyan-500/30 text-xs">
+            <div className="flex items-center gap-2 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-cyan-300 font-bold">
+                Silicon Interconnect Stack: li1, met1, met2, met3, met4, met5 + Vias
               </span>
+              <span className="text-[10px] text-slate-400 hidden sm:inline">
+                (SkyWater 130nm PDK)
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
               <a
-                href="/die_viewer_100_macros.html"
+                href="/die_viewer_3d.html"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-white underline text-[10px] inline-flex items-center gap-1"
+                className="text-cyan-400 hover:text-cyan-200 text-xs font-bold inline-flex items-center gap-1 underline"
               >
-                Fullscreen ↗
+                Fullscreen 3D Viewer ↗
               </a>
             </div>
+          </div>
+
+          <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden border border-cyan-500/40 bg-[#020617] relative shadow-2xl">
             <iframe
-              src="/die_viewer_100_macros.html"
-              className="w-full h-[620px] rounded-lg border border-slate-800 bg-[#020617]"
-              title="Interactive Die Floorplan"
+              src="/die_viewer_3d.html"
+              className="w-full h-full border-0"
+              title="Interactive 3D Die & Metal Stack Viewer"
             />
           </div>
-        )}
 
-
-        <div className="neu-inset p-3 text-[10px] font-bold text-[var(--neu-text-muted)] space-y-1">
-          <p>
-            Needs a display for the GUI window (
-            <code className="text-sky-700">DISPLAY</code> on the server). If
-            nothing opens, run{" "}
-            <code className="text-sky-700">xhost +local:docker</code> once.
-          </p>
-          <p>
-            Stage ODB path (OpenLane):{" "}
-            <code className="text-sky-700">
-              runs/ace_run/results/
-              {selectedStage === "powerplan"
-                ? "floorplan"
-                : selectedStage === "route"
-                  ? "routing"
-                  : selectedStage}
-              /top.odb
-            </code>
-          </p>
+          <div className="neu-inset px-3 py-2 text-[10px] font-bold text-slate-400 flex flex-wrap items-center justify-between gap-2">
+            <span>
+              💡 <strong>3D Controls:</strong> Left-drag to orbit · Right-drag to pan · Scroll to zoom · Use <strong>Z-Spread Slider</strong> to explode metal interconnect layers · Check/uncheck layers or click <strong>Solo</strong> to isolate routing.
+            </span>
+            <span className="text-cyan-400 font-mono">
+              Supports live Drag & Drop of any custom .def / .odb file
+            </span>
+          </div>
         </div>
+      )}
 
-        {selectedStage === "placement" &&
-          (timingFromArts.wnsNs != null ||
+      {/* Tab 2: Timing & Slack Inspector */}
+      {activeTab === "timing" && (
+        <div className="flex-1 min-h-[620px] overflow-y-auto">
+          <OpenroadTimingInspector
+            artifacts={selectedArtifacts}
+            designName={project?.designName || "Ibex RV32 RISC-V"}
+          />
+        </div>
+      )}
+
+      {/* Tab 3: OpenROAD Native GUI (VNC) */}
+      {activeTab === "vnc" && (
+        <div className="space-y-4 py-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            <button
+              type="button"
+              className="neu-btn neu-btn-primary !text-[11px] font-black"
+              onClick={() => void openStageOdb()}
+              disabled={running}
+            >
+              Open {stageMeta.short} in OpenROAD GUI
+            </button>
+            {vncUrl && (
+              <button
+                type="button"
+                className="neu-btn !text-[11px] font-black text-emerald-600 border-emerald-600/40 hover:bg-emerald-500/10"
+                onClick={() => setVncModalOpen(true)}
+              >
+                Resume OpenROAD Stream
+              </button>
+            )}
+            <label className="neu-btn !text-[11px] font-black cursor-pointer inline-flex items-center">
+              Upload .odb / .def → OpenROAD
+              <input
+                type="file"
+                accept=".odb,.def"
+                className="hidden"
+                onChange={(e) => void onUploadOdb(e.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+
+          <div className="neu-inset p-4 text-[11px] font-bold text-[var(--neu-text-muted)] space-y-2 rounded-xl">
+            <p className="text-white font-black uppercase text-xs">
+              Direct Desktop X11 Streaming
+            </p>
+            <p>
+              Streams the native OpenROAD GUI binary with full access to the real ODB database, DRC marker browser, congestion heatmaps, and timing report visualizer.
+            </p>
+            <p>
+              Needs a display for the GUI window (
+              <code className="text-sky-400">DISPLAY</code> on the server). If nothing opens, run{" "}
+              <code className="text-sky-400">xhost +local:docker</code> once.
+            </p>
+            <p>
+              Stage ODB path (OpenLane):{" "}
+              <code className="text-sky-400">
+                runs/ace_run/results/
+                {selectedStage === "powerplan"
+                  ? "floorplan"
+                  : selectedStage === "route"
+                    ? "routing"
+                    : selectedStage}
+                /top.odb
+              </code>
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Stage Metrics & Reports */}
+      {activeTab === "reports" && (
+        <div className="space-y-4 py-2">
+          {(timingFromArts.wnsNs != null ||
             timingFromArts.tnsNs != null ||
             timingFromArts.powerMw != null ||
             timingFromArts.areaUm2 != null) && (
@@ -620,57 +757,143 @@ export function OpenroadStudioCenterView({
             </div>
           )}
 
-        {selectedStage === "placement" && placeTimingArts.length > 0 && (
-          <details className="neu-inset p-2">
-            <summary className="text-[10px] font-black uppercase text-violet-700 cursor-pointer">
-              Placement reports — timing / power / area (
-              {placeTimingArts.length})
-            </summary>
-            <ul className="mt-1 space-y-1">
-              {placeTimingArts.slice(0, 8).map((a) => (
-                <li key={a.id} className="text-[10px] font-mono">
-                  <button
-                    type="button"
-                    className="text-sky-700 underline font-bold"
-                    onClick={() => downloadArtifact(a)}
-                  >
-                    {a.name}
-                  </button>
-                  {a.content && (
-                    <pre className="text-[9px] max-h-24 overflow-auto mt-0.5 text-slate-600 whitespace-pre-wrap">
-                      {a.content.slice(0, 1200)}
-                      {a.content.length > 1200 ? "\n…" : ""}
-                    </pre>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-      </div>
-    );
-  }
+          {placeTimingArts.length > 0 && (
+            <div className="neu-inset p-3 rounded-xl space-y-2">
+              <span className="text-[10px] font-black uppercase text-violet-400">
+                Placement & Signoff Artifact Reports ({placeTimingArts.length})
+              </span>
+              <ul className="mt-1 space-y-2">
+                {placeTimingArts.map((a) => (
+                  <li key={a.id} className="text-[10px] font-mono border-b border-white/5 pb-2">
+                    <button
+                      type="button"
+                      className="text-sky-400 underline font-bold hover:text-sky-300"
+                      onClick={() => downloadArtifact(a)}
+                    >
+                      {a.name}
+                    </button>
+                    {a.content && (
+                      <pre className="text-[9px] max-h-28 overflow-auto mt-1 p-2 rounded bg-black/40 text-slate-300 whitespace-pre-wrap">
+                        {a.content.slice(0, 1500)}
+                        {a.content.length > 1500 ? "\n…" : ""}
+                      </pre>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
-  // report: DRC / LVS / GDS
+/**
+ * Signoff View Panel (DRC / LVS / GDS)
+ */
+function ReportViewPanel({
+  stageMeta,
+  job,
+  stageLogLines,
+  selectedArtifacts,
+  project,
+}: {
+  stageMeta: Pick<FlowStageDef, "id" | "label" | "short" | "description">;
+  job: OpenroadJobResult | null;
+  stageLogLines: string[];
+  selectedArtifacts: StageArtifact[];
+  project: OpenroadProjectState;
+}) {
+  const [activeReportTab, setActiveReportTab] = useState<"log" | "die3d" | "timing">("log");
+
   return (
-    <div className="neu-panel p-4 space-y-3 h-full">
-      <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
-        Signoff report · {stageMeta.label}
-      </p>
-      <h2 className="text-lg font-black uppercase">{stageMeta.label}</h2>
-      <p className="text-[11px] font-bold text-[var(--neu-text-muted)]">
-        {stageMeta.description}
-      </p>
-      {stageMeta.id === "gds" &&
-        job?.artifacts?.some((a) => /gds/i.test(a.name)) && (
-          <p className="text-sm font-black text-emerald-600">
-            GDS artifact available in Artifacts tab
+    <div className="neu-panel p-4 space-y-3 h-full flex flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-2">
+        <div>
+          <p className="text-[9px] font-black uppercase text-[var(--neu-text-muted)]">
+            Signoff report · {stageMeta.label}
           </p>
-        )}
-      <pre className="neu-inset p-2 text-[10px] font-mono max-h-56 overflow-auto whitespace-pre-wrap">
-        {stageLogLines.slice(-80).join("\n") ||
-          "No stage log yet — run OpenLane from synthesis."}
-      </pre>
+          <h2 className="text-lg font-black uppercase text-white">{stageMeta.label}</h2>
+        </div>
+
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-[#060a14] border border-white/10 shadow-inner">
+          <button
+            type="button"
+            onClick={() => setActiveReportTab("log")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeReportTab === "log"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Signoff Log
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveReportTab("die3d")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeReportTab === "die3d"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Box className="w-3.5 h-3.5" />
+            3D Tapeout Die Viewer
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveReportTab("timing")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+              activeReportTab === "timing"
+                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
+                : "text-slate-300 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Multi-Corner Timing
+          </button>
+        </div>
+      </div>
+
+      {activeReportTab === "log" && (
+        <div className="space-y-3 flex-1 overflow-auto">
+          <p className="text-[11px] font-bold text-[var(--neu-text-muted)]">
+            {stageMeta.description}
+          </p>
+          {stageMeta.id === "gds" &&
+            job?.artifacts?.some((a) => /gds/i.test(a.name)) && (
+              <p className="text-sm font-black text-emerald-400 flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4" />
+                GDS-II Streamout artifact available in Artifacts tab (Tapeout ready)
+              </p>
+            )}
+          <pre className="neu-inset p-3 text-[10px] font-mono max-h-[500px] overflow-auto whitespace-pre-wrap text-slate-300 bg-black/50 rounded-xl">
+            {stageLogLines.slice(-120).join("\n") ||
+              "No stage log yet — run OpenLane flow through signoff."}
+          </pre>
+        </div>
+      )}
+
+      {activeReportTab === "die3d" && (
+        <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden border border-cyan-500/40 bg-[#020617] relative">
+          <iframe
+            src="/die_viewer_3d.html"
+            className="w-full h-full border-0"
+            title="3D Tapeout Die Viewer"
+          />
+        </div>
+      )}
+
+      {activeReportTab === "timing" && (
+        <div className="flex-1 min-h-[600px] overflow-y-auto">
+          <OpenroadTimingInspector
+            artifacts={selectedArtifacts}
+            designName={project?.designName || "Tapeout Signoff"}
+          />
+        </div>
+      )}
     </div>
   );
 }
