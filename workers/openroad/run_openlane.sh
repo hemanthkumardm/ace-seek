@@ -72,6 +72,8 @@ run_local_docker() {
   # that contains config.json + src/
   # Place ace_run_until.tcl inside the shared /designs folder to avoid host path mount issues
   cp -f "${UNTIL_TCL}" "${JOB_DIR}/designs/ace_run_until.tcl" 2>/dev/null || true
+  # Bundle Ace-AutoMacro engine into /openlane/designs/ace_macro_placer
+  cp -rf "${WORKER_DIR}/../engines/macro_placer" "${JOB_DIR}/designs/ace_macro_placer" 2>/dev/null || true
 
   timeout "$OPENLANE_TIMEOUT" docker run --rm \
     --name "ace-openlane-${DESIGN_SLUG}-$$" \

@@ -189,6 +189,10 @@ FP_PDN_LOG="$(find_first \
 FP_INIT_LOG="$(find_first \
   "$RUNS"/ace_run/logs/floorplan/*initial_fp*.log \
   "$RES"/logs_floorplan_*initial_fp*.log || true)"
+FP_MACRO_LOG="$(find_first \
+  "$RUNS"/ace_run/logs/floorplan/*ace_automacro*.log \
+  "$RUNS"/ace_run/logs/floorplan/*macro*.log \
+  "$RES"/logs_floorplan_*macro*.log || true)"
 
 {
   echo "==============================================================================="
@@ -198,6 +202,11 @@ FP_INIT_LOG="$(find_first \
   if [[ -n "${FP_INIT_LOG:-}" && -f "$FP_INIT_LOG" ]]; then
     echo "--- Die & Core Geometry ---"
     grep -E 'Floorplanned with width|Core area|Die area|Design area' "$FP_INIT_LOG" 2>/dev/null || true
+  fi
+  if [[ -n "${FP_MACRO_LOG:-}" && -f "$FP_MACRO_LOG" ]]; then
+    echo ""
+    echo "--- Ace-AutoMacro Placement & Legalization ---"
+    grep -E 'Macro|HPWL|Overlaps|Status|Flightlines|Buses' "$FP_MACRO_LOG" 2>/dev/null || true
   fi
   if [[ -n "${FP_PDN_LOG:-}" && -f "$FP_PDN_LOG" ]]; then
     echo ""
@@ -221,7 +230,7 @@ FP_INIT_LOG="$(find_first \
   echo "==============================================================================="
   echo ""
   fp_log_found=0
-  for l in "${FP_INIT_LOG:-}" "${FP_IO_LOG:-}" "${FP_TAP_LOG:-}" "${FP_PDN_LOG:-}"; do
+  for l in "${FP_INIT_LOG:-}" "${FP_IO_LOG:-}" "${FP_MACRO_LOG:-}" "${FP_TAP_LOG:-}" "${FP_PDN_LOG:-}"; do
     if [[ -n "$l" && -f "$l" ]]; then
       echo "-------------------------------------------------------------------------------"
       echo ">> Step: $(basename "$l")"

@@ -302,6 +302,73 @@ proc ace_ensure_pdn_rings {} {
     } else {
         puts "ACE-Seek: PDN core rings OFF (FP_PDN_CORE_RING=0)"
     }
+# ── Ace-AutoMacro: Advanced Macro Floorplanning Hook ──
+proc ace_run_macro_placement {} {
+    set mp_engine "/openlane/designs/ace_macro_placer"
+    if { ![file isdirectory $mp_engine] && [info exists ::env(DESIGN_DIR)] } {
+        set mp_engine [file normalize "$::env(DESIGN_DIR)/../ace_macro_placer"]
+    }
+    if { ![file isdirectory $mp_engine] } {
+        puts "ACE-Seek: ace_macro_placer engine not present — continuing with standard floorplan"
+        return 0
+    }
+
+    set cur_def ""
+    if { [info exists ::env(CURRENT_DEF)] && [file exists $::env(CURRENT_DEF)] } {
+        set cur_def $::env(CURRENT_DEF)
+    } elseif { [info exists ::env(RUN_DIR)] } {
+        set candidates [glob -nocomplain "$::env(RUN_DIR)/tmp/floorplan/*io*.def" \
+                                         "$::env(RUN_DIR)/tmp/floorplan/*initial_fp*.def" \
+                                         "$::env(RUN_DIR)/results/floorplan/*.def"]
+        if { [llength $candidates] > 0 } {
+            set cur_def [lindex $candidates end]
+        }
+    }
+
+    if { $cur_def eq "" || ![file exists $cur_def] } {
+        return 0
+    }
+
+    # Detect if design contains any hard macros
+    set has_macros 0
+    catch {
+        set fp [open $cur_def r]
+        while { [gets $fp line] >= 0 } {
+            if { [string match "*COMPONENTS*" $line] } {
+                while { [gets $fp line] >= 0 && ![string match "*END COMPONENTS*" $line] } {
+                    if { [regexp -nocase {(sram|ram|macro|pll|phy)} $line] } {
+                        set has_macros 1
+                        break
+                    }
+                }
+                break
+            }
+        }
+        close $fp
+    }
+
+    if { !$has_macros } {
+        puts "ACE-Seek: zero hard macros detected — bypassing Ace-AutoMacro (0ms)"
+        return 0
+    }
+
+    puts "ACE-Seek: === invoking Ace-AutoMacro Engine ==="
+    set out_def "$::env(RUN_DIR)/tmp/floorplan/macros_placed.def"
+    set log_file "$::env(RUN_DIR)/logs/floorplan/ace_automacro.log"
+    file mkdir [file dirname $log_file]
+
+    set cmd "PYTHONPATH=/openlane/designs python3 -m ace_macro_placer.cli --def-in $cur_def --def-out $out_def --halo-x 10.0 --halo-y 10.0"
+    if { [catch { exec bash -c "$cmd > $log_file 2>&1" } merr] } {
+        puts "ACE-Seek: Ace-AutoMacro warning: $merr (see $log_file)"
+        return 0
+    }
+
+    if { [file exists $out_def] } {
+        set ::env(CURRENT_DEF) $out_def
+        puts "ACE-Seek: Ace-AutoMacro placed and locked macros -> $out_def"
+        return 1
+    }
+    return 0
 }
 
 # When re-running floorplan from a later resume point, OpenLane still has
@@ -435,6 +502,8 @@ if { !$skip_fp } {
     # Critical: resume often keeps FP_PDN_CORE_RING=0 / MULTILAYER=0 → no rings
     ace_ensure_pdn_rings
     ace_run_step floorplan { run_floorplan }
+    # Custom Macro Placement Hook: runs Ace-AutoMacro if hard macros are present
+    catch { ace_run_macro_placement }
 } else {
     puts "ACE-Seek: skip floorplan (resume — floorplan DEF present)"
 }
