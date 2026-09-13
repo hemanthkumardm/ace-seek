@@ -1,40 +1,16 @@
 # Ace-Seek Advanced VLSI Engines: Architecture & Algorithmic Blueprint
 
-**Author:** Ace-Seek Core Architecture Team  
-**Status:** Under Verification / Proposed Implementation  
-**Target Flow:** OpenROAD Studio & Autonomous Physical Implementation  
+**Author:** Ace-Seek Internal R&D  
+**Status:** Shelved / Long-term Academic Exploratory Reference Only (Non-Production)  
+**Notice:** This document compiles theoretical formulations from published academic literature (ePlace, RePlAce, DREAMPlace, AutoDMP) for long-term reference. Active engineering on custom placement engines is shelved to maintain 100% focus on commercial execution, student capstone project delivery, and standard, authentic OpenROAD/OpenLane signoffs. No comparative performance claims are asserted against existing EDA tools without published, peer-reviewed benchmarks on standard ICCAD/ISPD test suites.
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Context
 
-In modern Application-Specific Integrated Circuit (ASIC) and System-on-Chip (SoC) design, **Floorplanning and Macro Placement is the single most critical determinant of final Power, Performance, and Area (PPA)**. Suboptimal macro placement leads directly to:
-1. **Irrecoverable Routing Congestion**: Pin access channels between adjacent SRAM/macro blocks choke detailed routing, leading to DRC violations.
-2. **Timing Closure Failure**: Excessive wirelength on critical control and datapath lines crossing across macro clusters destroys setup and hold slack.
-3. **Power Strapping Inefficiencies**: Broken standard-cell power rails and excessive IR drop around macro boundaries.
+In Application-Specific Integrated Circuit (ASIC) design, macro placement directly influences wirelength, routing channels, and timing closure. Academic research over the past decade has developed continuous analytical placement algorithms—notably the lineage of **ePlace**, **RePlAce**, and GPU-accelerated **DREAMPlace** / **AutoDMP**.
 
-Current open-source engines in OpenROAD (such as **TritonMacroPlace** and **Hier-RTLMP**) rely primarily on rigid perimeter placement and stochastic simulated annealing. They struggle when:
-- Macro count exceeds 10–16 blocks.
-- The design exhibits tight datapath coupling between macros and standard cells.
-- Macros have asymmetric pin distributions.
-
-This blueprint specifies the architecture, mathematics, and integration strategy for building Ace-Seek's proprietary EDA engines:
-* **Ace-AutoMacro**: A GPU/CPU-accelerated continuous mixed-size macro placer based on 2D Poisson electrostatic field theory, dynamic virtual bloating, and differentiable pin orientation (inspired by AutoDMP / DREAMPlace).
-* **Ace-Carta**: A topological datapath and hypergraph clustering engine that reconstructs algorithmic dataflow hierarchies before placement.
-* **Ace-RoutePredict**: An instant neural surrogate predicting detailed routing DRC and congestion hotspots in <500ms before running full routing.
-
----
-
-## 2. Comparative Engine Landscape
-
-| Feature | OpenROAD TritonMacroPlace | Google Circuit Training | NVIDIA AutoDMP | **Ace-Seek Ace-AutoMacro** |
-|---|---|---|---|---|
-| **Core Method** | Perimeter Annealing / Heuristics | Reinforcement Learning (PPO) | Continuous Electrostatics + BO | **Continuous Electrostatics + Dataflow Graphs** |
-| **Cell-Macro Optimization** | Decoupled (Macros first, cells later) | Mixed (Coarse grid representation) | Concurrent (DREAMPlace mixed-size) | **Concurrent (Mixed-size + Pin Torque)** |
-| **Runtime** | 10–30 min | 24–48 hours (Massive GPU compute) | 2–5 min (GPU) / 10 min (CPU) | **1–3 min (CPU / GPU hybrid)** |
-| **Scalability** | Fails above ~16 macros | High (requires heavy training) | High (>100 macros) | **High (1 to 128+ macros)** |
-| **Hardware Required** | CPU only | Cloud TPU / Multi-GPU cluster | NVIDIA GPU | **CPU native + optional PyTorch/CUDA** |
-| **OpenROAD Integration** | Native | External wrapper | External PyTorch script | **Direct ODB / DEF Native Plugin** |
+This document summarizes the mathematical principles of electrostatic global placement and constraint-graph legalization as documented in EDA literature, preserved as an architectural reference for potential future exploration once core commercial operations and revenue goals are achieved.
 
 ---
 
@@ -131,20 +107,15 @@ $$H_x^{(t)} = H_{\text{min}} + H_{\text{virtual}} \cdot \exp(-t / \tau_H)$$
 
 ---
 
-### 3.5 Differentiable Macro Orientation & Pin Escape Torque
+### 3.5 Discrete Macro Orientation & Pin-Escape Alignment
 
-A major defect in existing placers is that macros are placed with suboptimal orientations—e.g., placing a macro such that its address/data pins face directly against the die edge, forcing routing wires to loop 180 degrees around the macro.
+A common cause of unroutable congestion around macro perimeters is placing a macro such that its pin interfaces face directly against a die boundary or an adjacent macro, forcing routing channels to wrap 180 degrees.
 
-**Ace-AutoMacro** models macro orientation continuously:
-For each macro $k$, we compute the net pulling force on its external pins:
-$$\mathbf{F}_{\text{pins}}(k) = \sum_{p \in \text{pins}(k)} \sum_{j \in \text{net}(p)} \nabla \mathcal{W}(\mathbf{p}_p, \mathbf{p}_j)$$
+Standard industry practice evaluates the discrete symmetry transformations $\{R0, R90, R180, R270, MX, MY, MX90, MY90\}$:
+For each macro $k$, the wirelength delta $\Delta \mathcal{W}$ between candidate orientation $O_{\text{candidate}}$ and current orientation $O_{\text{current}}$ is evaluated directly:
+$$\Delta \mathcal{W} = \mathcal{W}(O_{\text{candidate}}) - \mathcal{W}(O_{\text{current}})$$
 
-The rotational moment (torque) around the macro center is:
-$$\tau_k = \sum_{p \in \text{pins}(k)} (\mathbf{r}_p - \mathbf{p}_k) \times \mathbf{F}_{\text{pins}}(p)$$
-
-At discrete checkpoints during global optimization, macro orientations are evaluated across legal symmetries $\{R0, R90, R180, R270, MX, MY\}$ against:
-$$\Delta \mathcal{W} = \mathcal{W}(O_{\text{new}}) - \mathcal{W}(O_{\text{current}})$$
-If $\Delta \mathcal{W} < 0$ and does not increase overlap penalty, the orientation is committed.
+Orientations that direct pin escape vectors inward toward the center-of-mass of the connected standard-cell core logic and minimize $\Delta \mathcal{W}$ without increasing the bounding overlap are selected during floorplan legalization.
 
 ---
 
