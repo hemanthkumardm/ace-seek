@@ -101,9 +101,12 @@ class DefDatabase:
 
     def write_def_with_updated_macros(self, out_path: str,
                                       macro_positions: Dict[str, Tuple[float, float, str]],
-                                      lock_status: str = "PLACED") -> None:
+                                      lock_status: str = "PLACED",
+                                      macro_halos: Optional[Dict[str, Tuple[float, float, float, float]]] = None) -> None:
         """
-        Emits updated DEF file with new coordinates and status for specified macros.
+        Emits updated DEF file with new coordinates and status for specified macros,
+        plus explicit BLOCKAGES PLACEMENT for macro halos to prevent standard cells
+        from encroaching into pin-escape channels.
         """
         dbu = self.units_distance_microns
         with open(out_path, "w", encoding="utf-8") as out:
@@ -132,5 +135,16 @@ class DefDatabase:
                             new_line = f"    - {name} {cell_type} + {lock_status} ( {ix} {iy} ) {orient} ;\n"
                             out.write(new_line)
                             continue
+
+                # Inject BLOCKAGES before END DESIGN if specified
+                if line_str.startswith("END DESIGN") and macro_halos:
+                    out.write(f"\nBLOCKAGES {len(macro_halos)} ;\n")
+                    for m_name, (x0, y0, x1, y1) in macro_halos.items():
+                        bx0 = int(round(x0 * dbu))
+                        by0 = int(round(y0 * dbu))
+                        bx1 = int(round(x1 * dbu))
+                        by1 = int(round(y1 * dbu))
+                        out.write(f"    - PLACEMENT\n        RECT ( {bx0} {by0} ) ( {bx1} {by1} ) ;\n")
+                    out.write("END BLOCKAGES\n\n")
 
                 out.write(line)
