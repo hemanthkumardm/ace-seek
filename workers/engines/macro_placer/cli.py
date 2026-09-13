@@ -13,7 +13,7 @@ import numpy as np
 from .core.optimizer import NesterovPlacer
 from .core.wirelength import compute_hpwl
 from .legalizer.constraint_graph import legalize_macros
-from .legalizer.snap_grid import snap_to_manufacturing_grid
+from .legalizer.snap_grid import snap_to_manufacturing_grid, eliminate_narrow_notches
 from .io.def_parser import DefDatabase
 
 
@@ -100,11 +100,18 @@ def run_synthetic_benchmark(num_macros: int = 8,
         opt_macro_x, opt_macro_y, macro_w, macro_h, core_w, core_h, halo_x=10.0, halo_y=10.0
     )
 
-    # 7. Snap to Sky130 Site Rows & Manufacturing Grid
+    # 6.5 Eliminate narrow dead-end notches ("channels of death")
+    leg_x, leg_y = eliminate_narrow_notches(leg_x, leg_y, macro_w, macro_h, min_channel_width=20.0)
+
+    # 7. Snap to Sky130 Site Rows (2.72 um) & PDN vertical strap pitch (16.0 um)
     final_macro_x, final_macro_y = snap_to_manufacturing_grid(
-        leg_x, leg_y, site_height=2.72, site_width=0.46, mfg_grid=0.005,
-        core_padding=8.0, core_w=core_w, core_h=core_h, widths=macro_w, heights=macro_h
+        leg_x, leg_y, site_height=2.72, site_width=0.46, pdn_pitch_x=16.0, pdn_offset_x=6.0,
+        mfg_grid=0.005, core_padding=8.0, core_w=core_w, core_h=core_h, widths=macro_w, heights=macro_h
     )
+
+    # 7.5 Resolve Pin-Facing-Core Orientations (Pins strictly face toward standard cell core)
+    from .core.orientation import resolve_macro_orientations
+    orientations = resolve_macro_orientations(final_macro_x, final_macro_y, macro_w, macro_h, core_w, core_h)
 
     # Calculate final HPWL
     final_full_x = opt_res["pos_x"].copy()
@@ -134,7 +141,7 @@ def run_synthetic_benchmark(num_macros: int = 8,
     print(f"===============================================================================\n")
 
     for i in range(num_macros):
-        print(f"  Macro {i:2d}: (X={final_macro_x[i]:7.2f}, Y={final_macro_y[i]:7.2f}) size=({macro_w[i]:5.1f} x {macro_h[i]:5.1f}) um")
+        print(f"  Macro {i:2d}: (X={final_macro_x[i]:7.2f}, Y={final_macro_y[i]:7.2f}) orient={orientations[i]:2s} size=({macro_w[i]:5.1f} x {macro_h[i]:5.1f}) um")
 
     return {
         "status": "PASS" if overlaps == 0 else "FAIL",
@@ -144,7 +151,14 @@ def run_synthetic_benchmark(num_macros: int = 8,
         "hpwl_reduction_pct": hpwl_reduction,
         "overlaps": overlaps,
         "macro_positions": [
-            {"id": i, "x": float(final_macro_x[i]), "y": float(final_macro_y[i]), "w": float(macro_w[i]), "h": float(macro_h[i])}
+            {
+                "id": i,
+                "x": float(final_macro_x[i]),
+                "y": float(final_macro_y[i]),
+                "w": float(macro_w[i]),
+                "h": float(macro_h[i]),
+                "orient": orientations[i]
+            }
             for i in range(num_macros)
         ]
     }

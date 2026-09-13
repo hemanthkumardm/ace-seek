@@ -72,12 +72,49 @@ class TestAceAutoMacro(unittest.TestCase):
         pos_y = np.array([31.25, 67.89])
         row_height = 2.72
 
-        sx, sy = snap_to_manufacturing_grid(pos_x, pos_y, site_height=row_height)
+        sx, sy = snap_to_manufacturing_grid(pos_x, pos_y, site_height=row_height, pdn_pitch_x=0.0)
         for y in sy:
             remainder = y % row_height
-            # Remainder should be close to 0 or row_height
             dist_to_multiple = min(remainder, row_height - remainder)
             self.assertAlmostEqual(dist_to_multiple, 0.0, places=3)
+
+    def test_pdn_pitch_snapping(self):
+        """Tests that X coordinates align to the vertical PDN power strap pitch."""
+        pos_x = np.array([35.4, 78.9, 123.1])
+        pos_y = np.array([30.0, 50.0, 80.0])
+        pitch = 16.0
+        offset = 6.0
+
+        sx, sy = snap_to_manufacturing_grid(pos_x, pos_y, pdn_pitch_x=pitch, pdn_offset_x=offset)
+        for x in sx:
+            remainder = (x - offset) % pitch
+            dist_to_pitch = min(remainder, pitch - remainder)
+            self.assertAlmostEqual(dist_to_pitch, 0.0, places=3)
+
+    def test_anti_notch_elimination(self):
+        """Tests that narrow channels between macros are expanded to >= min_channel_width."""
+        from workers.engines.macro_placer.legalizer.snap_grid import eliminate_narrow_notches
+        pos_x = np.array([50.0, 108.0])  # Macro 0 width=50 -> right edge=100. Macro 1 x=108 -> channel=8um (NOTCH!)
+        pos_y = np.array([50.0, 50.0])
+        widths = np.array([50.0, 50.0])
+        heights = np.array([50.0, 50.0])
+
+        nx, ny = eliminate_narrow_notches(pos_x, pos_y, widths, heights, min_channel_width=20.0)
+        channel = nx[1] - (nx[0] + widths[0])
+        self.assertGreaterEqual(channel, 20.0)
+
+    def test_pin_facing_core_orientations(self):
+        """Tests that macro pins face inward toward the core standard cells."""
+        from workers.engines.macro_placer.core.orientation import resolve_macro_orientations
+        # Placed near South border (y=10, H=500) -> pins should face North ('S' inverts default south pins to north)
+        pos_x = np.array([250.0, 250.0])
+        pos_y = np.array([15.0, 450.0])   # Macro 0 is South, Macro 1 is North
+        w = np.array([60.0, 60.0])
+        h = np.array([60.0, 60.0])
+
+        orients = resolve_macro_orientations(pos_x, pos_y, w, h, core_w=500.0, core_h=500.0)
+        self.assertEqual(orients[0], "S")  # South macro rotated to face North
+        self.assertEqual(orients[1], "N")  # North macro default faces South
 
 
 if __name__ == "__main__":
