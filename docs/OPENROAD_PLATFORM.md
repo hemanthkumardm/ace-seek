@@ -18,9 +18,20 @@
 | Tier | OpenROAD |
 |------|----------|
 | Free | VLSI handoff export only (SDC Studio) |
-| Pro  | Project + Scripts |
-| Max  | + Run jobs (OpenLane Docker **synth → GDS**) |
+| Pro  | Project + Scripts (all PDKs in catalog) |
+| Max  | + Run jobs (selected PDK — no silent sky130 remap) |
 | Team | Max + seats |
+
+## Supported PDKs
+
+| PDK id | Runner | Cloud |
+|--------|--------|-------|
+| `sky130` / `sky130B` | OpenLane + volare | **Cloud OpenLane** |
+| `gf180mcu` | OpenLane + volare | **Cloud OpenLane** |
+| `asap7` / `nangate45` | OpenROAD-flow-scripts | **Cloud ORFS** (needs `OPENROAD_FLOW_ROOT`) |
+| `generic` | placeholders | Scripts only |
+
+Export packs (`make` / Tcl / EQY) emit **PDK-specific** liberty paths and cell masters (tap/buf/clkbuf/diode/fill).
 
 ## Real Docker runner (synth → GDS)
 

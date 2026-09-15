@@ -29,6 +29,7 @@ import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import type { StageInputValues } from "@/lib/openroad-stage-config";
 import type { StageArtifact } from "@/lib/openroad-stage-artifacts";
 import { downloadArtifact } from "@/lib/openroad-stage-artifacts";
+import { getPdkDef } from "@/lib/openroad-pdk-catalog";
 import {
   parseSimpleVcdWave,
   parsePlacementTimingReport,
@@ -763,6 +764,8 @@ function ReportViewPanel({
   const designName = project?.designName || "top";
   // LEC is export-pack / local EQY only — Studio does not invent proved counts.
   void cellCount;
+  const pdkDef = getPdkDef(project?.pdk || "sky130");
+  const libertyPreview = pdkDef.cells.libertyFile;
 
   return (
     <div className="neu-panel p-4 space-y-3 h-full flex flex-col">
@@ -923,25 +926,27 @@ function ReportViewPanel({
             </div>
             <pre className="neu-inset p-3 text-[10px] font-mono text-cyan-200 bg-black/70 rounded-lg overflow-x-auto whitespace-pre">
 {lecMode === "rtl_vs_synth"
-? `[gold]
+? `# PDK: ${pdkDef.label} (${pdkDef.cloudLabel})
+[gold]
 read_verilog -sv rtl/${designName}.v
 prep -top ${designName}
 
 [gate]
-read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
+read_liberty -lib ${libertyPreview}
 read_verilog outputs/synthesis_${designName}.v
 prep -top ${designName}
 
 [strategy sat]
 use sat
 depth 15`
-: `[gold]
-read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
+: `# PDK: ${pdkDef.label} (${pdkDef.cloudLabel})
+[gold]
+read_liberty -lib ${libertyPreview}
 read_verilog outputs/synthesis_${designName}.v
 prep -top ${designName}
 
 [gate]
-read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
+read_liberty -lib ${libertyPreview}
 read_verilog outputs/routing_${designName}.nl.v
 prep -top ${designName}
 

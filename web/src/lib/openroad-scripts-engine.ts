@@ -17,17 +17,22 @@ export interface OpenroadFlowPackResult {
   zipBytes: Uint8Array;
 }
 
-function pdkHint(pdk: string): { liberty: string; techLef: string; cellLef: string; note: string } {
+function pdkHint(pdk: string) {
   const def = getPdkDef(pdk);
   return {
     liberty: def.liberty,
     techLef: def.techLef,
     cellLef: def.techLef.replace(/\.tlef$/, ".lef"),
-    note: `${def.label} · ${def.installHint}`,
+    note: `${def.label} · ${def.cloudLabel} · ${def.installHint}`,
+    def,
+    cells: def.cells,
+    openlanePdk: def.openlanePdk || "sky130A",
+    runner: def.runner,
+    cloudLabel: def.cloudLabel,
   };
 }
 
-/** Generate Pro flow scripts from OpenROAD project hub state. */
+/** Generate Pro flow scripts from OpenROAD project hub state (PDK-aware). */
 export function buildOpenroadFlowScripts(
   project: OpenroadProjectState
 ): OpenroadFlowPackResult {
@@ -35,6 +40,8 @@ export function buildOpenroadFlowScripts(
   const top = project.topModule || "top";
   const pdk = project.pdk || "sky130";
   const paths = pdkHint(pdk);
+  const cells = paths.cells;
+  const pdkRootDefault = paths.openlanePdk;
 
   const sdc =
     getFileByRole(project, "sdc")?.content ||
@@ -186,17 +193,19 @@ proc ace_run_stage_reports {stage report_dir} {
 }
 `;
 
-  // 2. Multi-Corner PVT Helper (scripts/helpers/pvt_corners.tcl)
+  // 2. Multi-Corner PVT Helper (scripts/helpers/pvt_corners.tcl) — PDK-aware
   const pvtTcl = `# =====================================================================
 # Ace-Seek OpenROAD Studio — Multi-Corner PVT Timing Verification
+# PDK: ${paths.def.label} (${pdk}) · ${paths.cloudLabel}
 # =====================================================================
-proc ace_run_pvt_sta {netlist sdc_file report_dir {pdk_root "sky130A"}} {
+proc ace_run_pvt_sta {netlist sdc_file report_dir {pdk_root "${pdkRootDefault}"}} {
     if { ![file exists $netlist] || ![file exists $sdc_file] } { return 0 }
     if { ![file isdirectory $report_dir] } { file mkdir $report_dir }
-    set lib_dir "$pdk_root/libs.ref/sky130_fd_sc_hd/lib"
-    set slow_lib "$lib_dir/sky130_fd_sc_hd__ss_100C_1v60.lib"
-    set typ_lib  "$lib_dir/sky130_fd_sc_hd__tt_025C_1v80.lib"
-    set fast_lib "$lib_dir/sky130_fd_sc_hd__ff_n40C_1v95.lib"
+    set lib_dir "$pdk_root/${cells.pvtLibDir}"
+    set slow_lib "$lib_dir/${cells.slowLib}"
+    set typ_lib  "$lib_dir/${cells.typLib}"
+    set fast_lib "$lib_dir/${cells.fastLib}"
+    if { ![file exists $typ_lib] } { set typ_lib "${paths.liberty}" }
     if { ![file exists $slow_lib] } { set slow_lib $typ_lib }
     if { ![file exists $fast_lib] } { set fast_lib $typ_lib }
 
@@ -262,7 +271,7 @@ proc ace_run_pvt_sta {netlist sdc_file report_dir {pdk_root "sky130A"}} {
 source [file join [file dirname [info script]] "helpers" "reporting.tcl"]
 ace_log_banner "floorplan" "Stage 02: Die/Core Boundary, Pin Placement & Power Grid"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set tech_lef "${paths.techLef}"
 set lib_file "${paths.liberty}"
 set netlist "outputs/synthesis_${top}.v"
@@ -279,7 +288,7 @@ read_sdc $sdc_file
 
 initialize_floorplan -die_area {0 0 553.84 552.16} -core_area {20 20 533.84 532.16} -site unithd
 catch { place_pins -hor_layers met3 -ver_layers met2 }
-catch { tapcell -endcap_cpp 1 -distance 14 -tapcell_master sky130_fd_sc_hd__tapvpwrvgnd_1 -endcap_master sky130_fd_sc_hd__decap_4 }
+catch { tapcell -endcap_cpp 1 -distance 14 -tapcell_master ${cells.tap} -endcap_master ${cells.endcap} }
 catch { pdngen }
 
 ace_run_stage_reports "floorplan" $report_dir
@@ -293,7 +302,7 @@ puts "  [SUCCESS] Floorplan stage complete. Check: $report_dir"
 source [file join [file dirname [info script]] "helpers" "reporting.tcl"]
 ace_log_banner "placement" "Stage 03: Global Placement, Detailed Placement & Resizer Optimization"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set tech_lef "${paths.techLef}"
 set lib_file "${paths.liberty}"
 set report_dir "reports/03_placement"
@@ -314,7 +323,7 @@ read_sdc constraints.sdc
 
 catch { set_placement_padding -global -left 4 -right 4 }
 global_placement -density 0.45
-catch { repair_design -buffer_cell sky130_fd_sc_hd__buf_4 }
+catch { repair_design -buffer_cell ${cells.buf} }
 detailed_placement
 
 ace_run_stage_reports "placement" $report_dir
@@ -329,7 +338,7 @@ puts "  [SUCCESS] Placement stage complete. Check: $report_dir"
 source [file join [file dirname [info script]] "helpers" "reporting.tcl"]
 ace_log_banner "cts" "Stage 04: TritonCTS Balanced Tree Insertion & Propagated Clock STA"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set tech_lef "${paths.techLef}"
 set lib_file "${paths.liberty}"
 set report_dir "reports/04_cts"
@@ -345,9 +354,9 @@ if { [file exists "outputs/placement_top.def"] } {
 }
 read_sdc constraints.sdc
 
-clock_tree_synthesis -buf_list {sky130_fd_sc_hd__clkbuf_16 sky130_fd_sc_hd__clkbuf_8 sky130_fd_sc_hd__clkbuf_4} -root_buf sky130_fd_sc_hd__clkbuf_16
+clock_tree_synthesis -buf_list {${cells.clkbufList}} -root_buf ${cells.clkbufRoot}
 set_propagated_clock [all_clocks]
-catch { repair_timing -hold -buffer_cell sky130_fd_sc_hd__buf_2 }
+catch { repair_timing -hold -buffer_cell ${cells.bufHold} }
 detailed_placement
 
 ace_run_stage_reports "cts" $report_dir
@@ -362,7 +371,7 @@ puts "  [SUCCESS] CTS stage complete. Check: $report_dir"
 source [file join [file dirname [info script]] "helpers" "reporting.tcl"]
 ace_log_banner "routing" "Stage 05: FastRoute, Antenna Diode Protection & TritonRoute"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set tech_lef "${paths.techLef}"
 set lib_file "${paths.liberty}"
 set report_dir "reports/05_routing"
@@ -381,7 +390,7 @@ set_propagated_clock [all_clocks]
 
 global_route -congestion_iterations 50 -verbose
 catch {
-    repair_antennas -iterations 5 sky130_fd_sc_hd__diode_2/DIODE
+    repair_antennas -iterations 5 ${cells.diode}
     detailed_placement
 }
 catch { detailed_route -output_drc reports/05_routing/tritonroute_drc.rpt -verbose 1 }
@@ -399,7 +408,7 @@ source [file join [file dirname [info script]] "helpers" "reporting.tcl"]
 source [file join [file dirname [info script]] "helpers" "pvt_corners.tcl"]
 ace_log_banner "signoff" "Stage 06: Parasitic Extraction, Multi-Corner PVT STA & Signoff Verification"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set tech_lef "${paths.techLef}"
 set lib_file "${paths.liberty}"
 set report_dir "reports/06_signoff"
@@ -422,7 +431,7 @@ ace_report_design_checks "$report_dir/electrical_signoff.rpt"
 ace_report_slack_histogram "$report_dir/slack_histogram_signoff.rpt"
 
 write_verilog outputs/final_${top}.v
-catch { write_verilog -remove_cells {sky130_fd_sc_hd__fill_*} outputs/final_${top}.nl.v }
+catch { write_verilog -remove_cells {${cells.fillGlob}} outputs/final_${top}.nl.v }
 write_sdc outputs/final_${top}.sdc
 
 set summary_file "$report_dir/signoff_summary.rpt"
@@ -457,7 +466,7 @@ source [file join $script_dir "helpers" "reporting.tcl"]
 source [file join $script_dir "helpers" "pvt_corners.tcl"]
 ace_log_banner "STA" "Ace-Seek OpenROAD Studio :: Comprehensive Static Timing Analysis"
 
-set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "sky130A"}]
+set pdk_root [expr {[info exists ::env(PDK_ROOT)] ? $::env(PDK_ROOT) : "${pdkRootDefault}"}]
 set lib_file "${paths.liberty}"
 set netlist "outputs/final_${top}.v"
 if { ![file exists $netlist] } { set netlist "outputs/synthesis_${top}.v" }
@@ -641,13 +650,19 @@ PDK: ${pdk}
 
 ${paths.note}
 
+## PDK
+
+Selected project PDK: **${pdk}** (${paths.def.label}) — ${paths.cloudLabel}
+
+Liberty / LEF / cell masters in this pack match that PDK (sky130, sky130B, gf180mcu, asap7, nangate45, or generic placeholders). Cloud Max does **not** silently remap to sky130.
+
 ## Honest scope
 
 | Path | What it is |
 |------|------------|
-| **Makefile / OpenROAD Tcl** | Local synth → place → CTS → route → STA scripts |
+| **Makefile / OpenROAD Tcl** | Local synth → place → CTS → route → STA scripts (PDK-aware) |
 | **\`make lec-*\`** | Optional **local** YosysHQ EQY — fails if \`eqy\` missing |
-| **Cloud Ace-Seek Max** | Hosted **OpenLane** Docker (DRC/LVS/GDS) — not AceFlow EQY |
+| **Cloud Ace-Seek Max** | OpenLane (sky130/gf180) or ORFS (asap7/nangate45) — not AceFlow EQY |
 | **\`ace_flow.py\`** | Optional AceFlow orchestrator when run inside the Ace-Seek monorepo |
 
 Do **not** treat missing EQY as a formal pass. Formal LEC is opt-in and fail-closed.

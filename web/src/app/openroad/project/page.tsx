@@ -402,28 +402,60 @@ export default function OpenroadProjectPage() {
                           : av.available
                             ? " ✓ ready"
                             : " · install needed";
-                      const runner =
-                        p.runner === "openlane"
-                          ? "OpenLane"
-                          : p.runner === "orfs"
-                            ? "ORFS"
-                            : "scripts";
                       return (
                         <option key={p.id} value={p.id}>
-                          {p.short} — {p.label} [{runner}]{mark}
+                          {p.short} — {p.label} [{p.cloudLabel}]{mark}
                         </option>
                       );
                     })}
                   </select>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {OPENROAD_PDKS.filter((p) => p.id !== "generic").map((p) => {
+                      const active = project.pdk === p.id;
+                      const av = pdkAvail.find((a) => a.id === p.id);
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() =>
+                            persist({
+                              ...project,
+                              pdk: p.id as OpenroadPdkId,
+                            })
+                          }
+                          className={`px-2 py-1 rounded-lg text-[10px] font-black border transition ${
+                            active
+                              ? "bg-sky-600 text-white border-sky-500"
+                              : "bg-white/60 text-slate-700 border-slate-200 hover:border-sky-300"
+                          }`}
+                          title={p.description}
+                        >
+                          {p.short}
+                          <span className="opacity-70 font-bold">
+                            {" "}
+                            · {p.cloudLabel.replace("Cloud ", "")}
+                          </span>
+                          {av?.available ? " ✓" : ""}
+                        </button>
+                      );
+                    })}
+                  </div>
                   {(() => {
                     const def = getPdkDef(project.pdk as CatalogPdkId);
                     const av = pdkAvail.find((a) => a.id === project.pdk);
                     return (
                       <span className="block text-[10px] font-bold normal-case text-[var(--neu-text-muted)] mt-1 space-y-1">
                         <span className="block">
+                          <strong className="text-[var(--neu-text)]">{def.cloudLabel}</strong>
+                          {" — "}
                           {def.description}. Saved to{" "}
                           <code className="text-sky-700">{FLOW_CONFIG_NAME}</code>
-                          . Max runs the selected PDK (no silent sky130 remap).
+                          . Max runs the <em>selected</em> PDK (no silent sky130 remap).
+                          {def.runner === "orfs"
+                            ? " Requires OPENROAD_FLOW_ROOT on the worker for asap7/nangate45."
+                            : def.runner === "openlane"
+                              ? " Requires matching PDK under PDK_ROOT (volare) on the worker."
+                              : " Scripts export only — not a cloud container target."}
                         </span>
                         {av && (
                           <span
