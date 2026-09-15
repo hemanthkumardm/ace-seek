@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OpenROAD Studio: Interactive 3D Die & Layer Stack Inspector</title>
+  <title>VLSI Learning Lab: Interactive 3D Silicon Stacking & Fabrication</title>
   <style>
     * { box-sizing: border-box; }
     :root {
@@ -365,13 +365,13 @@
   <!-- Top Header -->
   <header>
     <div class="brand-group">
-      <div class="brand-title">
+      <a href="/vlsi/learn" class="brand-title" style="text-decoration: none; color: inherit;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/>
         </svg>
-        <span>OpenROAD Studio</span>
-        <span class="badge badge-primary">3D Silicon Inspector</span>
-      </div>
+        <span>VLSI Learning Lab</span>
+        <span class="badge badge-primary">3D Silicon Stacking</span>
+      </a>
       <select id="presetSelect" class="btn" style="padding: 4px 8px; font-weight: bold; background: #0f172a; color: #38bdf8; border-color: #0284c7;">
         <option value="ibex">Design: lowRISC Ibex RV32 (554 × 552 µm)</option>
         <option value="picorv32">Design: PicoRV32 RISC-V (380 × 380 µm)</option>
@@ -396,13 +396,12 @@
         <button id="resetCamBtn" class="btn" title="Reset View">Reset</button>
       </div>
 
-      <label class="btn" style="cursor: pointer;">
+      <a href="/vlsi/learn" class="btn" style="text-decoration: none; display: flex; align-items: center; gap: 4px; color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
         </svg>
-        Load .DEF/.ODB
-        <input type="file" id="defFileInput" accept=".def,.odb" style="display: none;">
-      </label>
+        Learning Portal
+      </a>
     </div>
   </header>
 
@@ -1239,10 +1238,12 @@
     }
 
     const fileInput = document.getElementById('defFileInput');
-    fileInput.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) parseDefFile(file);
-    };
+    if (fileInput) {
+      fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (file) parseDefFile(file);
+      };
+    }
 
     container.addEventListener('dragover', e => {
       e.preventDefault();
