@@ -66,7 +66,7 @@ export default function OpenroadHome() {
               <a href={VLSI_URL} className="text-sky-700 underline">
                 vlsi.ace-seek.com
               </a>
-              , run containerized OpenLane and OpenROAD flows, inspect live die layouts with flightline-optimized macro placement, and harvest DRC/LVS clean signoff deliverables directly in your browser.
+              , run containerized <strong>OpenLane</strong> PnR (Max), export Pro script packs, and—when your design has hard macros—optionally run <strong>Ace-AutoMacro</strong> during floorplan. Harvest DEF/GDS and stage reports in Studio. Formal EQY is export/local only (not a fake in-browser proof).
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export default function OpenroadHome() {
                 {
                   icon: Play,
                   title: "3 · Cloud PnR Studio (Max)",
-                  body: "End-to-end execution: Yosys synth → Floorplan → RePlAce → TritonCTS → Detailed Route → Magic DRC/LVS.",
+                  body: "OpenLane container jobs: Yosys → Floorplan (+ optional Ace-AutoMacro) → Place → CTS → Route → Magic/KLayout signoff.",
                 },
               ] as const
             ).map(({ icon: Icon, title, body }) => (
@@ -262,8 +262,8 @@ export default function OpenroadHome() {
               {
                 step: "Stage 03",
                 name: "Macro Placement",
-                tool: "Ace-AutoMacro Engine",
-                desc: "Automated placement of SRAMs, register files, and IP blocks with flightline netlist affinity, edge hugging, and halo clearance."
+                tool: "Ace-AutoMacro (optional)",
+                desc: "When hard macros exist, OpenLane floorplan can invoke Ace-AutoMacro (flightline affinity, halos). Toggle in Studio → Engines. Stdcell-only designs skip it."
               },
               {
                 step: "Stage 04",
@@ -424,7 +424,7 @@ export default function OpenroadHome() {
               },
               {
                 q: "How does Ace-Seek handle macro floorplanning with 100+ SRAM blocks?",
-                a: "The platform integrates the Ace-AutoMacro engine, an intelligent floorplanner that analyzes netlist connectivity (flightlines) between standard cell logic and macros. It automatically clusters connected memories, places them along die boundaries with optimal orientations, calculates dynamic halo clearances, and prevents routing blockage over pin interfaces."
+                a: "Ace-AutoMacro is an optional floorplan hook inside Max OpenLane jobs when the DEF contains hard macros (SRAM/IP). It uses flightline/RUDY heuristics for macro legalization and halos. It is not a separate always-on Studio solver — enable/disable it under Studio → Engines (ACE_AUTOMACRO). Stdcell-only designs bypass it automatically."
               },
               {
                 q: "Are the GDSII files produced by Ace-Seek OpenROAD tapeout-ready?",

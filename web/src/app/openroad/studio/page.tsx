@@ -64,6 +64,10 @@ import {
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import { OpenroadStudioCenterView } from "@/components/OpenroadStudioCenterView";
 import {
+  OpenroadEnginesPanel,
+  loadAutomacroEnabled,
+} from "@/components/OpenroadEnginesPanel";
+import {
   ClockWaveform,
   MetricTiles,
   SlackHistogram,
@@ -1321,6 +1325,7 @@ export default function OpenroadPnRStudioPage() {
       pdk: project.pdk,
     });
     openlaneConfig.DESIGN_NAME = project.topModule || "top";
+    openlaneConfig.ACE_AUTOMACRO = loadAutomacroEnabled() ? 1 : 0;
     openlaneConfig.LINT_TOP =
       resolveField("lint", "LINT_TOP", stageInputs) || project.topModule;
     openlaneConfig.SIM_TB_TOP = resolveField(
@@ -1656,6 +1661,23 @@ export default function OpenroadPnRStudioPage() {
     if (selectedStage === "placement") return curatePlacementArtifacts(raw);
     return raw;
   }, [stageArtifacts, selectedStage]);
+
+  /** Ace-AutoMacro log snippets / artifact pointers for Engines panel */
+  const automacroReportText = useMemo(() => {
+    const art = stageArtifacts.find((a) =>
+      /ace_automacro|macro_placer|automacro/i.test(a.name)
+    );
+    const logHits = parsed.logLines
+      .filter((l) =>
+        /Ace-AutoMacro|ace_automacro|hard macro|ace_macro_placer/i.test(l.t)
+      )
+      .map((l) => l.t)
+      .slice(-50);
+    const parts: string[] = [];
+    if (art) parts.push(`Artifact: ${art.name} (stage=${art.stage})`);
+    if (logHits.length) parts.push(logHits.join("\n"));
+    return parts.length ? parts.join("\n\n") : null;
+  }, [stageArtifacts, parsed.logLines]);
 
   /** Stage-only slice of flow config for Flow JSON tab */
   const stageFlowSlice = useMemo(() => {
@@ -2314,6 +2336,10 @@ export default function OpenroadPnRStudioPage() {
                 : ""}
             </p>
           )}
+          <OpenroadEnginesPanel
+            automacroReport={automacroReportText}
+            apiKey={apiKeyResolved()}
+          />
           <MetricTiles metrics={parsed.metrics} />
           {parsed.metrics.areaBreakdown.length > 0 && (
             <StackedBars

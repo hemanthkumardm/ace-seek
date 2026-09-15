@@ -101,6 +101,7 @@ run_local_docker() {
     -e OPENLANE_TAG="${OPENLANE_TAG}" \
     -e ACE_OPENLANE_UNTIL="${ACE_OPENLANE_UNTIL}" \
     -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE}" \
+    -e ACE_AUTOMACRO="${ACE_AUTOMACRO:-1}" \
     -v "${PDK_ROOT}:/pdk:ro" \
     -v "${PDK_ROOT}:/root/.volare:ro" \
     -v "${JOB_DIR}/designs:/openlane/designs" \

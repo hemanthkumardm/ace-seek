@@ -112,12 +112,19 @@ END DESIGN
         self.assertTrue(any(e["name"] == "macro_placer" and e["available"] for e in engines))
         self.assertTrue(any(e["name"] == "ppa_optimizer" and e["available"] for e in engines))
         self.assertTrue(any(e["name"] == "timing_optimizer" and not e["available"] for e in engines))
+        self.assertTrue(any(e["name"] == "congestion_resolver" and not e["available"] for e in engines))
+        ppa = next(e for e in engines if e["name"] == "ppa_optimizer")
+        self.assertEqual(ppa.get("status"), "model_dse")
+        mp = next(e for e in engines if e["name"] == "macro_placer")
+        self.assertEqual(mp.get("status"), "production")
 
         eng = get_engine("macro_placer", "/tmp/mp", {"self_test": True})
         self.assertIsInstance(eng, BaseEngine)
 
         with self.assertRaises(ValueError):
             get_engine("non_existent_engine", "/tmp", {})
+        with self.assertRaises(ImportError):
+            get_engine("timing_optimizer", "/tmp", {})
 
 
 if __name__ == "__main__":

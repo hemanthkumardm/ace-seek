@@ -375,6 +375,11 @@ proc ace_ensure_pdn_rings {} {
 }
 # ── Ace-AutoMacro: Advanced Macro Floorplanning Hook ──
 proc ace_run_macro_placement {} {
+    # Studio / job env: ACE_AUTOMACRO=0 disables the engine
+    if { [info exists ::env(ACE_AUTOMACRO)] && $::env(ACE_AUTOMACRO) eq "0" } {
+        puts "ACE-Seek: Ace-AutoMacro disabled (ACE_AUTOMACRO=0) — standard floorplan only"
+        return 0
+    }
     set mp_engine "/openlane/designs/ace_macro_placer"
     if { ![file isdirectory $mp_engine] && [info exists ::env(DESIGN_DIR)] } {
         set mp_engine [file normalize "$::env(DESIGN_DIR)/../ace_macro_placer"]

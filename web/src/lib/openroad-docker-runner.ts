@@ -104,6 +104,8 @@ export type OpenroadSpawnMeta = {
   overwrite: "0" | "1";
   ckptSlug: string;
   enqueuedAt: string;
+  /** "1" = run Ace-AutoMacro on floorplan when macros exist; "0" = skip */
+  aceAutomacro: "0" | "1";
 };
 
 const jobs = new Map<string, DockerJobRecord>();
@@ -948,7 +950,15 @@ export function startOpenroadDockerJob(
   }
 
   const pdkDefaults = resolved.def.openlaneDefaults || {};
-  const mergedConfig = { ...pdkDefaults, ...(openlaneConfig || {}) };
+  const mergedConfig: Record<string, string | number | boolean> = {
+    ...pdkDefaults,
+    ...(openlaneConfig || {}),
+  };
+  // ACE_AUTOMACRO is Studio/env control — not an OpenLane config.json key
+  const rawAm = mergedConfig.ACE_AUTOMACRO;
+  delete mergedConfig.ACE_AUTOMACRO;
+  const aceAutomacro: "0" | "1" =
+    rawAm === 0 || rawAm === false || rawAm === "0" ? "0" : "1";
   fs.writeFileSync(
     path.join(jobDir, "user_openlane_config.json"),
     JSON.stringify(mergedConfig, null, 2),
@@ -986,6 +996,7 @@ export function startOpenroadDockerJob(
     overwrite,
     ckptSlug,
     enqueuedAt,
+    aceAutomacro,
   };
   writeSpawnMeta(jobDir, spawnMeta);
 
@@ -1066,6 +1077,7 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     OPENLANE_TAG: "ace_run",
     ACE_OPENLANE_UNTIL: meta.until,
     ACE_OPENLANE_OVERWRITE: meta.overwrite,
+    ACE_AUTOMACRO: meta.aceAutomacro ?? "1",
     OPENROAD_SSH_HOST: process.env.OPENROAD_SSH_HOST || "",
     OPENROAD_SSH_USER: process.env.OPENROAD_SSH_USER || "root",
     OPENROAD_SSH_KEY: process.env.OPENROAD_SSH_KEY || "",
