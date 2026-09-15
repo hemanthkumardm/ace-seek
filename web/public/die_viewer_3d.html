@@ -223,10 +223,17 @@
       background: rgba(15, 23, 42, 0.6);
       border: 1px solid rgba(30, 41, 59, 0.6);
       font-size: 11px;
-      transition: background 0.15s;
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
     .layer-row:hover {
-      background: rgba(30, 41, 59, 0.8);
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .layer-row.active-inspector-layer {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
     .layer-info {
       display: flex;
@@ -295,24 +302,25 @@
       cursor: pointer;
     }
 
-    /* Hover Details Floating Tooltip */
+    /* Educational Inspector Tooltip */
     .inspector-tooltip {
       position: absolute;
-      bottom: 16px;
-      left: 16px;
-      background: rgba(9, 13, 26, 0.94);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      padding: 10px 16px;
-      border-radius: 8px;
+      top: 14px;
+      left: 64px;
+      background: rgba(9, 13, 26, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 10px 14px;
+      border-radius: 10px;
       font-size: 11px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
-      max-width: 380px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      gap: 6px;
+      max-width: 360px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
       z-index: 15;
       pointer-events: none;
+      transition: opacity 0.2s ease;
     }
     .inspector-title {
       font-weight: 800;
@@ -326,8 +334,8 @@
     .inspector-grid {
       display: grid;
       grid-template-columns: auto 1fr;
-      column-gap: 12px;
-      row-gap: 2px;
+      column-gap: 10px;
+      row-gap: 3px;
       color: #cbd5e1;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
@@ -353,10 +361,110 @@
       z-index: 10;
     }
 
-    /* Upload overlay drag highlight */
-    .drop-highlight {
-      border: 2px dashed #38bdf8 !important;
-      background: rgba(56, 189, 248, 0.08) !important;
+    /* Bottom Educational Semiconductor Fabrication Sequencer Bar */
+    .fab-sequencer-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(94%, 960px);
+      background: rgba(8, 12, 24, 0.95);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 12px;
+      padding: 10px 16px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.75);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 20;
+    }
+    .fab-step-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .fab-step-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .step-pill {
+      font-size: 10px;
+      font-weight: 800;
+      background: #0284c7;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.5px;
+    }
+    .step-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .fab-step-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.4;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .fab-timeline-track {
+      display: flex;
+      gap: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 2px 0;
+    }
+    .fab-timeline-segment {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.15);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+    .fab-timeline-segment:hover {
+      background: rgba(56, 189, 248, 0.5);
+    }
+    .fab-timeline-segment.active {
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+    .fab-timeline-segment.completed {
+      background: #0284c7;
+    }
+    .fab-nav-btns {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Signal RC Path HUD */
+    .rc-hud {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(9, 13, 26, 0.92);
+      backdrop-filter: blur(10px);
+      border: 1px solid #06b6d4;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #38bdf8;
+      display: none;
+      align-items: center;
+      gap: 14px;
+      z-index: 15;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.3);
+    }
+    .rc-hud.active {
+      display: flex;
     }
   </style>
 </head>
@@ -384,6 +492,14 @@
 
     <!-- View Modes & Camera Presets -->
     <div class="toolbar-group">
+      <!-- Educational Domain Filters -->
+      <div class="btn-group">
+        <button id="filterAllBtn" class="btn active" title="Show Complete Wafer Stack">All Layers</button>
+        <button id="filterFeolBtn" class="btn" title="Isolate Front-End of Line (Substrate, Wells, Transistor Gates)">FEOL</button>
+        <button id="filterBeolBtn" class="btn" title="Isolate Back-End of Line (Metal 1 to Metal 5 + Vias)">BEOL</button>
+        <button id="filterSignalBtn" class="btn" style="color: #38bdf8;" title="Trace 3D Signal Path & RC Delay">⚡ RC Signal Path</button>
+      </div>
+
       <div class="btn-group">
         <button id="mode2dBtn" class="btn">2D Floorplan</button>
         <button id="mode3dBtn" class="btn active">3D Silicon Stack</button>
@@ -438,6 +554,14 @@
     <div class="canvas-container" id="canvasContainer">
       <canvas id="viewCanvas"></canvas>
 
+      <!-- RC Interconnect Delay Live HUD -->
+      <div class="rc-hud" id="rcHud">
+        <span>⚡ <strong>3D Interconnect Trace:</strong> stdcell_out (li1) → met1 → met2 → met3 → stdcell_in</span>
+        <span><strong>Elmore Delay:</strong> <span style="color: #10b981;">38.4 ps</span></span>
+        <span><strong>Via Jumps:</strong> 4 (R=18.2 Ω)</span>
+        <span><strong>Net C:</strong> 46.8 fF</span>
+      </div>
+
       <!-- Quick Camera Gizmo -->
       <div class="camera-gizmo">
         <button class="btn" style="padding: 4px;" id="gizmoRotLeft" title="Rotate Left">⟲</button>
@@ -478,35 +602,305 @@
         </div>
       </div>
 
-      <!-- Hover Inspector -->
+      <!-- Educational Physics & Design Rule Inspector -->
       <div class="inspector-tooltip" id="inspectorTooltip">
         <div class="inspector-title" id="inspTitle">Silicon Substrate Overview</div>
         <div class="inspector-grid" id="inspGrid">
           <span class="inspector-key">Coordinates:</span><span id="inspCoords">X: 276.9 µm, Y: 276.1 µm</span>
-          <span class="inspector-key">Selected Object:</span><span id="inspObj">Die Core Boundary</span>
-          <span class="inspector-key">Layer Position:</span><span id="inspLayer">Substrate (Z=0 µm)</span>
-          <span class="inspector-key">Status:</span><span id="inspStatus" style="color: #10b981;">Clean Physical Signoff</span>
+          <span class="inspector-key">Selected Layer:</span><span id="inspObj">Silicon Substrate (FEOL)</span>
+          <span class="inspector-key">Material:</span><span id="inspMaterial">P-type Bulk Silicon (&lt;100&gt;)</span>
+          <span class="inspector-key">Sheet Resistance:</span><span id="inspRes">10-20 Ω·cm bulk</span>
+          <span class="inspector-key">Design Rule:</span><span id="inspRule" style="color: #38bdf8;">Deep N-Well isolation for analog blocks</span>
+        </div>
+      </div>
+
+      <!-- Bottom Educational Semiconductor Fabrication Sequencer -->
+      <div class="fab-sequencer-bar" id="fabSequencer">
+        <div class="fab-step-header">
+          <div class="fab-step-badge">
+            <span class="step-pill" id="fabStepPill">FAB STEP 1 / 8</span>
+            <span class="step-title" id="fabStepTitle">Silicon Substrate & Wells (FEOL)</span>
+          </div>
+          <div class="fab-nav-btns">
+            <button id="fabPrevBtn" class="btn" title="Previous Fabrication Stage">◀ Prev</button>
+            <button id="fabPlayBtn" class="btn" style="background: #0284c7; color: white;" title="Auto-Animate Semiconductor Deposition">▶ Play Growth</button>
+            <button id="fabNextBtn" class="btn" title="Next Fabrication Stage">Next ▶</button>
+            <button id="fabAllBtn" class="btn" title="Show Full Wafer Stack">Full Die</button>
+          </div>
+        </div>
+
+        <!-- Visual Progress Timeline -->
+        <div class="fab-timeline-track" id="fabTimeline">
+          <div class="fab-timeline-segment active" data-step="1"></div>
+          <div class="fab-timeline-segment" data-step="2"></div>
+          <div class="fab-timeline-segment" data-step="3"></div>
+          <div class="fab-timeline-segment" data-step="4"></div>
+          <div class="fab-timeline-segment" data-step="5"></div>
+          <div class="fab-timeline-segment" data-step="6"></div>
+          <div class="fab-timeline-segment" data-step="7"></div>
+          <div class="fab-timeline-segment" data-step="8"></div>
+        </div>
+
+        <div class="fab-step-desc" id="fabStepDesc">
+          P-type monocrystalline silicon bulk wafer. Shallow trench isolation (STI) etched with thermal oxide liner to isolate standard cells. Ion-implanted N-Wells and P-Wells form the active silicon foundation.
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ── Global Layer Architecture Definition ──────────────────────
+    // ── Global Layer Architecture Definition (SkyWater 130nm / sky130A) ───
     const LAYER_CONFIG = [
-      { id: 'substrate', name: 'Silicon Substrate', color: '#1e293b', zLevel: 0.0, enabled: true, is3d: true },
-      { id: 'stdcells', name: 'Standard Cells (HD Rows)', color: '#0ea5e9', zLevel: 0.6, enabled: true, is3d: true },
-      { id: 'macros', name: 'Hard Macros & Halos', color: '#6366f1', zLevel: 1.2, enabled: true, is3d: true },
-      { id: 'pdn', name: 'Power Grid (VDD/VSS Rails)', color: '#e11d48', zLevel: 2.0, enabled: true, is3d: true },
-      { id: 'li1', name: 'Local Interconnect (li1)', color: '#06b6d4', zLevel: 2.8, enabled: true, is3d: true },
-      { id: 'met1', name: 'Metal 1 Routing (met1)', color: '#3b82f6', zLevel: 3.6, enabled: true, is3d: true },
-      { id: 'met2', name: 'Metal 2 Routing (met2)', color: '#8b5cf6', zLevel: 4.4, enabled: true, is3d: true },
-      { id: 'met3', name: 'Metal 3 Routing (met3)', color: '#10b981', zLevel: 5.2, enabled: true, is3d: true },
-      { id: 'met4', name: 'Metal 4 Clock & PDN (met4)', color: '#f59e0b', zLevel: 6.0, enabled: true, is3d: true },
-      { id: 'met5', name: 'Metal 5 Top Grid (met5)', color: '#ef4444', zLevel: 6.8, enabled: true, is3d: true },
-      { id: 'vias', name: 'Interconnect Vias', color: '#fbbf24', zLevel: 4.0, enabled: true, is3d: true },
-      { id: 'pins', name: 'IO Pads & Terminals', color: '#38bdf8', zLevel: 7.2, enabled: true, is3d: true },
-      { id: 'flightlines', name: 'Flightline Topology', color: '#e0e7ff', zLevel: 4.5, enabled: false, is3d: false }
+      {
+        id: 'substrate',
+        name: 'Silicon Substrate (FEOL)',
+        color: '#1e293b',
+        zLevel: 0.0,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '150-775 µm',
+        material: 'P-type Monocrystalline Silicon (<100>)',
+        sheetRes: '10-20 Ω·cm bulk',
+        role: 'Mechanical and electrical foundation housing active N/P wells, channel implants, and STI isolation oxide.',
+        designRule: 'Deep N-well guard rings required around noise-sensitive analog blocks and PLL macros.'
+      },
+      {
+        id: 'stdcells',
+        name: 'Standard Cells (HD Rows)',
+        color: '#0ea5e9',
+        zLevel: 0.6,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.15 µm (Gate Oxide ~2.1 nm)',
+        material: 'Doped Poly-Si + Source/Drain Diffusion',
+        sheetRes: 'Poly: ~5.5 Ω/sq (with Co/Ni salicide)',
+        role: 'CMOS logic gates (NAND, NOR, Inverters, D-Flip-Flops) placed in continuous horizontal cell tracks.',
+        designRule: 'Fixed row height (2.72 µm in sky130_fd_sc_hd), abutted power/ground rails, minimum channel length L=150nm.'
+      },
+      {
+        id: 'macros',
+        name: 'Hard Macros & Halos',
+        color: '#6366f1',
+        zLevel: 1.2,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: 'Active + Multi-metal IP block',
+        material: 'SRAM Arrays / Register Files / PLLs',
+        sheetRes: 'Internal multi-tier metallization',
+        role: 'High-density memory banks and specialized analog/mixed-signal blocks placed at the periphery.',
+        designRule: 'Placement halos (e.g. 10µm X/Y clearance) ensure routing space and prevent power grid short circuits.'
+      },
+      {
+        id: 'pdn',
+        name: 'Power Grid (VDD/VSS Rails)',
+        color: '#e11d48',
+        zLevel: 2.0,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.36 µm',
+        material: 'Metal 1 Rails (Al / Cu liner)',
+        sheetRes: '0.125 Ω/sq',
+        role: 'Standard cell horizontal power straps delivering VDD and VSS directly to transistor rails.',
+        designRule: 'Rail pitch exactly matches cell row pitch (2.72 µm) to achieve 100% continuous power delivery.'
+      },
+      {
+        id: 'li1',
+        name: 'Local Interconnect (li1)',
+        color: '#06b6d4',
+        zLevel: 2.8,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.10 µm (100 nm)',
+        material: 'Titanium Nitride (TiN)',
+        sheetRes: '12.8 Ω/sq (High resistivity)',
+        role: 'Middle-of-Line (MOL) intra-cell routing. Connects diffusion and poly gates without using valuable Metal 1.',
+        designRule: 'Short jogs only (< 15 µm). Long traces incur severe RC latency due to 12.8 Ω/sq resistivity.'
+      },
+      {
+        id: 'met1',
+        name: 'Metal 1 Routing (met1)',
+        color: '#3b82f6',
+        zLevel: 3.6,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.36 µm (360 nm)',
+        material: 'Copper / Aluminum with TiN cap',
+        sheetRes: '0.125 Ω/sq',
+        role: 'Intracell pin access and short intercell signals. Horizontal routing preference.',
+        designRule: 'Min width: 0.14 µm, Min spacing: 0.14 µm. Standard cell input/output pins terminate here.'
+      },
+      {
+        id: 'met2',
+        name: 'Metal 2 Routing (met2)',
+        color: '#8b5cf6',
+        zLevel: 4.4,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.36 µm (360 nm)',
+        material: 'Copper Interconnect',
+        sheetRes: '0.125 Ω/sq',
+        role: 'Vertical routing highways. Crosses over met1 rails to connect logic gates across different rows.',
+        designRule: 'Preferred direction: Vertical. Manhattan wiring alternating perpendicular to met1.'
+      },
+      {
+        id: 'met3',
+        name: 'Metal 3 Routing (met3)',
+        color: '#10b981',
+        zLevel: 5.2,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.84 µm (840 nm)',
+        material: 'Copper Interconnect',
+        sheetRes: '0.047 Ω/sq',
+        role: 'Semi-global horizontal routing and intermediate bus signals. Lower resistance allows longer interconnect runs.',
+        designRule: 'Preferred direction: Horizontal. Wider pitch and thicker cross-section reduces RC wire delay.'
+      },
+      {
+        id: 'met4',
+        name: 'Metal 4 Clock & PDN (met4)',
+        color: '#f59e0b',
+        zLevel: 6.0,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.84 µm (840 nm)',
+        material: 'Copper Interconnect',
+        sheetRes: '0.047 Ω/sq',
+        role: 'Clock Tree Synthesis (CTS) trunk routing and vertical power straps. High speed, minimal clock skew.',
+        designRule: 'Preferred direction: Vertical. Shielded clock nets (VDD/VSS flanking) to prevent capacitive crosstalk.'
+      },
+      {
+        id: 'met5',
+        name: 'Metal 5 Top Grid (met5)',
+        color: '#ef4444',
+        zLevel: 6.8,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '1.26 µm (1260 nm - Ultra Thick)',
+        material: 'Aluminum / Copper Top Metal',
+        sheetRes: '0.028 Ω/sq (Lowest resistance)',
+        role: 'Global chip-wide power/ground mesh (VDD/VSS straps) and package pad distribution.',
+        designRule: 'Massive current carrying capability. Minimizes static/dynamic IR drop and electromigration (EM).'
+      },
+      {
+        id: 'vias',
+        name: 'Interconnect Vias (via1-4)',
+        color: '#fbbf24',
+        zLevel: 4.0,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.24 - 0.42 µm height',
+        material: 'Tungsten (W) / Copper (Cu) Plugs',
+        sheetRes: 'Via resistance: ~4.5 - 9.0 Ω/cut',
+        role: 'Vertical conductive pillars bridging different metallization layers across dielectric oxide.',
+        designRule: 'Double/redundant vias enforced in signoff to eliminate random open-circuit manufacturing defects.'
+      },
+      {
+        id: 'pins',
+        name: 'IO Pads & Terminals',
+        color: '#38bdf8',
+        zLevel: 7.2,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: 'Passivation Window Over met5',
+        material: 'Top Metal + Gold/Copper Wire Bond',
+        sheetRes: 'Negligible (< 0.01 Ω)',
+        role: 'Peripheral chip interfaces for external packaging (QFN, BGA, wire bonding, or flip-chip solder bumps).',
+        designRule: 'ESD (Electrostatic Discharge) diodes and clamping circuits mandatory at every input/output pad.'
+      },
+      {
+        id: 'flightlines',
+        name: 'Flightline Topology',
+        color: '#e0e7ff',
+        zLevel: 4.5,
+        enabled: false,
+        is3d: false,
+        domain: 'beol',
+        thickness: 'N/A',
+        material: 'Logical Connectivity (Unrouted Nets)',
+        sheetRes: 'N/A',
+        role: 'Visualizes high-fanout global flightline vectors between placed cells to assess wire congestion before detailed routing.',
+        designRule: 'HPWL (Half-Perimeter Wire Length) metric minimization.'
+      }
+    ];
+
+    // ── Semiconductor Fabrication Step Sequencer Definitions ──────
+    const FAB_STEPS = [
+      {
+        step: 1,
+        title: "Bulk Silicon Substrate & Wells (FEOL)",
+        domain: "FEOL",
+        layers: ['substrate'],
+        desc: "P-type monocrystalline silicon wafer (500-775 µm thick). Shallow trench isolation (STI) etched with thermal oxide liner to isolate standard cells. Ion-implanted N-Wells and P-Wells form the active silicon foundation.",
+        physics: "Substrate bulk resistivity: 10-20 Ω·cm. Active diffusion areas defined via photolithography."
+      },
+      {
+        step: 2,
+        title: "Transistor Active Gates & Standard Cells (FEOL)",
+        domain: "FEOL",
+        layers: ['substrate', 'stdcells'],
+        desc: "Poly-silicon gate deposition over 2.1 nm SiO2 gate oxide. Self-aligned source/drain ion implants create millions of NMOS and PMOS transistors grouped into logic gates (NAND, NOR, Inverters).",
+        physics: "Channel length L=150nm. Standard cells are arranged in abutted horizontal rows sharing VDD and VSS."
+      },
+      {
+        step: 3,
+        title: "Hard Macros & Placement Halos (Floorplanning)",
+        domain: "FEOL",
+        layers: ['substrate', 'stdcells', 'macros'],
+        desc: "Pre-designed IP blocks (SRAM memory, register files, PLLs) positioned at die corners with dedicated routing halos to prevent congestion and supply noise.",
+        physics: "Macro halos provide 10 µm clearance for power rings and prevent standard cells from blocking memory I/O access."
+      },
+      {
+        step: 4,
+        title: "Local Interconnect li1 (Middle-of-Line / MOL)",
+        domain: "MOL",
+        layers: ['substrate', 'stdcells', 'macros', 'li1'],
+        desc: "Damascene Titanium Nitride (TiN) local interconnect. Forms dense intra-cell connections between poly gates and diffusion without consuming Metal 1 tracks.",
+        physics: "Sheet resistance: 12.8 Ω/sq. Restricted to short runs (<15 µm) to avoid high RC delay."
+      },
+      {
+        step: 5,
+        title: "Metal 1 Intracell Routing & Rails (BEOL)",
+        domain: "BEOL",
+        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1'],
+        desc: "First copper metallization layer. Connects standard cell pins (A, B, Y) and forms horizontal VDD/VSS cell supply rails.",
+        physics: "Thickness: 360 nm. Preferred routing direction: Horizontal. Primary interface between transistors and interconnect stack."
+      },
+      {
+        step: 6,
+        title: "Metal 2 & 3 Signal Routing Highways (BEOL)",
+        domain: "BEOL",
+        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'vias'],
+        desc: "Orthogonal Manhattan routing grid (met2 vertical, met3 horizontal). Tungsten/copper vias connect crossing wires across dielectric layers.",
+        physics: "Met3 is 840 nm thick (0.047 Ω/sq), allowing long-distance signals to travel with 60% lower wire resistance."
+      },
+      {
+        step: 7,
+        title: "Metal 4 Clock Distribution Tree & Trunk PDN (BEOL)",
+        domain: "BEOL",
+        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'met4', 'vias'],
+        desc: "Dedicated high-speed layer for CTS (Clock Tree Synthesis). Symmetrical H-tree buffers distribute the master clock with sub-50ps skew.",
+        physics: "Vertical routing direction. Clock trunks are flanked by grounded VSS shield lines to eliminate capacitive crosstalk."
+      },
+      {
+        step: 8,
+        title: "Global Top Metal met5 Grid & I/O Pads (BEOL Signoff)",
+        domain: "BEOL",
+        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pins'],
+        desc: "Ultra-thick 1.26 µm top metal grid delivering power (VDD/VSS mesh) across the whole chip. Peripheral bond pads connect to external IC package.",
+        physics: "Lowest sheet resistance (0.028 Ω/sq). Prevents IR drop voltage droop and prevents electromigration under peak switching currents."
+      }
     ];
 
     // ── Dataset Presets & Generators ─────────────────────────────
@@ -661,6 +1055,13 @@
     let hoveredObject = null;
     let soloLayerId = null;
 
+    // Educational Learning Modes
+    let currentFabStep = 8; // 1 to 8
+    let fabPlaying = false;
+    let fabPlayTimer = null;
+    let signalPathActive = false;
+    let activeDomainFilter = 'all'; // 'all' | 'feol' | 'beol'
+
     // Canvas Context
     const canvas = document.getElementById('viewCanvas');
     const ctx = canvas.getContext('2d');
@@ -785,12 +1186,94 @@
         });
       }
 
+      // 7. Educational 3D Signal RC Path Animation
+      if (signalPathActive) {
+        primitives.push({
+          type: 'signal_path',
+          depth: is3DMode ? 0.95 : 12,
+          draw: () => drawSignalPath(w, h, now)
+        });
+      }
+
       if (is3DMode) {
         primitives.sort((a, b) => a.depth - b.depth);
       }
 
       primitives.forEach(p => p.draw());
       requestAnimationFrame(render);
+    }
+
+    function drawSignalPath(w, h, timeMs) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+
+      // 3D Interconnect Waypoints (Pin -> Via -> Met1 -> Via -> Met2 -> Via -> Met3 -> Via -> Met2 -> Pin)
+      const pts = [
+        { x: dw * 0.28, y: dh * 0.35, z: 2.8, label: 'SRC: INV_X2/Y (li1)' },
+        { x: dw * 0.28, y: dh * 0.35, z: 3.6 },
+        { x: dw * 0.48, y: dh * 0.35, z: 3.6 },
+        { x: dw * 0.48, y: dh * 0.35, z: 4.4 },
+        { x: dw * 0.48, y: dh * 0.68, z: 4.4 },
+        { x: dw * 0.48, y: dh * 0.68, z: 5.2 },
+        { x: dw * 0.72, y: dh * 0.68, z: 5.2 },
+        { x: dw * 0.72, y: dh * 0.68, z: 4.4 },
+        { x: dw * 0.72, y: dh * 0.68, z: 3.6 },
+        { x: dw * 0.72, y: dh * 0.68, z: 2.8, label: 'DST: DFF_X1/D (li1)' },
+      ];
+
+      ctx.save();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      for (let i = 0; i < pts.length; i++) {
+        const p = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+
+      // Via Contact Nodes
+      for (let i = 0; i < pts.length; i++) {
+        const p = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
+        ctx.fillStyle = '#fbbf24';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (pts[i].label) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = 'bold 9px "JetBrains Mono", monospace';
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = '#000000';
+          ctx.fillText(pts[i].label, p.x + 8, p.y - 4);
+        }
+      }
+
+      // Traveling Electron Pulse
+      const progress = ((timeMs % 2000) / 2000) * (pts.length - 1);
+      const segIdx = Math.floor(progress);
+      const segT = progress - segIdx;
+      const pA = pts[segIdx];
+      const pB = pts[Math.min(pts.length - 1, segIdx + 1)];
+
+      const curX = pA.x + (pB.x - pA.x) * segT;
+      const curY = pA.y + (pB.y - pA.y) * segT;
+      const curZ = pA.z + (pB.z - pA.z) * segT;
+
+      const pPulse = project3D(curX, curY, curZ, w, h);
+
+      // Pulse Glow
+      const glowGrad = ctx.createRadialGradient(pPulse.x, pPulse.y, 1, pPulse.x, pPulse.y, 14);
+      glowGrad.addColorStop(0, '#ffffff');
+      glowGrad.addColorStop(0.35, '#38bdf8');
+      glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(pPulse.x, pPulse.y, 14, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
 
     function isLayerActive(id) {
@@ -1074,6 +1557,21 @@
       camera.zoom = Math.max(0.2, Math.min(6.0, camera.zoom * zoomFactor));
     }, { passive: false });
 
+    function showLayerPhysics(layerId) {
+      const layer = LAYER_CONFIG.find(l => l.id === layerId);
+      if (!layer) return;
+      document.getElementById('inspTitle').textContent = `Physics & DRC: ${layer.name}`;
+      document.getElementById('inspObj').textContent = `${layer.name} [${(layer.domain || 'interconnect').toUpperCase()}]`;
+      document.getElementById('inspCoords').textContent = `Elevation Z: ${layer.zLevel.toFixed(1)} µm (Thick: ${layer.thickness || 'N/A'})`;
+      document.getElementById('inspMaterial').textContent = layer.material || 'Silicon Interconnect';
+      document.getElementById('inspRes').textContent = layer.sheetRes || 'N/A';
+      document.getElementById('inspRule').textContent = layer.designRule || layer.role || 'Design rule clearance';
+
+      document.querySelectorAll('.layer-row').forEach(r => r.classList.remove('active-inspector-layer'));
+      const target = document.querySelector(`.layer-row[data-layer-id="${layerId}"]`);
+      if (target) target.classList.add('active-inspector-layer');
+    }
+
     function updateHover(mx, my) {
       let found = null;
       currentDesign.macros.forEach(m => {
@@ -1089,16 +1587,27 @@
         document.getElementById('inspTitle').textContent = `Macro: ${found.name}`;
         document.getElementById('inspObj').textContent = `${found.type} (${found.w.toFixed(0)} × ${found.h.toFixed(0)} µm)`;
         document.getElementById('inspCoords').textContent = `X: ${found.x.toFixed(1)} µm, Y: ${found.y.toFixed(1)} µm`;
-        document.getElementById('inspLayer').textContent = `Macro Level (Halo: ${found.halo} µm)`;
-        document.getElementById('inspStatus').textContent = 'Placed & DRC Clean';
+        document.getElementById('inspMaterial').textContent = 'SRAM Bitcell Core / Sense Amplifiers';
+        document.getElementById('inspRes').textContent = 'VDD / VSS Macro Power Ring Mesh';
+        document.getElementById('inspRule').textContent = `Macro Halo: ${found.halo} µm keepout buffer around IP block`;
       } else {
         hoveredObject = null;
         document.getElementById('inspTitle').textContent = 'Silicon Substrate Overview';
-        document.getElementById('inspObj').textContent = `${currentDesign.name}`;
+        document.getElementById('inspObj').textContent = `${currentDesign.name} (${currentDesign.cellsCount.toLocaleString()} cells)`;
         document.getElementById('inspCoords').textContent = `Die Size: ${currentDesign.width} × ${currentDesign.height} µm`;
-        document.getElementById('inspLayer').textContent = is3DMode ? `3D Elevation (Z-Spread: ${camera.zSpread.toFixed(1)}x)` : 'Planar 2D View';
-        document.getElementById('inspStatus').textContent = 'Clean Physical Signoff';
+        document.getElementById('inspMaterial').textContent = 'P-type Monocrystalline Silicon (<100>)';
+        document.getElementById('inspRes').textContent = '10-20 Ω·cm bulk resistivity';
+        document.getElementById('inspRule').textContent = is3DMode ? `3D Exploded Elevation (Z-Spread: ${camera.zSpread.toFixed(1)}x)` : 'Planar 2D View';
       }
+    }
+
+    function updateCheckboxes() {
+      const checkboxes = document.querySelectorAll('.toggle-checkbox');
+      checkboxes.forEach((cb, idx) => {
+        if (LAYER_CONFIG[idx]) {
+          cb.checked = LAYER_CONFIG[idx].enabled;
+        }
+      });
     }
 
     // ── Layer Panel DOM Generation ─────────────────────────────────
@@ -1108,6 +1617,9 @@
       LAYER_CONFIG.forEach(layer => {
         const row = document.createElement('div');
         row.className = 'layer-row';
+        row.dataset.layerId = layer.id;
+        row.title = `Click to inspect ${layer.name} physics & DRC rules`;
+        row.onclick = () => showLayerPhysics(layer.id);
 
         const info = document.createElement('div');
         info.className = 'layer-info';
@@ -1140,14 +1652,17 @@
             document.querySelectorAll('.solo-btn').forEach(b => b.classList.remove('active'));
             soloBtn.classList.add('active');
           }
+          showLayerPhysics(layer.id);
         };
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'toggle-checkbox';
         checkbox.checked = layer.enabled;
+        checkbox.onclick = (e) => e.stopPropagation();
         checkbox.onchange = () => {
           layer.enabled = checkbox.checked;
+          showLayerPhysics(layer.id);
         };
 
         controls.appendChild(soloBtn);
@@ -1236,6 +1751,162 @@
       camera.panX = 0;
       camera.panY = 0;
     }
+
+    // ── Educational Domain Filter Controller ──────────────────────
+    function setDomainFilter(mode) {
+      document.querySelectorAll('#filterAllBtn, #filterFeolBtn, #filterBeolBtn').forEach(b => b.classList.remove('active'));
+      if (mode === 'all') {
+        document.getElementById('filterAllBtn').classList.add('active');
+        LAYER_CONFIG.forEach(l => l.enabled = true);
+        setFabStep(8);
+      } else if (mode === 'feol') {
+        document.getElementById('filterFeolBtn').classList.add('active');
+        LAYER_CONFIG.forEach(l => {
+          l.enabled = (l.domain === 'feol' || l.id === 'substrate' || l.id === 'stdcells' || l.id === 'macros');
+        });
+        updateCheckboxes();
+        showLayerPhysics('stdcells');
+      } else if (mode === 'beol') {
+        document.getElementById('filterBeolBtn').classList.add('active');
+        LAYER_CONFIG.forEach(l => {
+          l.enabled = (l.domain === 'beol' || l.id === 'pdn' || l.id === 'vias' || l.id === 'pins');
+        });
+        updateCheckboxes();
+        showLayerPhysics('met1');
+      }
+    }
+
+    const filterAllBtn = document.getElementById('filterAllBtn');
+    if (filterAllBtn) filterAllBtn.onclick = () => setDomainFilter('all');
+
+    const filterFeolBtn = document.getElementById('filterFeolBtn');
+    if (filterFeolBtn) filterFeolBtn.onclick = () => setDomainFilter('feol');
+
+    const filterBeolBtn = document.getElementById('filterBeolBtn');
+    if (filterBeolBtn) filterBeolBtn.onclick = () => setDomainFilter('beol');
+
+    const filterSignalBtn = document.getElementById('filterSignalBtn');
+    if (filterSignalBtn) {
+      filterSignalBtn.onclick = () => {
+        signalPathActive = !signalPathActive;
+        const rcHud = document.getElementById('rcHud');
+        if (signalPathActive) {
+          filterSignalBtn.classList.add('active');
+          filterSignalBtn.style.borderColor = '#06b6d4';
+          filterSignalBtn.style.background = 'rgba(6, 182, 212, 0.25)';
+          if (rcHud) rcHud.classList.add('active');
+        } else {
+          filterSignalBtn.classList.remove('active');
+          filterSignalBtn.style.borderColor = '';
+          filterSignalBtn.style.background = '';
+          if (rcHud) rcHud.classList.remove('active');
+        }
+      };
+    }
+
+    // ── Educational Semiconductor Fabrication Sequencer ────────────
+    let fabPlayInterval = null;
+
+    function setFabStep(stepNum) {
+      if (stepNum < 1 || stepNum > 8) return;
+      currentFabStep = stepNum;
+      const step = FAB_STEPS[stepNum - 1];
+
+      const pillEl = document.getElementById('fabStepPill');
+      if (pillEl) pillEl.textContent = `FAB STEP ${step.step} / 8`;
+
+      const titleEl = document.getElementById('fabStepTitle');
+      if (titleEl) titleEl.textContent = step.title;
+
+      const descEl = document.getElementById('fabStepDesc');
+      if (descEl) {
+        descEl.innerHTML = `${step.desc} <br><span style="color: #38bdf8; font-size: 11px;">⚡ <strong>Semiconductor Physics:</strong> ${step.physics}</span>`;
+      }
+
+      const segments = document.querySelectorAll('.fab-timeline-segment');
+      segments.forEach((seg, idx) => {
+        const sNum = idx + 1;
+        seg.classList.remove('active', 'completed');
+        if (sNum === currentFabStep) {
+          seg.classList.add('active');
+        } else if (sNum < currentFabStep) {
+          seg.classList.add('completed');
+        }
+      });
+
+      LAYER_CONFIG.forEach(l => {
+        l.enabled = step.layers.includes(l.id);
+      });
+      updateCheckboxes();
+
+      const topLayerId = step.layers[step.layers.length - 1];
+      showLayerPhysics(topLayerId);
+    }
+
+    function toggleFabPlay() {
+      const playBtn = document.getElementById('fabPlayBtn');
+      if (fabPlayInterval) {
+        clearInterval(fabPlayInterval);
+        fabPlayInterval = null;
+        if (playBtn) {
+          playBtn.textContent = '▶ Play Growth';
+          playBtn.style.background = '#0284c7';
+        }
+      } else {
+        if (currentFabStep >= 8) {
+          setFabStep(1);
+        }
+        if (playBtn) {
+          playBtn.textContent = '⏸ Pause Growth';
+          playBtn.style.background = '#e11d48';
+        }
+        fabPlayInterval = setInterval(() => {
+          if (currentFabStep < 8) {
+            setFabStep(currentFabStep + 1);
+          } else {
+            toggleFabPlay();
+          }
+        }, 2200);
+      }
+    }
+
+    const fabPrevBtn = document.getElementById('fabPrevBtn');
+    if (fabPrevBtn) {
+      fabPrevBtn.onclick = () => {
+        if (currentFabStep > 1) setFabStep(currentFabStep - 1);
+      };
+    }
+
+    const fabNextBtn = document.getElementById('fabNextBtn');
+    if (fabNextBtn) {
+      fabNextBtn.onclick = () => {
+        if (currentFabStep < 8) setFabStep(currentFabStep + 1);
+      };
+    }
+
+    const fabAllBtn = document.getElementById('fabAllBtn');
+    if (fabAllBtn) {
+      fabAllBtn.onclick = () => {
+        setDomainFilter('all');
+      };
+    }
+
+    const fabPlayBtn = document.getElementById('fabPlayBtn');
+    if (fabPlayBtn) {
+      fabPlayBtn.onclick = () => {
+        toggleFabPlay();
+      };
+    }
+
+    document.querySelectorAll('.fab-timeline-segment').forEach(seg => {
+      seg.onclick = () => {
+        const s = parseInt(seg.getAttribute('data-step'), 10);
+        if (!isNaN(s)) setFabStep(s);
+      };
+    });
+
+    // Initialize with Full Die (Step 8)
+    setFabStep(8);
 
     const fileInput = document.getElementById('defFileInput');
     if (fileInput) {
