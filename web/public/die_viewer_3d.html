@@ -473,6 +473,72 @@
       gap: 10px;
       flex-wrap: wrap;
     }
+    /* Packaging Lesson HUD */
+    .pkg-hud {
+      position: absolute;
+      bottom: 118px;
+      left: 14px;
+      background: rgba(9, 13, 26, 0.94);
+      backdrop-filter: blur(12px);
+      border: 1px solid #d97706;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fbbf24;
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      z-index: 14;
+      box-shadow: 0 0 18px rgba(217, 119, 6, 0.28);
+      max-width: min(360px, calc(100vw - 90px));
+      pointer-events: none;
+    }
+    .pkg-hud.active { display: flex; }
+    .pkg-hud-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #fde68a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(217, 119, 6, 0.35);
+      padding-bottom: 4px;
+    }
+    .pkg-hud-level {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      color: #fcd34d;
+      background: rgba(217, 119, 6, 0.15);
+    }
+    .pkg-hud-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2px 8px;
+      color: #94a3b8;
+    }
+    .pkg-hud-grid strong { color: #e2e8f0; font-weight: 600; }
+    .pkg-hud-physics {
+      color: #cbd5e1;
+      line-height: 1.35;
+      font-size: 9.5px;
+    }
+    .pkg-hud-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2px;
+      font-size: 9px;
+    }
+    .pkg-hud-table th, .pkg-hud-table td {
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      padding: 2px 4px;
+      text-align: left;
+      color: #cbd5e1;
+    }
+    .pkg-hud-table th { color: #fbbf24; background: rgba(217, 119, 6, 0.12); }
     .rc-net-btn {
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid #334155;
@@ -599,6 +665,11 @@
         transform: none;
         top: 8px;
       }
+      .pkg-hud {
+        left: 8px;
+        bottom: 128px;
+        max-width: calc(100vw - 72px);
+      }
       .camera-gizmo { top: auto; bottom: 120px; }
     }
   </style>
@@ -628,11 +699,22 @@
         <option value="gcd">Schematic: GCD Coprocessor (illustrative 125×125 µm)</option>
       </select>
 
-      <!-- Packaging Architecture Selector: Wirebond vs Flip-Chip -->
-      <select id="pkgSelect" class="btn" style="padding: 4px 8px; font-weight: bold; background: #0f172a; color: #fbbf24; border-color: #d97706;" title="Select Packaging Architecture: Wirebond vs Flip-Chip C4 Bumps" aria-label="Packaging architecture">
-        <option value="wirebond">📦 Package: Wirebond (Leadframe L≈1.2nH)</option>
-        <option value="flipchip">⚡ Package: Flip-Chip (C4 bumps L≪0.1nH)</option>
-        <option value="hybrid">🌐 Package: Compare Both (Wirebond + Flip-Chip)</option>
+      <!-- Packaging Architecture Curriculum -->
+      <select id="pkgSelect" class="btn" style="padding: 4px 8px; font-weight: bold; background: #0f172a; color: #fbbf24; border-color: #d97706;" title="Packaging curriculum: wirebond, flip-chip, WLCSP, BGA, fan-out, 2.5D interposer, compare, gallery" aria-label="Packaging architecture">
+        <optgroup label="Beginner">
+          <option value="wirebond">📦 Wirebond Leadframe (L≈1.2nH)</option>
+          <option value="flipchip">⚡ Flip-Chip C4 (L≪0.1nH)</option>
+          <option value="compare">🌐 Compare: Wirebond vs Flip-Chip</option>
+        </optgroup>
+        <optgroup label="Intermediate">
+          <option value="wlcsp">🔲 WLCSP (wafer-level CSP)</option>
+          <option value="bga">🟠 Flip-Chip BGA (organic substrate)</option>
+          <option value="fanout">📡 FOWLP / InFO Fan-Out</option>
+        </optgroup>
+        <optgroup label="Advanced">
+          <option value="interposer">🧬 2.5D Interposer + HBM</option>
+          <option value="all_compare">🏛️ Gallery: All Packaging Modes</option>
+        </optgroup>
       </select>
       <input type="file" id="defFileInput" accept=".def,.DEF" hidden aria-label="Load DEF file">
     </div>
@@ -645,7 +727,7 @@
         <button id="filterFeolBtn" class="btn" title="FEOL: Substrate, Wells, Endcaps, Welltaps, StdCells, Decaps, Fillers, Macros" aria-label="Show FEOL layers">FEOL</button>
         <button id="filterBeolBtn" class="btn" title="BEOL: li1, met1-met5, Vias, Manhattan Routing" aria-label="Show BEOL layers">BEOL</button>
         <button id="filterPdnBtn" class="btn" title="PDN: Core & Macro Rings, Power Straps, Cell Rails, Decaps" aria-label="Show PDN mesh">PDN Mesh</button>
-        <button id="filterPkgBtn" class="btn" title="Packaging: I/O Bond Pads, 3D Wirebonds, C4 Solder Bumps" aria-label="Show packaging layers">Package</button>
+        <button id="filterPkgBtn" class="btn" title="Packaging suite: pads, wirebonds, C4/WLCSP bumps, leadframe, BGA balls, RDL, fan-out, interposer, HBM" aria-label="Show packaging layers">Package</button>
         <button id="filterSignalBtn" class="btn" style="color: #38bdf8;" title="Trace 3D Signal Path & RC Delay" aria-label="Toggle RC Path Elmore HUD">⚡ RC Path</button>
       </div>
 
@@ -735,6 +817,23 @@
           <span class="rc-stat-chip">t_pd (50%): <strong id="rcDelay50" style="color: #34d399;">4.45 ps</strong></span>
           <span class="rc-stat-chip">Slew (10→90%): <strong id="rcSlew" style="color: #a7f3d0;">14.1 ps</strong></span>
         </div>
+      </div>
+
+      <!-- Packaging Lesson HUD (always-on compact teaching panel) -->
+      <div class="pkg-hud active" id="pkgHud" aria-live="polite">
+        <div class="pkg-hud-title">
+          <span id="pkgHudTitle">📦 Wirebond Leadframe</span>
+          <span class="pkg-hud-level" id="pkgHudLevel">Beginner</span>
+        </div>
+        <div class="pkg-hud-grid">
+          <span>L (typ)</span><strong id="pkgHudL">~1.2 nH loop</strong>
+          <span>Pitch</span><strong id="pkgHudPitch">~75–100 µm pad</strong>
+          <span>I/O dens.</span><strong id="pkgHudDensity">Low (perimeter)</strong>
+          <span>Cost</span><strong id="pkgHudCost">Low</strong>
+          <span>Best for</span><strong id="pkgHudUse">MCUs, QFN/SOIC</strong>
+        </div>
+        <div class="pkg-hud-physics" id="pkgHudPhysics">Illustrative leadframe + Au wires. Package delay is R+L / SSO — not on-die Elmore RC.</div>
+        <div id="pkgHudTableWrap" style="display:none;"></div>
       </div>
 
       <!-- Quick Camera Gizmo -->
@@ -1093,7 +1192,7 @@
         thickness: '25 µm Diameter Wire',
         material: '99.99% Pure Gold (Au) Parabolic Wire Loops',
         sheetRes: 'Wire R: ~0.18 Ω, Loop Inductance L ≈ 1.2 nH',
-        role: 'Connects peripheral die bond pads to package leadframe fingers. Package delay is R+L dominated (SSO / ground bounce), not on-die Elmore RC.',
+        role: 'Connects peripheral die bond pads to package leadframe fingers (common QFN / LQFP-style bodies). Package delay is R+L dominated (SSO / ground bounce), not on-die Elmore RC.',
         designRule: 'Package model: series R_bond + L_loop≈1.2 nH with SSO bounce risk. Do not apply τ=Rwire·Cwire as if it were an on-die Elmore net.'
       },
       {
@@ -1107,10 +1206,247 @@
         thickness: '80 µm Solder Ball Height',
         material: 'Lead-Free Solder (Sn-Ag-Cu / SAC305) on Ti/Ni/Au UBM Pad',
         sheetRes: 'Parasitic Inductance: L ≪ 0.1 nH (vs wirebond L≈1.2 nH)',
-        role: 'Area-array solder micro-bumps for modern flip-chip BGA packaging delivering power directly to core.',
-        designRule: 'Bump pitch: 130-150 µm. Lower loop inductance than wirebonds reduces (does not erase) SSO / ground-bounce risk.'
+        role: 'Area-array solder micro-bumps for flip-chip / WLCSP-class attach delivering power and signals to the die.',
+        designRule: 'Bump pitch: 130-150 µm class (schematic). Lower loop inductance than wirebonds reduces (does not erase) SSO / ground-bounce risk.'
+      },
+      {
+        id: 'leadframe',
+        name: 'Package Lead Fingers',
+        color: '#a8a29e',
+        zLevel: 0.15,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: 'Leadframe Cu / Alloy42 fingers',
+        material: 'Copper or Alloy42 leadframe (QFN / LQFP body)',
+        sheetRes: 'Lead L dominates package loop ≈ 0.8–1.5 nH',
+        role: 'Metal fingers outside the die that receive Au wirebonds and form the package→PCB path in leaded / QFN-style bodies.',
+        designRule: 'Illustrative leadframe only. Common QFN bodies shorten leads vs long LQFP fingers.'
+      },
+      {
+        id: 'bga_balls',
+        name: 'BGA Solder Balls (to PCB)',
+        color: '#f97316',
+        zLevel: -0.9,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: '~250–450 µm ball height (package→PCB)',
+        material: 'SAC solder balls on organic BGA substrate land pads',
+        sheetRes: 'Ball + substrate path L typically ≪ wirebond loop',
+        role: 'Coarse ball grid under the package outline that lands on the PCB — distinct from fine on-die C4 bumps.',
+        designRule: 'Illustrative BGA pitch ~0.5–1.0 mm class (schematic). Cap grid density on large dies.'
+      },
+      {
+        id: 'rdl',
+        name: 'Redistribution Layer (RDL)',
+        color: '#22d3ee',
+        zLevel: 7.55,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: 'Cu RDL ~3–8 µm (FOWLP / InFO class)',
+        material: 'Copper redistribution over mold / PI dielectric',
+        sheetRes: 'RDL R + bump L; still package R+L language',
+        role: 'Fan-out traces that expand I/O beyond the die outline to an outer bump ring.',
+        designRule: 'Illustrative radial/Manhattan stubs — not foundry RDL GDS.'
+      },
+      {
+        id: 'outer_bumps',
+        name: 'Fan-Out Outer Bump Ring',
+        color: '#67e8f9',
+        zLevel: 8.35,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: '~80–200 µm reconstituted-wafer bumps',
+        material: 'Solder bumps on fan-out RDL lands outside die',
+        sheetRes: 'L typically between C4 and coarse BGA',
+        role: 'Bump ring outside the silicon outline enabled by mold + RDL in FOWLP / InFO-style packages.',
+        designRule: 'Illustrative outer ring only; real FOWLP uses multi-RDL stacks.'
+      },
+      {
+        id: 'interposer',
+        name: 'Silicon Interposer (2.5D)',
+        color: '#64748b',
+        zLevel: 0.35,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: '~50–100 µm Si interposer (illustrative)',
+        material: 'Silicon with fine BEOL + TSV paths (schematic)',
+        sheetRes: 'μbump + interposer routing; not on-die Elmore',
+        role: 'Larger Si carrier under logic + HBM enabling dense die-to-die links in 2.5D packages.',
+        designRule: 'Illustrative ~1.35× die outline. Real interposers add TSVs to package substrate.'
+      },
+      {
+        id: 'hbm',
+        name: 'HBM Memory Stack',
+        color: '#c084fc',
+        zLevel: 2.4,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: '2–4 stacked DRAM dies (schematic)',
+        material: 'HBM stack with micro-bumps / TSV markers',
+        sheetRes: 'Stack + μbump path; bandwidth-oriented',
+        role: 'High-bandwidth memory cube placed beside logic on the interposer.',
+        designRule: 'Illustrative stack only — not a JEDEC HBM floorplan.'
+      },
+      {
+        id: 'ubumps',
+        name: 'Micro-Bumps (μbumps)',
+        color: '#e879f9',
+        zLevel: 0.95,
+        enabled: false,
+        is3d: true,
+        domain: 'package',
+        thickness: '~10–40 µm μbump height',
+        material: 'Fine-pitch solder / Cu pillar μbumps',
+        sheetRes: 'L ≪ C4; dense die↔interposer attach',
+        role: 'Fine-pitch attach between logic/HBM and the silicon interposer.',
+        designRule: 'Illustrative μbump array; pitch capped for render performance.'
       }
     ];
+
+    // ── Packaging curriculum catalog (educational schematic) ────────
+    const PKG_SHOW_KEYS = ['pads', 'wirebonds', 'bumps', 'leadframe', 'bgaBalls', 'rdl', 'outerBumps', 'interposer', 'hbm', 'ubumps'];
+    const PKG_LAYER_TO_SHOW = {
+      pads: 'pads',
+      wirebonds: 'wirebonds',
+      bumps: 'bumps',
+      leadframe: 'leadframe',
+      bga_balls: 'bgaBalls',
+      rdl: 'rdl',
+      outer_bumps: 'outerBumps',
+      interposer: 'interposer',
+      hbm: 'hbm',
+      ubumps: 'ubumps'
+    };
+    const PKG_SHOW_TO_LAYER = {
+      pads: 'pads',
+      wirebonds: 'wirebonds',
+      bumps: 'bumps',
+      leadframe: 'leadframe',
+      bgaBalls: 'bga_balls',
+      rdl: 'rdl',
+      outerBumps: 'outer_bumps',
+      interposer: 'interposer',
+      hbm: 'hbm',
+      ubumps: 'ubumps'
+    };
+
+    const PKG_CATALOG = {
+      wirebond: {
+        label: 'Wirebond Leadframe',
+        short: 'Wirebond',
+        level: 'Beginner',
+        Lnh: '~1.2 nH loop',
+        pitchUm: '~75–100 µm pad',
+        ioDensity: 'Low (perimeter)',
+        cost: 'Low',
+        useCases: 'MCUs, QFN/SOIC, cost-sensitive ASICs',
+        show: { pads: true, wirebonds: true, bumps: false, leadframe: true, bgaBalls: false, rdl: false, outerBumps: false, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'wirebonds',
+        physics: 'Illustrative Au wires to a leadframe (common QFN-style body). Package delay is R+L / SSO dominated — do not treat as on-die Elmore τ=R·C. Higher loop L raises ground-bounce risk vs flip-chip.'
+      },
+      flipchip: {
+        label: 'Flip-Chip C4',
+        short: 'Flip-Chip',
+        level: 'Beginner',
+        Lnh: '≪0.1 nH (C4)',
+        pitchUm: '~130–150 µm',
+        ioDensity: 'High (area array)',
+        cost: 'Medium',
+        useCases: 'CPUs, GPUs, high-speed SoCs',
+        show: { pads: true, wirebonds: false, bumps: true, leadframe: false, bgaBalls: false, rdl: false, outerBumps: false, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'bumps',
+        physics: 'Area-array C4 bumps on visible UBM/landing pads. Lower loop inductance than wirebond reduces — does not erase — SSO / ground-bounce risk. Still package R+L language.'
+      },
+      wlcsp: {
+        label: 'Wafer-Level CSP',
+        short: 'WLCSP',
+        level: 'Intermediate',
+        Lnh: '~0.05–0.15 nH',
+        pitchUm: '~200–400 µm fine',
+        ioDensity: 'High (die-scale)',
+        cost: 'Low–Med',
+        useCases: 'Mobile PMICs, RF, compact IoT',
+        show: { pads: true, wirebonds: false, bumps: true, leadframe: false, bgaBalls: false, rdl: false, outerBumps: false, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'bumps',
+        physics: 'Wafer-level chip-scale: fine-pitch bumps on the die with minimal package body and no leadframe wires. Package outline ≈ die — illustrative schematic, not a foundry WLCSP tapeout.'
+      },
+      bga: {
+        label: 'Flip-Chip BGA',
+        short: 'FC-BGA',
+        level: 'Intermediate',
+        Lnh: 'C4≪0.1 nH + BGA path',
+        pitchUm: 'C4 ~150 µm / BGA ~0.5–1 mm',
+        ioDensity: 'High (die) + coarse (PCB)',
+        cost: 'Medium–High',
+        useCases: 'FPGAs, networking, application processors',
+        show: { pads: true, wirebonds: false, bumps: true, leadframe: false, bgaBalls: true, rdl: false, outerBumps: false, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'bga_balls',
+        physics: 'Flip-chip die on an organic substrate with coarser BGA balls underneath for package→PCB attach. C4 and BGA are different pitch domains — both shown schematically.'
+      },
+      fanout: {
+        label: 'FOWLP / InFO Fan-Out',
+        short: 'Fan-Out',
+        level: 'Intermediate',
+        Lnh: '~0.05–0.2 nH class',
+        pitchUm: 'RDL fine / outer ~200–400 µm',
+        ioDensity: 'Very high (beyond die)',
+        cost: 'High',
+        useCases: 'Mobile APU, RF SiP, high-I/O die-limited parts',
+        show: { pads: true, wirebonds: false, bumps: false, leadframe: false, bgaBalls: false, rdl: true, outerBumps: true, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'rdl',
+        physics: 'Fan-out wafer-level (FOWLP / InFO-style): RDL expands I/O beyond the die outline to an outer bump ring. Illustrative radial stubs — not a multi-RDL production stack.'
+      },
+      interposer: {
+        label: '2.5D Interposer + HBM',
+        short: '2.5D',
+        level: 'Advanced',
+        Lnh: 'μbump path ≪ C4',
+        pitchUm: 'μbumps ~30–55 µm class',
+        ioDensity: 'Extreme (die-to-die)',
+        cost: 'Very high',
+        useCases: 'AI accelerators, HBM-attached logic',
+        show: { pads: false, wirebonds: false, bumps: false, leadframe: false, bgaBalls: false, rdl: false, outerBumps: false, interposer: true, hbm: true, ubumps: true },
+        primaryLayer: 'interposer',
+        physics: '2.5D schematic: logic die + HBM stack on a silicon interposer with μbumps. Teaches dense die-to-die attach — not a full CoWoS/InFO_oS product model.'
+      },
+      compare: {
+        label: 'Compare: Wirebond vs Flip-Chip',
+        short: 'Compare',
+        level: 'Beginner',
+        Lnh: '1.2 nH vs ≪0.1 nH',
+        pitchUm: 'Perimeter vs area array',
+        ioDensity: 'Side-by-side teaching',
+        cost: 'N/A (lesson)',
+        useCases: 'Teaching inductance & I/O density tradeoffs',
+        show: { pads: true, wirebonds: true, bumps: true, leadframe: true, bgaBalls: false, rdl: false, outerBumps: false, interposer: false, hbm: false, ubumps: false },
+        primaryLayer: 'wirebonds',
+        physics: 'Side-by-side teaching view: leadframe wirebonds (higher L, perimeter I/O) vs C4 flip-chip (lower L, area array). Flip-chip lowers bounce risk — it does not magically erase it.'
+      },
+      all_compare: {
+        label: 'Packaging Gallery (Museum)',
+        short: 'Gallery',
+        level: 'Advanced',
+        Lnh: 'See comparison table',
+        pitchUm: 'See comparison table',
+        ioDensity: 'All modes overlaid',
+        cost: 'N/A (lesson)',
+        useCases: 'Survey wirebond → 2.5D packaging stack',
+        show: { pads: true, wirebonds: true, bumps: true, leadframe: true, bgaBalls: true, rdl: true, outerBumps: true, interposer: true, hbm: true, ubumps: true },
+        primaryLayer: 'bumps',
+        physics: 'Museum mode: all illustrative package layers enabled with a HUD comparison table. Geometry is educational schematic — not tapeout GDS/DEF.'
+      }
+    };
+
+    function pkgShows(showKey) {
+      const cat = PKG_CATALOG[currentPkgMode] || PKG_CATALOG.wirebond;
+      return !!(cat.show && cat.show[showKey]);
+    }
 
     // ── Dual Timelines: Wafer Fab (process) vs PnR Flow (never mix) ──
     const FAB_STEPS = [
@@ -1172,11 +1508,11 @@
       },
       {
         step: 8,
-        title: "Package Attach: Wirebond or C4 Flip-Chip",
+        title: "Package Attach: Full Packaging Suite",
         domain: "Package",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps'],
-        desc: "Gold wirebonds to leadframe (L≈1.2 nH) or area-array C4 solder bumps on UBM (L≪0.1 nH). Packaging is R+L / SSO physics.",
-        physics: "Flip-chip lowers loop inductance vs wirebond (L≈1.2 nH → L≪0.1 nH), reducing — not erasing — SSO / ground-bounce risk."
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps', 'leadframe', 'bga_balls', 'rdl', 'outer_bumps', 'interposer', 'hbm', 'ubumps'],
+        desc: "Full packaging curriculum: wirebond leadframe, C4 flip-chip, WLCSP, FC-BGA, FOWLP/InFO fan-out, and 2.5D interposer+HBM. Use the Package selector — packaging is R+L / SSO physics.",
+        physics: "Flip-chip / WLCSP lower loop inductance vs wirebond; fan-out expands I/O beyond the die; 2.5D adds μbumps on an interposer. Lower L reduces — does not erase — SSO risk."
       }
     ];
 
@@ -1231,11 +1567,11 @@
       },
       {
         step: 7,
-        title: "Package: Wirebond vs Flip-Chip C4",
+        title: "Package: Full Packaging Curriculum",
         domain: "Package",
-        layers: ['substrate', 'macros', 'endcaps', 'welltaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps'],
-        desc: "Connect finished die to package via wirebonds (L≈1.2 nH) or C4 bumps on visible UBM/landing pads (L≪0.1 nH).",
-        physics: "Package uses R+L / SSO language. Flip-chip lowers inductance vs wirebond; it does not magically erase bounce."
+        layers: ['substrate', 'macros', 'endcaps', 'welltaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps', 'leadframe', 'bga_balls', 'rdl', 'outer_bumps', 'interposer', 'hbm', 'ubumps'],
+        desc: "Connect finished die via the packaging suite: wirebond/QFN leadframe, C4, WLCSP, FC-BGA balls, fan-out RDL, or 2.5D interposer+HBM (selector-driven).",
+        physics: "Package uses R+L / SSO language. Flip-chip / advanced packages lower inductance vs wirebond; they do not magically erase bounce."
       }
     ];
 
@@ -1511,8 +1847,8 @@
       const bumps = [];
       const bumpCols = Math.max(4, Math.min(10, Math.round(w / 70)));
       const bumpRows = Math.max(4, Math.min(10, Math.round(h / 70)));
-      const bumpStepX = (w - 2 * cm - 40) / (bumpCols - 1);
-      const bumpStepY = (h - 2 * cm - 40) / (bumpRows - 1);
+      const bumpStepX = (w - 2 * cm - 40) / Math.max(1, bumpCols - 1);
+      const bumpStepY = (h - 2 * cm - 40) / Math.max(1, bumpRows - 1);
       for (let r = 0; r < bumpRows; r++) {
         for (let c = 0; c < bumpCols; c++) {
           const bx = cm + 20 + c * bumpStepX;
@@ -1525,6 +1861,136 @@
             type: isPower ? 'VDD' : 'VSS',
             color: isPower ? '#ef4444' : '#0284c7',
             inductanceNh: 0.045
+          });
+        }
+      }
+
+      // 11b. Leadframe fingers (from wirebond lead ends — QFN-style body)
+      const leadframe = wirebonds.map((wb, i) => {
+        const fingerW = Math.max(6, Math.min(14, padSize * 0.32));
+        const fingerL = Math.max(16, Math.round(w * 0.055));
+        let x = wb.leadX - fingerW / 2;
+        let y = wb.leadY - fingerW / 2;
+        let fw = fingerW;
+        let fh = fingerW;
+        if (wb.leadY < 0) { y = wb.leadY - fingerL; x = wb.leadX - fingerW / 2; fw = fingerW; fh = fingerL; }
+        else if (wb.leadY > h) { y = wb.leadY; x = wb.leadX - fingerW / 2; fw = fingerW; fh = fingerL; }
+        else if (wb.leadX < 0) { x = wb.leadX - fingerL; y = wb.leadY - fingerW / 2; fw = fingerL; fh = fingerW; }
+        else { x = wb.leadX; y = wb.leadY - fingerW / 2; fw = fingerL; fh = fingerW; }
+        return { id: `lf_${i}`, x, y, w: fw, h: fh, padId: wb.padId };
+      });
+
+      // 11c. Coarse BGA balls under package outline (cap grid for large dies)
+      const bgaBalls = [];
+      const pkgMargin = Math.max(36, Math.round(w * 0.14));
+      const bgaCols = Math.max(3, Math.min(8, Math.round(w / 140)));
+      const bgaRows = Math.max(3, Math.min(8, Math.round(h / 140)));
+      const bgaStepX = (w + 2 * pkgMargin) / Math.max(1, bgaCols - 1);
+      const bgaStepY = (h + 2 * pkgMargin) / Math.max(1, bgaRows - 1);
+      const bgaR = Math.max(9, Math.min(18, Math.round(w * 0.028)));
+      for (let r = 0; r < bgaRows; r++) {
+        for (let c = 0; c < bgaCols; c++) {
+          const bx = -pkgMargin + c * bgaStepX;
+          const by = -pkgMargin + r * bgaStepY;
+          const kind = ((r + c) % 3 === 0) ? 'VDD' : ((r + c) % 3 === 1) ? 'VSS' : 'SIGNAL';
+          bgaBalls.push({
+            id: `bga_${r}_${c}`,
+            x: bx, y: by,
+            radius: bgaR,
+            type: kind,
+            color: kind === 'VDD' ? '#ef4444' : kind === 'VSS' ? '#0284c7' : '#f97316',
+            inductanceNh: 0.12
+          });
+        }
+      }
+
+      // 11d. Fan-out RDL stubs + outer bump ring beyond die
+      const rdl = [];
+      const outerBumps = [];
+      const fanOut = Math.max(28, Math.round(w * 0.16));
+      const ringPads = pads.filter((_, i) => i % Math.max(1, Math.ceil(pads.length / 24)) === 0).slice(0, 24);
+      ringPads.forEach((pad, i) => {
+        const sx = pad.x + pad.w / 2;
+        const sy = pad.y + pad.h / 2;
+        let ex = sx;
+        let ey = sy;
+        if (pad.side === 'top') ey = -fanOut;
+        else if (pad.side === 'bottom') ey = h + fanOut;
+        else if (pad.side === 'left') ex = -fanOut;
+        else ex = w + fanOut;
+        // Manhattan elbow just beyond die edge
+        const midX = (pad.side === 'left' || pad.side === 'right') ? ex : sx;
+        const midY = (pad.side === 'top' || pad.side === 'bottom') ? ey : sy;
+        rdl.push({
+          id: `rdl_${i}`,
+          pts: [
+            { x: sx, y: sy },
+            { x: midX, y: midY },
+            { x: ex, y: ey }
+          ],
+          width: Math.max(2.5, Math.min(5, w * 0.008))
+        });
+        outerBumps.push({
+          id: `obump_${i}`,
+          x: ex, y: ey,
+          radius: Math.max(4, Math.min(9, Math.round(w * 0.012))),
+          type: (i % 3 === 0) ? 'VDD' : (i % 3 === 1) ? 'VSS' : 'SIGNAL',
+          color: (i % 3 === 0) ? '#ef4444' : (i % 3 === 1) ? '#0284c7' : '#67e8f9',
+          inductanceNh: 0.08
+        });
+      });
+
+      // 11e. Silicon interposer (~1.35× die) + HBM stack + μbumps
+      const ipScale = 1.35;
+      const interposer = {
+        x: -w * (ipScale - 1) / 2,
+        y: -h * (ipScale - 1) / 2,
+        w: w * ipScale,
+        h: h * ipScale
+      };
+      const hbmW = Math.max(40, Math.min(w * 0.28, 220));
+      const hbmH = Math.max(55, Math.min(h * 0.42, 280));
+      const hbmX = interposer.x + interposer.w - hbmW - Math.max(12, w * 0.03);
+      const hbmY = (h - hbmH) / 2;
+      const hbmLayers = 3;
+      const hbm = {
+        x: hbmX,
+        y: hbmY,
+        w: hbmW,
+        h: hbmH,
+        stacks: Array.from({ length: hbmLayers }, (_, i) => ({
+          z: 1.2 + i * 0.85,
+          inset: i * 1.5
+        })),
+        tsvs: Array.from({ length: Math.min(8, Math.max(4, Math.round(hbmW / 40))) }, (_, i) => ({
+          x: hbmX + hbmW * (0.2 + 0.6 * (i / Math.max(1, Math.min(7, Math.round(hbmW / 40)) - 1))),
+          y: hbmY + hbmH * 0.5
+        }))
+      };
+      const ubumps = [];
+      const uCols = Math.max(3, Math.min(6, Math.round(w / 160)));
+      const uRows = Math.max(3, Math.min(6, Math.round(h / 160)));
+      for (let r = 0; r < uRows; r++) {
+        for (let c = 0; c < uCols; c++) {
+          ubumps.push({
+            id: `ub_die_${r}_${c}`,
+            x: cm + 30 + c * ((w - 2 * cm - 60) / Math.max(1, uCols - 1)),
+            y: cm + 30 + r * ((h - 2 * cm - 60) / Math.max(1, uRows - 1)),
+            radius: Math.max(2.5, Math.min(5, w * 0.006)),
+            region: 'logic'
+          });
+        }
+      }
+      const huCols = Math.max(2, Math.min(4, Math.round(hbmW / 50)));
+      const huRows = Math.max(2, Math.min(4, Math.round(hbmH / 50)));
+      for (let r = 0; r < huRows; r++) {
+        for (let c = 0; c < huCols; c++) {
+          ubumps.push({
+            id: `ub_hbm_${r}_${c}`,
+            x: hbmX + 10 + c * ((hbmW - 20) / Math.max(1, huCols - 1)),
+            y: hbmY + 10 + r * ((hbmH - 20) / Math.max(1, huRows - 1)),
+            radius: Math.max(2.2, Math.min(4.5, w * 0.005)),
+            region: 'hbm'
           });
         }
       }
@@ -1698,6 +2164,13 @@
         pads,
         wirebonds,
         bumps,
+        leadframe,
+        bgaBalls,
+        rdl,
+        outerBumps,
+        interposer,
+        hbm,
+        ubumps,
         rcNets,
         metalLayers: 5,
         viasCount: Math.round(cellsCount * 9.2),
@@ -1780,7 +2253,7 @@
     let fabPlayTimer = null;
     let signalPathActive = false;
     let activeDomainFilter = 'all'; // 'all' | 'feol' | 'beol'
-    let currentPkgMode = 'wirebond'; // 'wirebond' | 'flipchip' | 'hybrid'
+    let currentPkgMode = 'wirebond'; // PKG_CATALOG keys (+ legacy 'hybrid'→compare)
     let activeNetIndex = 0; // 0: Local, 1: Inter-Row, 2: Highway
     let rafId = null;
     let fabPlayInterval = null;
@@ -1992,7 +2465,44 @@
         });
       }
 
-      // 12. Peripheral I/O Bond Pads
+      // 12. Packaging stack (visibility via isLayerActive → PKG_CATALOG on Package steps)
+      if (isLayerActive('interposer')) {
+        primitives.push({
+          type: 'interposer',
+          depth: is3DMode ? 0.05 : 0.4,
+          draw: () => drawInterposer(w, h)
+        });
+      }
+      if (isLayerActive('bga_balls')) {
+        primitives.push({
+          type: 'bga_balls',
+          depth: is3DMode ? 0.02 : 0.2,
+          draw: () => drawBgaBalls(w, h)
+        });
+      }
+      if (isLayerActive('ubumps')) {
+        primitives.push({
+          type: 'ubumps',
+          depth: is3DMode ? 0.08 : 0.6,
+          draw: () => drawUbumps(w, h)
+        });
+      }
+      if (isLayerActive('hbm')) {
+        primitives.push({
+          type: 'hbm',
+          depth: is3DMode ? 0.18 : 1.2,
+          draw: () => drawHbm(w, h)
+        });
+      }
+      if (isLayerActive('leadframe')) {
+        primitives.push({
+          type: 'leadframe',
+          depth: is3DMode ? 0.12 : 0.8,
+          draw: () => drawLeadframe(w, h)
+        });
+      }
+
+      // Peripheral I/O Bond Pads
       if (isLayerActive('pads')) {
         primitives.push({
           type: 'pads',
@@ -2001,8 +2511,16 @@
         });
       }
 
-      // 13. 3D Wirebond Loops & Wireload Modeling
-      if (isLayerActive('wirebonds') && (currentPkgMode === 'wirebond' || currentPkgMode === 'hybrid')) {
+      if (isLayerActive('rdl')) {
+        primitives.push({
+          type: 'rdl',
+          depth: is3DMode ? 0.86 : 8.8,
+          draw: () => drawRdl(w, h)
+        });
+      }
+
+      // 3D Wirebond Loops & Wireload Modeling
+      if (isLayerActive('wirebonds')) {
         primitives.push({
           type: 'wirebonds',
           depth: is3DMode ? 0.90 : 9.5,
@@ -2010,8 +2528,16 @@
         });
       }
 
-      // 14. C4 Flip-Chip Power Micro-Bumps
-      if (isLayerActive('bumps') && (currentPkgMode === 'flipchip' || currentPkgMode === 'hybrid')) {
+      if (isLayerActive('outer_bumps')) {
+        primitives.push({
+          type: 'outer_bumps',
+          depth: is3DMode ? 0.93 : 10.0,
+          draw: () => drawOuterBumps(w, h)
+        });
+      }
+
+      // C4 Flip-Chip / WLCSP Power Micro-Bumps
+      if (isLayerActive('bumps')) {
         primitives.push({
           type: 'bumps',
           depth: is3DMode ? 0.95 : 10.5,
@@ -2019,7 +2545,7 @@
         });
       }
 
-      // 15. Educational 3D Signal RC Path Animation
+      // Educational 3D Signal RC Path Animation
       if (signalPathActive) {
         primitives.push({
           type: 'signal_path',
@@ -2202,8 +2728,13 @@
 
     function isLayerActive(id) {
       if (soloLayerId !== null) return soloLayerId === id;
-      if (currentPkgMode === 'wirebond' && id === 'bumps') return false;
-      if (currentPkgMode === 'flipchip' && id === 'wirebonds') return false;
+      const showKey = PKG_LAYER_TO_SHOW[id];
+      if (showKey) {
+        const step = getActiveSteps()[currentFabStep - 1];
+        // Hard-gate package geometry on Package steps / Package filter (pads still visible on earlier passivation steps)
+        const gatePkg = activeDomainFilter === 'package' || (step && step.domain === 'Package');
+        if (gatePkg && !pkgShows(showKey)) return false;
+      }
       const l = LAYER_CONFIG.find(item => item.id === id);
       return l ? l.enabled : true;
     }
@@ -2640,16 +3171,219 @@
       ctx.restore();
     }
 
+    function drawLeadframe(w, h) {
+      if (!currentDesign.leadframe) return;
+      const z = 0.15;
+      ctx.save();
+      currentDesign.leadframe.forEach(lf => {
+        const p0 = project3D(lf.x, lf.y, z, w, h);
+        const p1 = project3D(lf.x + lf.w, lf.y, z, w, h);
+        const p2 = project3D(lf.x + lf.w, lf.y + lf.h, z, w, h);
+        const p3 = project3D(lf.x, lf.y + lf.h, z, w, h);
+        ctx.fillStyle = 'rgba(168, 162, 158, 0.88)';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#e7e5e4';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawBgaBalls(w, h) {
+      if (!currentDesign.bgaBalls) return;
+      const zBall = -0.9;
+      ctx.save();
+      currentDesign.bgaBalls.forEach(b => {
+        const pBall = project3D(b.x, b.y, zBall, w, h);
+        const rScreen = Math.max(4, b.radius * 0.42 * camera.zoom);
+        const grad = ctx.createRadialGradient(
+          pBall.x - rScreen * 0.35, pBall.y - rScreen * 0.35, rScreen * 0.1,
+          pBall.x, pBall.y, rScreen
+        );
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.35, b.color === '#ef4444' ? '#fdba74' : b.color === '#0284c7' ? '#7dd3fc' : '#fdba74');
+        grad.addColorStop(0.75, b.color);
+        grad.addColorStop(1, '#1c1917');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(pBall.x, pBall.y, rScreen, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+        if (camera.zoom > 1.15) {
+          ctx.fillStyle = '#fff7ed';
+          ctx.font = 'bold 7px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(b.type[0], pBall.x, pBall.y + 2.5);
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawRdl(w, h) {
+      if (!currentDesign.rdl) return;
+      const z = 7.55;
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      currentDesign.rdl.forEach(trace => {
+        if (!trace.pts || trace.pts.length < 2) return;
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = Math.max(1.2, (trace.width || 3) * 0.35 * camera.zoom);
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        const p0 = project3D(trace.pts[0].x, trace.pts[0].y, z, w, h);
+        ctx.moveTo(p0.x, p0.y);
+        for (let i = 1; i < trace.pts.length; i++) {
+          const p = project3D(trace.pts[i].x, trace.pts[i].y, z, w, h);
+          ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+      ctx.restore();
+    }
+
+    function drawOuterBumps(w, h) {
+      if (!currentDesign.outerBumps) return;
+      const zUBM = 7.9;
+      const zBall = 8.35;
+      ctx.save();
+      currentDesign.outerBumps.forEach(b => {
+        const pUbm = project3D(b.x, b.y, zUBM, w, h);
+        const pBall = project3D(b.x, b.y, zBall, w, h);
+        const rScreen = Math.max(2.5, b.radius * 0.5 * camera.zoom);
+        ctx.fillStyle = '#164e63';
+        ctx.beginPath();
+        ctx.arc(pUbm.x, pUbm.y, rScreen * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        const grad = ctx.createRadialGradient(
+          pBall.x - rScreen * 0.3, pBall.y - rScreen * 0.3, rScreen * 0.1,
+          pBall.x, pBall.y, rScreen
+        );
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.4, '#a5f3fc');
+        grad.addColorStop(1, b.color || '#67e8f9');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(pBall.x, pBall.y, rScreen, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawInterposer(w, h) {
+      if (!currentDesign.interposer) return;
+      const ip = currentDesign.interposer;
+      const z = 0.35;
+      ctx.save();
+      const p0 = project3D(ip.x, ip.y, z, w, h);
+      const p1 = project3D(ip.x + ip.w, ip.y, z, w, h);
+      const p2 = project3D(ip.x + ip.w, ip.y + ip.h, z, w, h);
+      const p3 = project3D(ip.x, ip.y + ip.h, z, w, h);
+      ctx.fillStyle = 'rgba(100, 116, 139, 0.45)';
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (camera.zoom > 0.9) {
+        const label = project3D(ip.x + ip.w * 0.5, ip.y + 8, z + 0.05, w, h);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('Si Interposer (2.5D)', label.x, label.y);
+      }
+      ctx.restore();
+    }
+
+    function drawHbm(w, h) {
+      if (!currentDesign.hbm) return;
+      const hb = currentDesign.hbm;
+      ctx.save();
+      (hb.stacks || []).forEach((st, idx) => {
+        const inset = st.inset || 0;
+        const x = hb.x + inset;
+        const y = hb.y + inset;
+        const bw = hb.w - inset * 2;
+        const bh = hb.h - inset * 2;
+        const z = st.z || (1.2 + idx * 0.85);
+        const p0 = project3D(x, y, z, w, h);
+        const p1 = project3D(x + bw, y, z, w, h);
+        const p2 = project3D(x + bw, y + bh, z, w, h);
+        const p3 = project3D(x, y + bh, z, w, h);
+        ctx.fillStyle = idx % 2 === 0 ? 'rgba(192, 132, 252, 0.72)' : 'rgba(167, 139, 250, 0.78)';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#f5d0fe';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+      (hb.tsvs || []).forEach(t => {
+        const p = project3D(t.x, t.y, 1.0, w, h);
+        ctx.strokeStyle = '#e879f9';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        const pTop = project3D(t.x, t.y, 3.5, w, h);
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(pTop.x, pTop.y);
+        ctx.stroke();
+        ctx.fillStyle = '#f0abfc';
+        ctx.beginPath();
+        ctx.arc(pTop.x, pTop.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      if (camera.zoom > 0.95) {
+        const lab = project3D(hb.x + hb.w / 2, hb.y + hb.h / 2, 2.8, w, h);
+        ctx.fillStyle = '#faf5ff';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('HBM Stack', lab.x, lab.y);
+      }
+      ctx.restore();
+    }
+
+    function drawUbumps(w, h) {
+      if (!currentDesign.ubumps) return;
+      const z = 0.95;
+      ctx.save();
+      currentDesign.ubumps.forEach(b => {
+        const p = project3D(b.x, b.y, z, w, h);
+        const rScreen = Math.max(1.8, b.radius * 0.55 * camera.zoom);
+        ctx.fillStyle = b.region === 'hbm' ? '#e879f9' : '#d8b4fe';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, rScreen, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
     function drawPowerBumps(w, h) {
       if (!currentDesign.bumps) return;
       const zUBM = 7.6;
       const zBall = 8.6;
+      // WLCSP: slightly finer visual radius, still same bump set
+      const rScale = currentPkgMode === 'wlcsp' ? 0.38 : 0.45;
 
       ctx.save();
       currentDesign.bumps.forEach(b => {
         const pUbm = project3D(b.x, b.y, zUBM, w, h);
         const pBall = project3D(b.x, b.y, zBall, w, h);
-        const rScreen = Math.max(3, b.radius * 0.45 * camera.zoom);
+        const rScreen = Math.max(3, b.radius * rScale * camera.zoom);
 
         ctx.fillStyle = '#475569';
         ctx.beginPath();
@@ -2774,31 +3508,33 @@
         }
       }
 
-      // 1. Check C4 Solder Bumps
-      if (isLayerActive('bumps') && currentDesign.bumps && (currentPkgMode === 'flipchip' || currentPkgMode === 'hybrid')) {
+      // 1. Check C4 / WLCSP Solder Bumps
+      if (isLayerActive('bumps') && currentDesign.bumps && pkgShows('bumps')) {
         for (const b of currentDesign.bumps) {
           const p = project3D(b.x, b.y, 8.6, w, h);
           const rScreen = Math.max(5, b.radius * 0.5 * camera.zoom);
           if (Math.hypot(p.x - mx, p.y - my) < rScreen) {
             hoveredObject = b.id;
-            document.getElementById('inspTitle').textContent = `C4 Solder Bump (${b.type})`;
-            document.getElementById('inspObj').textContent = `Area-Array Micro-Bump (Flip-Chip BGA)`;
+            const bumpLabel = currentPkgMode === 'wlcsp' ? 'WLCSP Bump' : 'C4 Solder Bump';
+            document.getElementById('inspTitle').textContent = `${bumpLabel} (${b.type})`;
+            document.getElementById('inspObj').textContent = currentPkgMode === 'wlcsp' ? 'Wafer-Level Chip-Scale Bump (illustrative)' : 'Area-Array Micro-Bump (Flip-Chip)';
             document.getElementById('inspCoords').textContent = `X: ${b.x.toFixed(1)} µm, Y: ${b.y.toFixed(1)} µm (Z: 8.6 µm)`;
-            document.getElementById('inspMaterial').textContent = 'Lead-Free Solder (SAC305: Sn96.5/Ag3.0/Cu0.5) over UBM';
+            document.getElementById('inspMaterial').textContent = 'Lead-Free Solder (SAC305) over UBM / landing pad';
             document.getElementById('inspRes').textContent = `Parasitic Inductance L ≪ 0.1 nH (vs wirebond L≈1.2 nH)`;
-            document.getElementById('inspRule').textContent = 'Bump pitch: 130-150 µm. Lower L reduces SSO bounce vs wirebond — does not erase it.';
+            document.getElementById('inspRule').textContent = 'Bump pitch: 130-150 µm class (schematic). Lower L reduces SSO bounce vs wirebond — does not erase it.';
             return;
           }
         }
       }
 
-      // 2. Check I/O Bond / UBM Landing Pads (kept visible in flip-chip)
-      if ((isLayerActive('pads') || isLayerActive('wirebonds')) && currentDesign.pads) {
+      // 2. Check I/O Bond / UBM Landing Pads
+      if ((isLayerActive('pads') || isLayerActive('wirebonds')) && currentDesign.pads && pkgShows('pads')) {
         for (const pad of currentDesign.pads) {
           const p = project3D(pad.x + pad.w / 2, pad.y + pad.h / 2, 7.2, w, h);
           if (Math.hypot(p.x - mx, p.y - my) < (pad.w * 0.6 * camera.zoom)) {
             hoveredObject = pad.id;
-            const padRole = currentPkgMode === 'flipchip' ? 'UBM / Landing Pad' : 'Wirebond / I/O Pad';
+            const padRole = (currentPkgMode === 'flipchip' || currentPkgMode === 'wlcsp' || currentPkgMode === 'bga')
+              ? 'UBM / Landing Pad' : 'Wirebond / I/O Pad';
             document.getElementById('inspTitle').textContent = `${padRole} (${pad.id})`;
             document.getElementById('inspObj').textContent = `sky130_fd_io Terminal (${padRole})`;
             document.getElementById('inspCoords').textContent = `X: ${pad.x.toFixed(1)} µm, Y: ${pad.y.toFixed(1)} µm (${pad.side.toUpperCase()})`;
@@ -3089,52 +3825,83 @@
       camera.panY = 0;
     }
 
-    // ── Packaging Architecture Controller (Wirebond vs Flip-Chip) ───
+    // ── Packaging Curriculum Controller ─────────────────────────────
+    function updatePkgHud(cat, mode) {
+      const hud = document.getElementById('pkgHud');
+      if (!hud || !cat) return;
+      hud.classList.add('active');
+      const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setTxt('pkgHudTitle', `${cat.short === 'Gallery' ? '🏛️' : '📦'} ${cat.label}`);
+      setTxt('pkgHudLevel', cat.level);
+      setTxt('pkgHudL', cat.Lnh);
+      setTxt('pkgHudPitch', cat.pitchUm);
+      setTxt('pkgHudDensity', cat.ioDensity);
+      setTxt('pkgHudCost', cat.cost);
+      setTxt('pkgHudUse', cat.useCases);
+      setTxt('pkgHudPhysics', cat.physics);
+
+      const wrap = document.getElementById('pkgHudTableWrap');
+      if (wrap) {
+        if (mode === 'all_compare' || mode === 'compare') {
+          const rows = (mode === 'all_compare'
+            ? ['wirebond', 'flipchip', 'wlcsp', 'bga', 'fanout', 'interposer']
+            : ['wirebond', 'flipchip']
+          ).map(id => {
+            const c = PKG_CATALOG[id];
+            return `<tr><td>${c.short}</td><td>${c.Lnh}</td><td>${c.pitchUm}</td><td>${c.useCases.split(',')[0]}</td></tr>`;
+          }).join('');
+          wrap.style.display = 'block';
+          wrap.innerHTML = `<table class="pkg-hud-table"><thead><tr><th>Mode</th><th>Typical L</th><th>Pitch</th><th>Best for</th></tr></thead><tbody>${rows}</tbody></table>`;
+        } else {
+          wrap.style.display = 'none';
+          wrap.innerHTML = '';
+        }
+      }
+    }
+
     function setPkgMode(mode) {
+      // Legacy alias from older hybrid compare mode
+      if (mode === 'hybrid') mode = 'compare';
+      if (!PKG_CATALOG[mode]) mode = 'wirebond';
       currentPkgMode = mode;
+
       const pkgSelect = document.getElementById('pkgSelect');
       if (pkgSelect && pkgSelect.value !== mode) {
         pkgSelect.value = mode;
       }
 
-      const wireLayer = LAYER_CONFIG.find(l => l.id === 'wirebonds');
-      const padLayer = LAYER_CONFIG.find(l => l.id === 'pads');
-      const bumpLayer = LAYER_CONFIG.find(l => l.id === 'bumps');
-
-      if (mode === 'wirebond') {
-        if (wireLayer) wireLayer.enabled = true;
-        if (padLayer) padLayer.enabled = true;
-        if (bumpLayer) bumpLayer.enabled = false;
-      } else if (mode === 'flipchip') {
-        // Keep UBM / landing pads visible; only hide wirebonds
-        if (bumpLayer) bumpLayer.enabled = true;
-        if (wireLayer) wireLayer.enabled = false;
-        if (padLayer) padLayer.enabled = true;
-      } else if (mode === 'hybrid') {
-        if (wireLayer) wireLayer.enabled = true;
-        if (padLayer) padLayer.enabled = true;
-        if (bumpLayer) bumpLayer.enabled = true;
-      }
+      const cat = PKG_CATALOG[mode];
+      PKG_SHOW_KEYS.forEach(showKey => {
+        const layerId = PKG_SHOW_TO_LAYER[showKey];
+        const layer = LAYER_CONFIG.find(l => l.id === layerId);
+        if (layer) layer.enabled = !!cat.show[showKey];
+      });
       updateCheckboxes();
 
       const teleBumpsEl = document.getElementById('teleBumps');
       if (teleBumpsEl && currentDesign) {
         const numBonds = currentDesign.wirebonds ? currentDesign.wirebonds.length : 0;
         const numBumps = currentDesign.bumps ? currentDesign.bumps.length : 0;
-        if (mode === 'wirebond') {
-          teleBumpsEl.textContent = `${numBonds} Wirebonds · L≈1.2nH (Leadframe)`;
-        } else if (mode === 'flipchip') {
-          teleBumpsEl.textContent = `${numBumps} C4 Bumps · L≪0.1nH (Flip-Chip + UBM pads)`;
-        } else {
-          teleBumpsEl.textContent = `${numBonds} Wires + ${numBumps} Bumps (Compare)`;
-        }
+        const numBga = currentDesign.bgaBalls ? currentDesign.bgaBalls.length : 0;
+        const numOuter = currentDesign.outerBumps ? currentDesign.outerBumps.length : 0;
+        const numU = currentDesign.ubumps ? currentDesign.ubumps.length : 0;
+        const teleMap = {
+          wirebond: `${numBonds} Wirebonds · L≈1.2nH (Leadframe/QFN)`,
+          flipchip: `${numBumps} C4 Bumps · L≪0.1nH (UBM pads on)`,
+          wlcsp: `${numBumps} WLCSP Bumps · die-scale package`,
+          bga: `${numBumps} C4 + ${numBga} BGA balls (pkg→PCB)`,
+          fanout: `${numOuter} outer bumps + RDL fan-out`,
+          interposer: `2.5D · ${numU} μbumps + HBM stack`,
+          compare: `${numBonds} wires vs ${numBumps} C4 (compare)`,
+          all_compare: `Gallery · ${numBonds}W + ${numBumps}C4 + ${numBga}BGA + FO/2.5D`
+        };
+        teleBumpsEl.textContent = teleMap[mode] || `${cat.short} · ${cat.Lnh}`;
       }
 
-      if (mode === 'flipchip') {
-        showLayerPhysics('bumps');
-      } else {
-        showLayerPhysics('wirebonds');
-      }
+      updatePkgHud(cat, mode);
+      showLayerPhysics(cat.primaryLayer || 'pads');
+      markInteraction();
+      scheduleRender();
     }
 
     // ── RC Interconnect Extraction Controller ───────────────────────
@@ -3232,8 +3999,13 @@
         LAYER_CONFIG.forEach(l => {
           l.enabled = (l.domain === 'package' || l.id === 'substrate' || l.id === 'met5' || l.id === 'pads');
         });
+        // Re-apply curriculum visibility + lesson HUD for the active package mode
+        setPkgMode(currentPkgMode);
+        const sub = LAYER_CONFIG.find(l => l.id === 'substrate');
+        if (sub) sub.enabled = true;
+        const met5 = LAYER_CONFIG.find(l => l.id === 'met5');
+        if (met5) met5.enabled = true;
         updateCheckboxes();
-        showLayerPhysics('bumps');
       }
       markInteraction();
       scheduleRender();
@@ -3363,19 +4135,23 @@
       LAYER_CONFIG.forEach(l => {
         l.enabled = step.layers.includes(l.id);
       });
-      // Flip-chip still keeps pads; never force wirebonds in flipchip-only view
-      if (currentPkgMode === 'flipchip') {
-        const wireLayer = LAYER_CONFIG.find(l => l.id === 'wirebonds');
-        if (wireLayer) wireLayer.enabled = false;
-        const padLayer = LAYER_CONFIG.find(l => l.id === 'pads');
-        if (padLayer && step.layers.includes('pads')) padLayer.enabled = true;
-      } else if (currentPkgMode === 'wirebond') {
-        const bumpLayer = LAYER_CONFIG.find(l => l.id === 'bumps');
-        if (bumpLayer) bumpLayer.enabled = false;
+      // On packaging steps, honor PKG_CATALOG visibility for package-domain layers
+      if (step.domain === 'Package') {
+        const cat = PKG_CATALOG[currentPkgMode] || PKG_CATALOG.wirebond;
+        PKG_SHOW_KEYS.forEach(showKey => {
+          const layerId = PKG_SHOW_TO_LAYER[showKey];
+          const layer = LAYER_CONFIG.find(l => l.id === layerId);
+          if (layer && step.layers.includes(layerId)) {
+            layer.enabled = !!cat.show[showKey];
+          }
+        });
+        updatePkgHud(cat, currentPkgMode);
       }
       updateCheckboxes();
 
-      const topLayerId = step.layers[step.layers.length - 1];
+      const topLayerId = step.domain === 'Package'
+        ? ((PKG_CATALOG[currentPkgMode] || PKG_CATALOG.wirebond).primaryLayer)
+        : step.layers[step.layers.length - 1];
       showLayerPhysics(topLayerId);
       markInteraction();
       scheduleRender();
