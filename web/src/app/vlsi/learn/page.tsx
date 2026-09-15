@@ -174,7 +174,7 @@ export default function VlsiLearnHub() {
             3D Silicon Die, Fabrication & Advanced Packaging Lab
           </h3>
           <p className="text-xs leading-relaxed text-slate-300">
-            Explore an illustrative Sky130-inspired FEOL/BEOL and expanded packaging lab (procedural schematic geometry — not tapeout GDS/DEF): Hard Macros with keep-out halos, Endcaps, Welltaps (~15 µm latch-up spacing), Decap fillers, Standard Cell rows, Dual-Rail Power Rings & Straps, multi-tier Manhattan routing, plus a full packaging curriculum — Wirebond/QFN leadframe, C4 Flip-Chip, WLCSP, FC-BGA, FOWLP/InFO fan-out, and 2.5D interposer+HBM — with live 3D RC delay modeling.
+            Master-level illustrative fab + packaging lab (schematic geometry — not tapeout GDS/DEF): full Wafer Fab timeline with stage effects (litho overlay, STI/LOD stress, WPE, TDDB/NBTI, CMP dishing, process antenna/PID, EM/SM, IR/SSO), plus packaging — Wirebond/QFN, Flip-Chip, WLCSP, FC-BGA, Fan-out, 2.5D+HBM — and live 3D RC modeling.
           </p>
         </div>
         <a

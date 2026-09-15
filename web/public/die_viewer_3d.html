@@ -539,6 +539,96 @@
       color: #cbd5e1;
     }
     .pkg-hud-table th { color: #fbbf24; background: rgba(217, 119, 6, 0.12); }
+    /* Process Master HUD (Wafer Fab timeline) */
+    .proc-hud {
+      position: absolute;
+      bottom: 210px;
+      left: 14px;
+      background: rgba(6, 18, 22, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid #10b981;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #6ee7b7;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 15;
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.28);
+      max-width: min(380px, calc(100vw - 90px));
+      max-height: min(42vh, 320px);
+      overflow-y: auto;
+      pointer-events: auto;
+    }
+    .proc-hud.active { display: flex; }
+    .proc-hud.antenna-alert {
+      border-color: #f59e0b;
+      box-shadow: 0 0 22px rgba(245, 158, 11, 0.4);
+      color: #fcd34d;
+    }
+    .proc-hud-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #a7f3d0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(16, 185, 129, 0.35);
+      padding-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .proc-hud.antenna-alert .proc-hud-title {
+      color: #fde68a;
+      border-bottom-color: rgba(245, 158, 11, 0.45);
+    }
+    .proc-hud-badges {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .proc-hud-phase,
+    .proc-hud-level {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.15);
+    }
+    .proc-hud.antenna-alert .proc-hud-phase,
+    .proc-hud.antenna-alert .proc-hud-level {
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.18);
+    }
+    .proc-hud-section {
+      color: #94a3b8;
+      line-height: 1.35;
+      font-size: 9.5px;
+    }
+    .proc-hud-section strong {
+      color: #5eead4;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 1px;
+    }
+    .proc-hud.antenna-alert .proc-hud-section strong { color: #fbbf24; }
+    .proc-hud-formula {
+      display: none;
+      margin-top: 2px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      border: 1px dashed rgba(245, 158, 11, 0.55);
+      background: rgba(245, 158, 11, 0.1);
+      color: #fde68a;
+      font-size: 9.5px;
+      line-height: 1.4;
+    }
+    .proc-hud.antenna-alert .proc-hud-formula { display: block; }
     .rc-net-btn {
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid #334155;
@@ -669,6 +759,12 @@
         left: 8px;
         bottom: 128px;
         max-width: calc(100vw - 72px);
+      }
+      .proc-hud {
+        left: 8px;
+        bottom: 220px;
+        max-width: calc(100vw - 72px);
+        max-height: min(36vh, 260px);
       }
       .camera-gizmo { top: auto; bottom: 120px; }
     }
@@ -817,6 +913,23 @@
           <span class="rc-stat-chip">t_pd (50%): <strong id="rcDelay50" style="color: #34d399;">4.45 ps</strong></span>
           <span class="rc-stat-chip">Slew (10→90%): <strong id="rcSlew" style="color: #a7f3d0;">14.1 ps</strong></span>
         </div>
+      </div>
+
+      <!-- Process Master HUD (Wafer Fab curriculum) -->
+      <div class="proc-hud" id="procHud" aria-live="polite">
+        <div class="proc-hud-title">
+          <span id="procHudTitle">🔬 Wafer Prep</span>
+          <div class="proc-hud-badges">
+            <span class="proc-hud-phase" id="procHudPhase">Wafer Prep</span>
+            <span class="proc-hud-level" id="procHudLevel">Master</span>
+          </div>
+        </div>
+        <div class="proc-hud-section"><strong>Cause</strong><span id="procHudCause">—</span></div>
+        <div class="proc-hud-section"><strong>When (phase)</strong><span id="procHudWhen">—</span></div>
+        <div class="proc-hud-section"><strong>Key params</strong><span id="procHudParams">—</span></div>
+        <div class="proc-hud-section"><strong>Pitfalls</strong><span id="procHudPitfalls">—</span></div>
+        <div class="proc-hud-section"><strong>Interview hook</strong><span id="procHudHook">—</span></div>
+        <div class="proc-hud-formula" id="procHudFormula">Antenna Ratio = Metal Area (or perimeter) / Gate Oxide Area</div>
       </div>
 
       <!-- Packaging Lesson HUD (always-on compact teaching panel) -->
@@ -1448,71 +1561,279 @@
       return !!(cat.show && cat.show[showKey]);
     }
 
-    // ── Dual Timelines: Wafer Fab (process) vs PnR Flow (never mix) ──
+
+    // ── Dual Timelines: Master Wafer Fab (process + ALL stage effects) vs PnR ──
+    // Each FAB step teaches mechanism, phase, parameters, reliability effects, mitigations.
     const FAB_STEPS = [
       {
-        step: 1,
-        title: "Bulk Silicon Wafer & STI Isolation (FEOL)",
-        domain: "FEOL",
+        step: 1, title: "Wafer Prep: Boule → Slice → Polish", domain: "Wafer Prep", level: "Master",
         layers: ['substrate'],
-        desc: "P-type monocrystalline silicon bulk wafer. Shallow Trench Isolation (STI) etched with thermal oxide liner to isolate active regions.",
-        physics: "Substrate bulk resistivity: 10-20 Ω·cm. STI prevents lateral leakage between neighboring devices."
+        effects: ["Crystal defects", "Oxygen precipitates", "Warpage/TTV", "Particles", "Surface haze"],
+        severity: "warn",
+        desc: "Czochralski (CZ) or Float-Zone (FZ) silicon boule is grown, sliced into wafers, lapped and chemically-mechanically polished to a mirror finish before any FEOL patterning.",
+        physics: "Bulk resistivity 10–20 Ω·cm (sky130-class teaching). Starting defect density and flatness bound every later lithography overlay budget.",
+        master: {
+          phase: "Wafer Prep",
+          cause: "Single-crystal Si is pulled from melt (CZ) or zone-refined (FZ). Slicing + grind introduce subsurface damage; CMP removes damage and sets nanotopography.",
+          when: "Before any fab module — incoming wafer acceptance (IWA).",
+          params: "Orientation ⟨100⟩; TTV/warp/bow specs; particle counts; oxygen [Oi] in CZ (gettering vs slips); notch/flat ID.",
+          risks: "Crystal originated particles (COPs), oxygen precipitates → oxide defects later; warpage → overlay fail; metallic contamination → junction leakage.",
+          fix: "Gettering (IG/EG), clean FOUP logistics, polish slurry control, reject out-of-spec warp/TTV lots.",
+          formula: "",
+          hook: "Why do digital flows often prefer CZ while some RF/power prefer FZ or epi on heavily doped substrates?"
+        }
       },
       {
-        step: 2,
-        title: "N-Well / P-Well Ion Implantation (FEOL)",
-        domain: "FEOL",
+        step: 2, title: "Photolithography: Resist → Expose → Develop", domain: "FEOL-Litho", level: "Master",
+        layers: ['substrate'],
+        effects: ["Overlay error", "CD variation", "Standing waves", "Flare", "Mask defects", "Focus/dose drift"],
+        severity: "warn",
+        desc: "Photoresist is spun and soft-baked; DUV/UV light projects mask patterns; PEB and develop transfer CDs. This loop repeats for almost every FEOL/BEOL layer.",
+        physics: "Resolution ~ k1·λ/NA. Overlay must stay inside foundry budget or transistors misalign to contacts/implants.",
+        master: {
+          phase: "FEOL / every patterning loop",
+          cause: "Optical projection + resist chemistry define edges. Defocus, dose, PEB, and substrate reflectivity create CD and profile errors.",
+          when: "Before etch or implant of that layer — litho is the pattern definition step.",
+          params: "λ, NA, k1; dose/focus matrix; PEB temp; BARC; reticle OPC/SRAF; overlay to prior layer.",
+          risks: "Hotspots → bridging/necking; overlay → contact-to-gate shorts or leakage; flare → iso-dense bias; mask defects print as killer defects.",
+          fix: "OPC, assist features, overlay APC, focus-exposure control, defect inspection (ADI/AEI).",
+          formula: "CD ≈ f(dose, focus, PEB); Overlay error = scanner + process + mark noise",
+          hook: "Explain iso-dense bias and why OPC differs for nested vs isolated lines."
+        }
+      },
+      {
+        step: 3, title: "Etch: Wet vs Plasma / RIE Pattern Transfer", domain: "FEOL-Etch", level: "Master",
+        layers: ['substrate'],
+        effects: ["ARDE / microloading", "Notching", "Polymer residue", "Plasma charging", "Selectivity loss", "CD microbias"],
+        severity: "crit",
+        desc: "Wet etch is isotropic; plasma/RIE transfers resist patterns anisotropically into films. Charging and aspect-ratio dependent etch (ARDE) create profile and damage risks.",
+        physics: "Ions + radicals remove material; selectivity to underlayer and mask sets process window.",
+        master: {
+          phase: "FEOL (and later BEOL metal etch)",
+          cause: "Plasma sheath accelerates ions; radicals chemically etch. Dense vs sparse patterns load the plasma differently (microloading).",
+          when: "Immediately after litho develop for that hardmask/film stack.",
+          params: "Bias power, pressure, gas chemistry (Cl/F/O), overetch %, selectivity, endpoint detect.",
+          risks: "Notching at interfaces; footing; residue → opens; charging can damage thin oxides (early PID); ARDE slows deep features.",
+          fix: "Pulse bias, optimized overetch, soft-landing steps, post-etch clean, charge-dissipation recipes.",
+          formula: "Selectivity = ER_target / ER_underlayer",
+          hook: "Why does increasing ion energy improve anisotropy but worsen charging damage?"
+        }
+      },
+      {
+        step: 4, title: "STI Isolation: Trench → Fill → CMP", domain: "FEOL-STI", level: "Master",
+        layers: ['substrate'],
+        effects: ["STI stress (LOD)", "Divots", "Seam voids", "CMP dishing", "Corner parasitic devices"],
+        severity: "warn",
+        desc: "Shallow Trench Isolation electrically separates active areas. Oxide fill + CMP planarize the wafer before wells and gates.",
+        physics: "STI mechanical stress modulates mobility (LOD effect). Divots at STI edges create parasitic leakage paths.",
+        master: {
+          phase: "FEOL isolation",
+          cause: "Trench etch + liner + dielectric fill + CMP. Stress from fill/thermal cycles couples into channel silicon.",
+          when: "After active-area litho/etch, before well implants (flow-order dependent).",
+          params: "Trench depth/angle, liner thickness, HDP/SOG fill, CMP slurry, active width/space (LOD).",
+          risks: "LOD/WPE-like layout-dependent Vth/Ids; seam voids; oxide dishing in wide STI; poly wrapping into divots.",
+          fix: "Stress-aware PDK models, dummy active, optimized CMP, corner rounding, foundry LOD tables in STA/extraction.",
+          formula: "LOD: Ids = f(SA, SB distances to STI edges)",
+          hook: "How do SA/SB parameters in SPICE capture STI stress, and when do dummies help?"
+        }
+      },
+      {
+        step: 5, title: "Well/Channel Implant + RTA Anneal", domain: "FEOL-Implant", level: "Master",
         layers: ['substrate', 'welltaps'],
-        desc: "High-energy ion implantation forms active N-Wells and P-Wells. Early well/substrate taps begin clamping parasitic SCR paths.",
-        physics: "open_pdks latch-up guidance ~15 µm (LU.2/LU.3 style): keep devices near well/substrate taps."
+        effects: ["Well Proximity (WPE)", "Channeling", "Shadowing", "TED", "Residual implant damage", "Latch-up"],
+        severity: "crit",
+        desc: "Dopant ions set N/P wells and Vt adjusts. Rapid Thermal Anneal (RTA) activates dopants and repairs lattice damage. Well taps clamp parasitic SCR paths.",
+        physics: "open_pdks latch-up guidance ~15 µm to taps. WPE: implant scatter off resist edges enriches dopants near well boundaries → ΔVth.",
+        master: {
+          phase: "FEOL doping",
+          cause: "Energetic ions displace Si atoms; photoresist edges scatter ions (WPE). Anneal must activate dopants without uncontrolled diffusion (TED).",
+          when: "Well/Vt/halo/SDE implants at defined FEOL modules; anneal after implant clusters.",
+          params: "Dose, energy, tilt/twist, species (B/P/As/In), screen ox, RTA T/t profile.",
+          risks: "WPE ΔVth mismatch in matched pairs; channeling → deep tails; incomplete anneal → leakage; sparse taps → latch-up.",
+          fix: "Well-edge keepouts, matched layout symmetry, tap grid ~15 µm, halo/pocket engineering, calibrated WPE models.",
+          formula: "WPE ΔVth ≈ f(scather dose, distance to well mask edge)",
+          hook: "Why do analog matched transistors ban asymmetric well edges nearby?"
+        }
       },
       {
-        step: 3,
-        title: "Gate Oxide, Poly Patterning & Transistors (FEOL)",
-        domain: "FEOL",
+        step: 6, title: "Gate Oxide / Poly Gate Formation", domain: "FEOL-Gate", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells'],
-        desc: "Gate oxide growth (~2.1 nm) and doped poly-Si gate patterning (L≈150 nm). Source/Drain implants and local silicide form active CMOS devices.",
-        physics: "Poly sheet ≈ 48.2 Ω/sq (sky130). Row endcaps enclose wells; they terminate rows — they are not primarily decap cells."
+        effects: ["TDDB", "NBTI/PBTI", "Pinholes", "Tox variation", "SILC", "Plasma damage to gate"],
+        severity: "crit",
+        desc: "Ultra-thin gate dielectric (~2 nm class for sky130 teaching) and poly/metal gate define the MOSFET. Integrity of this film dominates lifetime.",
+        physics: "Poly sheet ~48.2 Ω/sq (sky130). Endcaps terminate rows / enclose wells — not primarily decap cells.",
+        master: {
+          phase: "FEOL gate stack",
+          cause: "Thermal/ radical oxidation or high-k deposition. Any charge or defect in tox becomes a reliability weak link.",
+          when: "After well formation / cleans; gate etch follows litho of gate layer.",
+          params: "EOT/tox, interface state Dit, nitrogen content, gate CD, poly doping.",
+          risks: "TDDB hard breakdown; NBTI/PBTI Vth shift in life; SILC soft leakage; antenna/PID later in BEOL can rupture this film.",
+          fix: "GOI monitors, careful cleans, PID-aware BEOL, antenna rules protecting gates, burn-in screens.",
+          formula: "Eox = Vg / tox ; TDDB lifetime ↓ as Eox ↑",
+          hook: "Relate antenna BEOL charging back to this FEOL tox film — why is gate the victim?"
+        }
       },
       {
-        step: 4,
-        title: "Contacts / MCON & Middle-of-Line li1 (MOL)",
-        domain: "MOL",
+        step: 7, title: "S/D, Silicide & MOL Contacts (li1)", domain: "MOL", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1'],
-        desc: "Contact cuts (MCON) land on poly/diffusion. Titanium Nitride (TiN) local interconnect (li1) forms dense intra-cell links without consuming Metal 1.",
-        physics: "R_MCON ≈ 152 Ω/cut. li1 sheet ≈ 12.8 Ω/sq — keep jogs short to limit RC."
+        effects: ["Contact resistance Rc", "Silicide piping", "Junction leakage", "Spiking", "Via/contact voids"],
+        severity: "warn",
+        desc: "Source/drain formation, silicide, and middle-of-line contacts/li1 connect transistors to Metal-1. MCON resistance dominates short local hops.",
+        physics: "R_MCON ≈ 152 Ω/cut (sky130). li1 TiN local interconnect ~12.8 Ω/sq — keep jogs short.",
+        master: {
+          phase: "MOL / contact",
+          cause: "Silicide consumes Si; contacts land on silicide. Misalignment or under-etch → opens; over-etch → junction leakage.",
+          when: "After gate sidewall spacers / S/D; before BEOL Metal-1.",
+          params: "Contact CD, aspect ratio, barrier/liner, W fill, silicide thermal budget.",
+          risks: "High Rc → timing/IR; piping shorts; junction leakage; contact random defect yield.",
+          fix: "Contact enlarge on critical nets, redundant contacts, landing rules, thermal budget control.",
+          formula: "R_path ≈ Rdevice + Σ Rcontact/n_cuts + Rli1",
+          hook: "Why do clock cells often mandate multi-cut contacts?"
+        }
       },
       {
-        step: 5,
-        title: "BEOL Aluminum Metals & Tungsten Vias (met1–met3)",
-        domain: "BEOL",
+        step: 8, title: "BEOL ILD Deposition + CMP Planarization", domain: "BEOL-CMP", level: "Master",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'vias'],
+        effects: ["CMP dishing", "Erosion", "Metal density fails", "Dielectric puddling", "Delamination"],
+        severity: "warn",
+        desc: "Inter-layer dielectric is deposited and CMP'd flat so the next metal litho can focus. Density rules exist because CMP rate depends on pattern density.",
+        physics: "Fillers exist partly so CMP sees uniform density — not only 'pretty rows'.",
+        master: {
+          phase: "BEOL dielectric / CMP",
+          cause: "Pad pressure + slurry remove high features faster; wide metal/oxide regions dish; sparse regions erode differently.",
+          when: "After each ILD or metal polish module in damascene/subtractive flows.",
+          params: "Pattern density windows, dummy metal/fill, slurry chemistry, downforce, endpoint.",
+          risks: "Dishing → thickness variation → Rc/timing; erosion → shorts; low density → puddling; film peel.",
+          fix: "Foundry density rules, metal fill, timing-aware fill keepouts, CMP model in extraction.",
+          formula: "Local polish rate ≈ f(density, feature width)",
+          hook: "Why can timing change after metal fill even if logic netlist is unchanged?"
+        }
+      },
+      {
+        step: 9, title: "BEOL Plasma Metal Etch — Process Antenna Effect", domain: "BEOL-Antenna", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'vias'],
-        desc: "Damascene/etch Aluminum (Al) interconnect stack with Tungsten via plugs. Preferred directions: met1 horizontal, met2 vertical, met3 horizontal.",
-        physics: "On-die interconnect delay uses downstream Elmore: Σ Ri·Cdownstream (not a flat τ=Rwire·Cwire package model)."
+        effects: ["Process Antenna", "Plasma Induced Damage (PID)", "Gate oxide rupture", "Latent TDDB", "Charging imbalance"],
+        severity: "crit",
+        desc: "During plasma etch of metals/vias, long floating interconnects collect charge and can discharge through thin gate oxide — the Process Antenna Effect. Layout from PD routing sets the vulnerability; damage occurs in BEOL manufacturing.",
+        physics: "Antenna Ratio R_ant = A_metal (or perimeter) / A_gate ≤ foundry limit. Victim is the FEOL gate oxide.",
+        master: {
+          phase: "BEOL manufacturing (plasma metal/via etch) — vulnerability from PD routing",
+          cause: "Plasma ions/electrons charge exposed conductors. If a large metal island ties only to a MOSFET gate (no diffusion discharge path yet), voltage builds across tox and punches through or creates latent traps.",
+          when: "Strictly during BEOL plasma patterning of that metal/via layer. Not during FEOL implant; not package attach.",
+          params: "Antenna ratio limits per layer; cumulative multi-layer rules; diode leakage budgets; jumper layer availability.",
+          risks: "Hard GOX breakdown (dead gate); soft damage → early TDDB/NBTI fail in field; yield fallout after stress.",
+          fix: "Priority: (1) metal jumper / layer-hop to break antenna (2) router ECO (3) antenna diode to diffusion (4) manual IP pin edits. Recheck density after ECO. Avoid diodes on critical clocks/analog when jumpers legal.",
+          formula: "R_ant = A_metal(or perimeter) / A_gate  ≤  R_max (foundry)",
+          hook: "Walk cumulative antenna across M1→M2→M3 and when a higher-metal jumper clears a lower-layer violation."
+        }
       },
       {
-        step: 6,
-        title: "Upper Metals met4–met5 & Thick Top Al (BEOL)",
-        domain: "BEOL",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias'],
-        desc: "Thicker upper Aluminum layers for lower-resistance global nets and power distribution before passivation.",
-        physics: "Ultra-thick met5 (~1.26 µm, ~0.028 Ω/sq) carries high current with lower IR drop."
+        step: 10, title: "Vias & Multi-Level Metal — EM / SM Reliability", domain: "BEOL-EM", level: "Master",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'vias'],
+        effects: ["Electromigration (EM)", "Stress migration", "Via voids", "Barrier failure", "Self-heating"],
+        severity: "crit",
+        desc: "Current density in narrow wires/vias drives metal atom migration (Black's law). Redundant vias and width rules protect lifetime.",
+        physics: "Al sky130 teaching stack: via resistance and current limits matter. Via doubling improves random defect + EM robustness.",
+        master: {
+          phase: "BEOL interconnect reliability",
+          cause: "Momentum transfer from electrons (EM) and residual stress/void nucleation (SM) create opens or resistance drift.",
+          when: "In field life / HTOL — but rules enforced at tapeout from layout currents.",
+          params: "Jmax, temperature, Blech length, via array count, metal width/thickness.",
+          risks: "Early open on clocks/power; via depletion; thermal runaway with self-heating.",
+          fix: "EM-aware PDN/signal widths, via multiplicity, downspread current, derating tables in signoff.",
+          formula: "MTTF ∝ J^(-n) · exp(Ea / kT)  (Black's equation)",
+          hook: "Why does doubling vias help both yield and EM, and when does Blech length protect short wires?"
+        }
       },
       {
-        step: 7,
-        title: "Passivation Openings & Bond / UBM Pads",
-        domain: "Package",
+        step: 11, title: "Upper Metals + PDN Mesh (IR / SSO Coupling)", domain: "BEOL-PDN", level: "Master",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps'],
+        effects: ["Static IR drop", "Dynamic di/dt droop", "EM on straps", "Grid resonance", "SSO bounce coupling"],
+        severity: "crit",
+        desc: "Thick upper metals form rings/straps feeding cell rails. Inadequate mesh causes IR drop, timing pushout, and EM hotspots.",
+        physics: "met5 ~0.028 Ω/sq class (sky130 teaching). Target IR often <~5–10% VDD depending on signoff.",
+        master: {
+          phase: "BEOL power delivery",
+          cause: "Ohmic drop I·R and inductive L·di/dt during simultaneous switching. Package L adds to on-die mesh impedance.",
+          when: "Signoff rail analysis (static/dynamic) pre-tapeout; failures appear in silicon as speed path / logic fail at low V.",
+          params: "Strap pitch/width, via farm density, decap budget, package L, activity factor.",
+          risks: "Setup fail from Vdroop; hold exotic cases; EM on narrow straps; resonance with package.",
+          fix: "Add straps, via pillars, intentional decap near hotspots, package bump map co-design.",
+          formula: "ΔV ≈ I·R + L·di/dt",
+          hook: "Separate static IR vs dynamic droop — which needs decap vs metal resistance fixes?"
+        }
+      },
+      {
+        step: 12, title: "Passivation & Pad / UBM Openings", domain: "Passivation", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads'],
-        desc: "Final passivation with openings over top metal for wirebond pads or flip-chip UBM / landing pads. ESD clamps sit under I/O pads.",
-        physics: "Pad openings expose Aluminum landing metal. UBM (Ti/Ni/Au) remains visible for flip-chip attach."
+        effects: ["Moisture ingress", "Mobile ions", "Pad corrosion", "Crack stop fails", "ESD exposure"],
+        severity: "warn",
+        desc: "Final dielectric passivation protects the die; openings expose bond/UBM pads. ESD clamps sit under I/O.",
+        physics: "Pad openings expose Al landing metal. UBM (Ti/Ni/Au) for flip-chip remains visible.",
+        master: {
+          phase: "Final BEOL / pad",
+          cause: "Passivation blocks moisture/ions; pad etch opens windows. Edge seal/crackstop rings stop dicing cracks.",
+          when: "End of wafer BEOL before sort.",
+          params: "Passivation stack, pad size/pitch, ESD device sizes, seal ring continuity.",
+          risks: "Corrosion, mobile ion Vth shift, crack propagation into core, ESD kill at handling.",
+          fix: "Seal rings, moisture barriers, ESD strategy, pad rules, careful probe/pack handling.",
+          formula: "",
+          hook: "Why does a broken crackstop at one corner risk the entire die after dicing?"
+        }
       },
       {
-        step: 8,
-        title: "Package Attach: Full Packaging Suite",
-        domain: "Package",
+        step: 13, title: "Wafer Sort / Probe Test", domain: "Post-Fab", level: "Master",
+        layers: ['substrate', 'stdcells', 'met5', 'pads'],
+        effects: ["Probe scrub damage", "False fails", "Pad wear", "ESD from handlers", "Binning errors"],
+        severity: "warn",
+        desc: "Each die is electrically probed on wafer. Failing dice are inked/mapped before assembly to save package cost.",
+        physics: "Probe overtravel creates scrub marks; excessive force damages pads/UBM for later bonding.",
+        master: {
+          phase: "Post-fab test",
+          cause: "Contact resistance and mechanical scrub between probe tips and pads; thermal chuck sets test corner.",
+          when: "After passivation, before dicing (usually).",
+          params: "Probe card planarity, overtravel, temperature, continuity limits, DFT coverage.",
+          risks: "Pad gouging → bond fail; false fail from dirty probes; escape of bad dice to package.",
+          fix: "Probe recipe control, re-probe rules, DFT quality, map correlation to final test.",
+          formula: "",
+          hook: "Why might a die pass sort but fail after packaging (and vice versa)?"
+        }
+      },
+      {
+        step: 14, title: "Dicing / Singulation", domain: "Post-Fab", level: "Master",
+        layers: ['substrate', 'pads'],
+        effects: ["Chipping", "Crack propagation", "Kerf particles", "Delamination", "Die strength loss"],
+        severity: "warn",
+        desc: "Diamond saw or laser stealth dicing separates dice along scribe streets. Mechanical stress can crack into active area if seal rings fail.",
+        physics: "Crackstops and proper street width protect active circuitry.",
+        master: {
+          phase: "Singulation",
+          cause: "Blade/laser stress + vibration; water jet carries particles.",
+          when: "After sort (typical).",
+          params: "Blade grit/speed, kerf width, tape mount, laser recipe.",
+          risks: "Edge chip → reliability crack growth in temp cycle; particle shorts on pads.",
+          fix: "Crackstop design, street rules, optimized dicing, inspection.",
+          formula: "",
+          hook: "How do crackstop / seal-ring layouts trade die area vs mechanical reliability?"
+        }
+      },
+      {
+        step: 15, title: "Packaging Attach — Full Suite + Package Effects", domain: "Package", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps', 'leadframe', 'bga_balls', 'rdl', 'outer_bumps', 'interposer', 'hbm', 'ubumps'],
-        desc: "Full packaging curriculum: wirebond leadframe, C4 flip-chip, WLCSP, FC-BGA, FOWLP/InFO fan-out, and 2.5D interposer+HBM. Use the Package selector — packaging is R+L / SSO physics.",
-        physics: "Flip-chip / WLCSP lower loop inductance vs wirebond; fan-out expands I/O beyond the die; 2.5D adds μbumps on an interposer. Lower L reduces — does not erase — SSO risk."
+        effects: ["Wire sweep", "Bond cratering", "C4 voids", "IMC growth", "Warpage", "Underfill voids", "TSV stress", "SSO / package L"],
+        severity: "crit",
+        desc: "Use the Package selector: wirebond/QFN, flip-chip, WLCSP, FC-BGA, fan-out, 2.5D+HBM. Package parasitics (R+L) dominate SSO — not on-die Elmore RC.",
+        physics: "Wirebond L≈1.2 nH vs flip-chip L≪0.1 nH. Lower L reduces — does not erase — bounce.",
+        master: {
+          phase: "Assembly / packaging",
+          cause: "Mechanical attach + metallurgical joints. CTE mismatch drives warpage/stress; joint quality sets R/L and lifetime.",
+          when: "After singulation — OSAT assembly.",
+          params: "Bond force/ultrasonic, reflow profile, underfill Tg, bump metallurgy, substrate CTE.",
+          risks: "Open/short, cratered pads, brittle IMC, thermal cycle fails, HBM TSV cracks, high package L → SSO.",
+          fix: "Package co-design with PDN, proper BOM, underfill, warpage control, choose WLCSP/FC/2.5D per I/O & power needs.",
+          formula: "ΔV_SSO ≈ L_pkg · di/dt_simultaneous",
+          hook: "Pick wirebond vs flip-chip vs 2.5D for a 200 A GPU rail vs a 50 MHz MCU — justify with L and I/O density."
+        }
       }
     ];
 
@@ -1543,11 +1864,11 @@
       },
       {
         step: 4,
-        title: "Route: Manhattan Signal Interconnect",
+        title: "Route: Manhattan Signal + Antenna-Aware Fixups",
         domain: "Route",
         layers: ['substrate', 'macros', 'endcaps', 'welltaps', 'stdcells', 'li1', 'met1', 'met2', 'met3', 'met4', 'vias', 'pads'],
-        desc: "Global/detail route with preferred directions: met1 horizontal, met2 vertical, alternating Manhattan layers.",
-        physics: "Downstream Elmore delay Σ Ri·Ci_down models on-die RC. MCON ≈ 152 Ω/cut dominates short local hops."
+        desc: "Global/detail route with preferred directions: met1 horizontal, met2 vertical. Antenna-aware routing inserts jumpers/diodes so BEOL plasma etch will not rupture gates.",
+        physics: "Elmore RC for delay; antenna rules for BEOL plasma reliability — layout decides vulnerability, etch causes damage."
       },
       {
         step: 5,
@@ -4098,9 +4419,47 @@
       }
       const steps = getActiveSteps();
       rebuildTimelineSegments(steps.length);
+      const ph = document.getElementById('procHud');
+      if (ph && timelineMode !== 'fab') ph.classList.remove('active');
       setFabStep(steps.length);
       markInteraction();
       scheduleRender();
+    }
+
+
+    function updateProcHud(step) {
+      const hud = document.getElementById('procHud');
+      if (!hud) return;
+      const show = timelineMode === 'fab' && step && step.master;
+      hud.classList.toggle('active', !!show);
+      if (!show) return;
+      const m = step.master;
+      hud.classList.toggle('antenna-alert', step.domain === 'BEOL-Antenna' || (step.effects||[]).some(e => /antenna/i.test(e)));
+      hud.classList.toggle('critical-alert', step.severity === 'crit' && step.domain !== 'BEOL-Antenna');
+      const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+      set('procHudTitle', step.title);
+      set('procHudPhase', m.phase || step.domain);
+      set('procHudCause', m.cause);
+      set('procHudWhen', m.when);
+      set('procHudParams', m.params);
+      set('procHudRisks', m.risks);
+      set('procHudFix', m.fix);
+      set('procHudHook', m.hook);
+      const formula = document.getElementById('procHudFormula');
+      if (formula) {
+        if (m.formula) { formula.style.display = 'block'; formula.textContent = m.formula; }
+        else { formula.style.display = 'none'; formula.textContent = ''; }
+      }
+      const fxBox = document.getElementById('procHudEffects');
+      if (fxBox) {
+        fxBox.innerHTML = '';
+        (step.effects || []).forEach(fx => {
+          const chip = document.createElement('span');
+          chip.className = 'proc-fx-chip' + (/antenna|TDDB|EM|latch|rupture|PID/i.test(fx) ? ' crit' : (step.severity === 'warn' ? ' warn' : ''));
+          chip.textContent = fx;
+          fxBox.appendChild(chip);
+        });
+      }
     }
 
     function setFabStep(stepNum) {
@@ -4118,8 +4477,11 @@
 
       const descEl = document.getElementById('fabStepDesc');
       if (descEl) {
-        descEl.innerHTML = `${step.desc} <br><span style="color: #38bdf8; font-size: 11px;">⚡ <strong>Semiconductor Physics:</strong> ${step.physics}</span>`;
+        const fx = (step.effects || []).slice(0, 4).join(' · ');
+        descEl.innerHTML = `${step.desc}<br><span style="color: #38bdf8; font-size: 11px;">⚡ <strong>Physics:</strong> ${step.physics}</span>` +
+          (fx ? `<br><span style="color: #fbbf24; font-size: 10px;">⚠ <strong>Stage effects:</strong> ${fx}</span>` : '');
       }
+      updateProcHud(step);
 
       const segments = document.querySelectorAll('.fab-timeline-segment');
       segments.forEach((seg, idx) => {
@@ -4236,7 +4598,8 @@
       };
     });
 
-    // Initialize with Full Die (last step of active timeline)
+    // Initialize timeline segments for Master FAB length, then show last step
+    rebuildTimelineSegments(getActiveSteps().length);
     setFabStep(getActiveSteps().length);
 
     const fileInput = document.getElementById('defFileInput');
