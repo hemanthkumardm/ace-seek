@@ -14,7 +14,9 @@ Illustrative **static** teaching lab in `web/public/die_viewer_3d.html`.
 |------|---------|
 | **Wafer Fab** | 15 master process steps + stage effects + quiz |
 | **PnR Flow** | Design implementation order |
-| **FinFET/Cu** | Conceptual advanced-node literacy (static) |
+| **Adv Nodes** | Tech-node challenges/methods: FinFET → GAA → BPR → BSPD/PowerVia (static) + purple Tech-node selector |
+
+See also: `docs/SILICON_LAB_ADV_NODES.md`
 
 ## Antenna & CMP
 

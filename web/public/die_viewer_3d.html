@@ -539,6 +539,73 @@
       color: #cbd5e1;
     }
     .pkg-hud-table th { color: #fbbf24; background: rgba(217, 119, 6, 0.12); }
+    /* Tech-node challenges HUD */
+    .node-hud {
+      position: absolute;
+      bottom: 118px;
+      right: 14px;
+      background: rgba(12, 8, 28, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid #7c3aed;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #c4b5fd;
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      z-index: 14;
+      box-shadow: 0 0 18px rgba(124, 58, 237, 0.32);
+      max-width: min(380px, calc(100vw - 90px));
+      max-height: min(38vh, 280px);
+      overflow-y: auto;
+      pointer-events: none;
+    }
+    .node-hud.active { display: flex; }
+    .node-hud-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #ddd6fe;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border-bottom: 1px solid rgba(124, 58, 237, 0.35);
+      padding-bottom: 4px;
+    }
+    .node-hud-pill {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(167, 139, 250, 0.45);
+      color: #c4b5fd;
+      background: rgba(124, 58, 237, 0.18);
+      white-space: nowrap;
+    }
+    .node-hud-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 2px 8px;
+      color: #94a3b8;
+    }
+    .node-hud-grid strong { color: #e2e8f0; font-weight: 600; }
+    .node-hud-section { color: #cbd5e1; line-height: 1.35; font-size: 9.5px; }
+    .node-hud-section .lbl {
+      display: block;
+      color: #a78bfa;
+      font-weight: 700;
+      font-size: 9px;
+      text-transform: uppercase;
+      margin-bottom: 1px;
+    }
+    .node-hud-physics {
+      color: #94a3b8;
+      line-height: 1.35;
+      font-size: 9px;
+      border-top: 1px solid rgba(124, 58, 237, 0.25);
+      padding-top: 4px;
+    }
     /* Process Master HUD (Wafer Fab timeline) */
     .proc-hud {
       position: absolute;
@@ -874,6 +941,21 @@
           <option value="all_compare">🏛️ Gallery: All Packaging Modes</option>
         </optgroup>
       </select>
+      <!-- Advanced tech-node curriculum (challenges + methods) -->
+      <select id="nodeSelect" class="btn" style="padding: 4px 8px; font-weight: bold; background: #0f172a; color: #a78bfa; border-color: #7c3aed;" title="Tech-node challenges & methods (educational schematic)" aria-label="Technology node curriculum">
+        <optgroup label="Mature / teaching">
+          <option value="sky130">📚 ~130nm planar (Sky130-class teaching)</option>
+          <option value="n28">📘 ~28nm planar / early HKMG</option>
+        </optgroup>
+        <optgroup label="FinFET era">
+          <option value="n16">📗 ~16/14nm FinFET</option>
+          <option value="n7">📙 ~7/5nm FinFET + EUV</option>
+        </optgroup>
+        <optgroup label="Lowest advanced">
+          <option value="n3">📕 ~3nm GAA / nanosheet</option>
+          <option value="n2" selected>💎 ~2nm GAA + BSPD / PowerVia</option>
+        </optgroup>
+      </select>
       <input type="file" id="defFileInput" accept=".def,.DEF" hidden aria-label="Load DEF file">
     </div>
 
@@ -884,7 +966,7 @@
         <button id="filterAllBtn" class="btn active" title="Show Complete Wafer Stack" aria-label="Show all layers">All</button>
         <button id="filterFeolBtn" class="btn" title="FEOL: Substrate, Wells, Endcaps, Welltaps, StdCells, Decaps, Fillers, Macros" aria-label="Show FEOL layers">FEOL</button>
         <button id="filterBeolBtn" class="btn" title="BEOL: li1, met1-met5, Vias, Manhattan Routing" aria-label="Show BEOL layers">BEOL</button>
-        <button id="filterPdnBtn" class="btn" title="PDN: Core & Macro Rings, Power Straps, Cell Rails, Decaps" aria-label="Show PDN mesh">PDN Mesh</button>
+        <button id="filterPdnBtn" class="btn" title="PDN: Core & Macro Rings, Power Straps, Cell Rails, Decaps, BPR, BSPD" aria-label="Show PDN mesh">PDN Mesh</button>
         <button id="filterPkgBtn" class="btn" title="Packaging suite: pads, wirebonds, C4/WLCSP bumps, leadframe, BGA balls, RDL, fan-out, interposer, HBM" aria-label="Show packaging layers">Package</button>
         <button id="filterSignalBtn" class="btn" style="color: #38bdf8;" title="Trace 3D Signal Path & RC Delay" aria-label="Toggle RC Path Elmore HUD">⚡ RC Path</button>
       </div>
@@ -1018,6 +1100,23 @@
         <div id="pkgHudTableWrap" style="display:none;"></div>
       </div>
 
+      <!-- Tech-node challenges & methods HUD -->
+      <div class="node-hud active" id="nodeHud" aria-live="polite">
+        <div class="node-hud-title">
+          <span id="nodeHudTitle">💎 ~2nm GAA + BSPD</span>
+          <span class="node-hud-pill" id="nodeHudEra">Lowest advanced</span>
+        </div>
+        <div class="node-hud-grid">
+          <span>Device</span><strong id="nodeHudDevice">GAA nanosheet</strong>
+          <span>BEOL</span><strong id="nodeHudBeol">Cu + EUV / multi-pattern</strong>
+          <span>Power</span><strong id="nodeHudPower">BSPD / PowerVia class</strong>
+          <span>Key challenge</span><strong id="nodeHudChallenge">Frontside track starvation + IR</strong>
+        </div>
+        <div class="node-hud-section"><span class="lbl">Challenges</span><div id="nodeHudChallenges">—</div></div>
+        <div class="node-hud-section"><span class="lbl">Methods</span><div id="nodeHudMethods">—</div></div>
+        <div class="node-hud-physics" id="nodeHudPhysics">Educational schematic — not a foundry DRC deck.</div>
+      </div>
+
       <!-- Quick Camera Gizmo -->
       <div class="camera-gizmo">
         <button class="btn" style="padding: 4px;" id="gizmoRotLeft" title="Rotate Left">⟲</button>
@@ -1077,7 +1176,7 @@
             <div class="timeline-mode-toggle" role="group" aria-label="Timeline mode">
               <button id="timelineModeFab" class="btn active" type="button" aria-pressed="true" title="Wafer fabrication process timeline">Wafer Fab</button>
               <button id="timelineModePnr" class="btn" type="button" aria-pressed="false" title="Place-and-route flow timeline">PnR Flow</button>
-              <button id="timelineModeAdv" class="btn" type="button" aria-pressed="false" title="Advanced node: FinFET + Cu dual-damascene track">FinFET/Cu</button>
+              <button id="timelineModeAdv" class="btn" type="button" aria-pressed="false" title="Advanced nodes: FinFET → GAA → BSPD/PowerVia challenges & methods">Adv Nodes</button>
             </div>
             <span class="step-pill" id="fabStepPill">FAB STEP 1 / 8</span>
             <span class="step-title" id="fabStepTitle">Silicon Substrate & Wells (FEOL)</span>
@@ -1223,6 +1322,48 @@
         sheetRes: '0.125 Ω/sq',
         role: 'Horizontal standard cell power rails delivering VDD and VSS directly into cell abutment contacts.',
         designRule: 'Continuous horizontal rails spanning entire rows. Abutted with adjacent flipped rows.'
+      },
+      {
+        id: 'bpr',
+        name: 'Buried Power Rails (BPR)',
+        color: '#f43f5e',
+        zLevel: 0.35,
+        enabled: false,
+        is3d: true,
+        domain: 'pdn',
+        thickness: 'Buried in STI / below active (node-dependent)',
+        material: 'W / Ru / Cu-class buried rails (foundry-specific)',
+        sheetRes: 'Lower R than thin frontside locals (schematic)',
+        role: 'Advanced-node concept: power rails buried below the device so frontside metals stay free for signals.',
+        designRule: 'Educational only — not in Sky130 OpenLane PDN. Paired with nano-TSVs / backside metals in BSPD flows.'
+      },
+      {
+        id: 'nano_tsv',
+        name: 'Nano-TSVs / PowerVias',
+        color: '#e879f9',
+        zLevel: -0.4,
+        enabled: false,
+        is3d: true,
+        domain: 'pdn',
+        thickness: 'Through-Si vertical power stubs (schematic)',
+        material: 'W / Cu nano-TSV class (PowerVia / BSPDN family)',
+        sheetRes: 'Vertical R path << long frontside laterals',
+        role: 'Vertical links from backside power metals up to buried rails / cell power pins.',
+        designRule: 'Illustrative — teaches BSPD topology, not a foundry PowerVia deck.'
+      },
+      {
+        id: 'bspd_metal',
+        name: 'Backside Power Metals (BSPD)',
+        color: '#fb7185',
+        zLevel: -1.2,
+        enabled: false,
+        is3d: true,
+        domain: 'pdn',
+        thickness: 'Thick backside redistribution (schematic)',
+        material: 'Thick Cu-class backside power grid',
+        sheetRes: 'Low-R global power on wafer reverse',
+        role: 'Backside power delivery (BSPD/BSPDN): route VDD/VSS on the wafer reverse instead of crowding frontside BEOL.',
+        designRule: 'Frees frontside tracks for signals; new constraints: alignment, thermal, backside EM, ECO difficulty. Not Sky130-real.'
       },
       {
         id: 'li1',
@@ -2705,42 +2846,153 @@
       a5: { q: "Middle-of-line in FinFET flows is critical because…",
             choices: ["No contacts exist", "Contact-to-gate parasitics and local interconnect dominate RC/performance", "Only bumps matter", "Litho is skipped"],
             answer: 1, explain: "CA/CB/local interconnect parasitics are first-order at advanced nodes." },
+      a6: { q: "As logic nodes scale toward ~7/5/3nm, a first-order BEOL challenge is…",
+            choices: ["Infinite metal tracks", "Routing congestion + resistance rise as wires/vias shrink (track starvation)", "Antenna disappears", "No need for PDN"],
+            answer: 1, explain: "Thinner metals and tighter pitches raise R and steal tracks from signals — motivating BPR/BSPD." },
+      a7: { q: "GAA / nanosheet devices mainly improve…",
+            choices: ["Package ball count only", "Electrostatic control vs FinFET at shorter Lg (gate wraps the channel)", "CMP slurry color", "Wirebond inductance"],
+            answer: 1, explain: "Gate-all-around wraps the channel for stronger SCE control at lowest advanced nodes." },
+      a8: { q: "Buried power rails (BPR) help because…",
+            choices: ["They delete all vias", "They move cell power under the device so frontside metals stay freer for signals", "They replace EUV", "They eliminate package L"],
+            answer: 1, explain: "BPR frees frontside tracks; often paired with backside metals / nano-TSVs." },
+      a9: { q: "Backside power delivery (BSPD / PowerVia / BSPDN) means…",
+            choices: ["Only packaging bumps move", "Power metals on the wafer reverse feed cells via vertical nano-TSVs / PowerVias", "Frontside Al etch returns", "No IR drop remains"],
+            answer: 1, explain: "BSPD routes thick power on the backside; vertical links feed BPR/cells — frees frontside for signals." },
+      a10: { q: "A honest limit of BSPD teaching is…",
+            choices: ["It erases all package inductance forever", "It does not remove package PI; adds alignment/thermal/backside-EM/ECO constraints", "It needs no extraction tools", "It works unchanged on Sky130 OpenLane"],
+            answer: 1, explain: "BSPD helps on-die IR/track tax; package L and new process constraints remain." },
     };
 
-    // ── Advanced Node track (FinFET + Cu) ─────────────────────────
+    // ── Tech-node catalog (challenges + methods) ───────────────────
+    const TECH_NODE_CATALOG = {
+      sky130: {
+        label: '~130nm planar (Sky130-class)',
+        era: 'Mature / teaching',
+        device: 'Planar CMOS',
+        beol: 'Al (teaching) / early Cu class',
+        power: 'Frontside rails + straps + bumps',
+        keyChallenge: 'Learn classic FEOL/BEOL/PDN first',
+        challenges: 'SCE milder than advanced nodes; antenna on Al RIE; CMP density; latch-up taps; package L (wirebond vs flip-chip).',
+        methods: 'OpenLane/OpenROAD flows; classic PDN mesh; diode/jumper antenna fixes; packaging curriculum in this lab.',
+        physics: 'Ace-Seek default teaching stack. Advanced-node topics below are conceptual overlays — not Sky130 silicon.',
+        showLayers: ['substrate', 'stdcells', 'pdn_rails', 'pdn_rings', 'pdn_straps', 'met1', 'met2', 'met3', 'bumps']
+      },
+      n28: {
+        label: '~28nm planar / early HKMG',
+        era: 'Mature scaled planar',
+        device: 'Planar HKMG',
+        beol: 'Cu dual-damascene',
+        power: 'Frontside Cu mesh + C4',
+        keyChallenge: 'Variability + Cu BEOL RC',
+        challenges: 'Gate leakage / HKMG integration; Cu barrier/via voids; denser routing; IR on thinner locals; more corners (OCV).',
+        methods: 'Cu damascene + CMP control; multi-corner STA; denser PDN straps; foundry DRM for density/antenna.',
+        physics: 'Bridge from teaching planar to Cu-era BEOL before FinFET.',
+        showLayers: ['substrate', 'stdcells', 'pdn_rails', 'pdn_straps', 'met1', 'met2', 'met3', 'met4', 'vias', 'bumps']
+      },
+      n16: {
+        label: '~16/14nm FinFET',
+        era: 'FinFET era',
+        device: 'FinFET (multi-fin)',
+        beol: 'Cu + early multi-pattern',
+        power: 'Frontside mesh; rising track tax',
+        keyChallenge: 'Fin variation + MOL RC + congestion',
+        challenges: 'Fin quantization / self-heating; SADP coloring; MOL contact parasitics; local IR; denser stdcell pin access fights PDN.',
+        methods: 'FinFET libraries; SADP-aware routing; contact multiplicity; DTCO (cell architecture ↔ process); denser upper straps.',
+        physics: 'First mass FinFET nodes — electrostatic win, layout/PDN complexity jumps.',
+        showLayers: ['substrate', 'stdcells', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'vias', 'pdn_straps']
+      },
+      n7: {
+        label: '~7/5nm FinFET + EUV',
+        era: 'FinFET + EUV',
+        device: 'FinFET (scaled)',
+        beol: 'EUV + Cu; extreme pitch',
+        power: 'Frontside starvation → BPR research',
+        keyChallenge: 'Track starvation + via R + EUV stochastic',
+        challenges: 'Few signal tracks left after PDN; via resistance; EUV stochastic defects; tip-to-tip; thermal × EM; huge design-rule complexity.',
+        methods: 'EUV for critical layers; aggressive DTCO; pin-access aware placement; optional buried-rail pilots; 2.5D/HBM for bandwidth.',
+        physics: 'Lowest FinFET class — motivates buried rails / backside power in later nodes.',
+        showLayers: ['substrate', 'stdcells', 'li1', 'met1', 'met2', 'vias', 'pdn_straps', 'bpr']
+      },
+      n3: {
+        label: '~3nm GAA / nanosheet',
+        era: 'Lowest advanced (GAA)',
+        device: 'GAA nanosheet / RibbonFET-class',
+        beol: 'EUV + high-aspect vias',
+        power: 'BPR emerging; frontside still stressed',
+        keyChallenge: 'GAA integration + power/signal co-design',
+        challenges: 'Nanosheet formation / parasitic C; MOL still critical; BEOL R/C; power delivery vs pin access; variability & aging.',
+        methods: 'GAA device stacks; BPR; continued EUV; DTCO + 3D power concepts; heterogeneous packaging.',
+        physics: 'Gate wraps channel — next electrostatic step after FinFET.',
+        showLayers: ['substrate', 'stdcells', 'li1', 'met1', 'bpr', 'pdn_straps', 'vias']
+      },
+      n2: {
+        label: '~2nm GAA + BSPD / PowerVia',
+        era: 'Lowest advanced (BSPD)',
+        device: 'GAA nanosheet',
+        beol: 'Frontside signal-optimized Cu/EUV',
+        power: 'BSPD / BSPDN / PowerVia family',
+        keyChallenge: 'Frontside track starvation + IR → move power to backside',
+        challenges: 'Almost no frontside tracks for both power and signals; IR/EM on thin locals; need thick power path without stealing signal metals; thermal + alignment of backside process.',
+        methods: 'Backside power metals + nano-TSVs/PowerVias + buried rails (BPR); free frontside for signals; package PI still required; new ECO/extraction flows.',
+        physics: 'Industry inflection (imec BSPDN / Applied Materials backside power / Intel PowerVia-class). Lab shows schematic topology only.',
+        showLayers: ['substrate', 'stdcells', 'met1', 'met2', 'bpr', 'nano_tsv', 'bspd_metal', 'bumps']
+      }
+    };
+    let currentTechNode = 'n2';
+
+    // ── Advanced Node track (tech nodes → FinFET → GAA → BSPD) ──
     const ADV_STEPS = [
       {
-        step: 1, title: "FinFET Device Architecture vs Planar", domain: "ADV-FEOL", level: "Master",
+        step: 1, title: "Tech-Node Ladder: What “nm” Really Means", domain: "ADV-Node", level: "Master",
+        layers: ['substrate', 'stdcells', 'met1', 'met2', 'pdn_rails'],
+        effects: ["Marketing nm", "DTCO", "Track pitch", "CPP / MMP", "Foundry divergence"],
+        severity: "warn",
+        desc: "Use the purple Tech-node selector. “7nm/5nm/3nm/2nm” are commercial labels — real metrics are contacted poly pitch (CPP), metal pitch, and DTCO. This lab maps challenges → methods per era.",
+        physics: "Lowest advanced nodes (~3/2nm-class) fight electrostatics, BEOL R, and power/signal track tax simultaneously.",
+        master: {
+          phase: "Node literacy",
+          cause: "Scaling is multi-dimensional: device, MOL, BEOL, power delivery, lithography — not one “nm” number.",
+          when: "Before debating FinFET vs GAA vs BSPD — pick the node card (sky130 → n2).",
+          keyParams: "CPP, min metal pitch, # routing tracks/cell, Vdd, Fin/GAA geometry, PDN strategy (frontside vs BPR/BSPD).",
+          pitfalls: "Equating Sky130 OpenLane with 2nm PowerVia; claiming BSPD deletes package inductance.",
+          interviewHook: "Name three metrics better than the marketing node name for comparing foundries.",
+          formula: "QoR ≈ f(device, MOL RC, BEOL R/C, PDN IR, rules/DTCO)"
+        },
+        quizId: "a6",
+        demos: []
+      },
+      {
+        step: 2, title: "FinFET Device Architecture vs Planar", domain: "ADV-FEOL", level: "Master",
         layers: ['substrate', 'welltaps', 'endcaps', 'stdcells'],
         effects: ["SCE control", "Fin quantization", "Vt variation", "Self-heating", "Strain engineering"],
         severity: "crit",
-        desc: "Advanced-node teaching track: fully depleted fins wrap the gate for electrostatic control. Fins are quantized; width comes in fin counts.",
+        desc: "Fully depleted fins wrap the gate for electrostatic control. Width comes in fin counts — quantized drive.",
         physics: "Shorter Lg with controlled SCE; trade self-heating and fin roughness variation.",
         master: {
-          phase: "Advanced FEOL (FinFET)",
+          phase: "Advanced FEOL (FinFET ~16→5nm-class)",
           cause: "Gate controls channel from multiple sides on a thin Si fin → stronger electrostatic integrity.",
-          when: "Sub-20nm class logic nodes (conceptual track — not sky130 silicon).",
-          keyParams: "Fin height/width/pitch, number of fins, Lg, spacer, work-function metals, strain (SiGe/eSiC).",
+          when: "Sub-20nm class logic nodes (conceptual — not sky130 silicon).",
+          keyParams: "Fin height/width/pitch, Nfin, Lg, spacer, work-function metals, strain (SiGe/eSiC).",
           pitfalls: "Assuming planar SPICE intuition; ignoring fin quantization and self-heating on EM/timing.",
-          interviewHook: "Compare planar vs FinFET short-channel control and why multi-fin devices are used for drive current.",
-          formula: "Effective Weff ≈ Nfin · (2Hfin + Wfin) (approx)"
+          interviewHook: "Compare planar vs FinFET short-channel control and why multi-fin devices raise Id.",
+          formula: "Weff ≈ Nfin · (2Hfin + Wfin) (approx)"
         },
         quizId: "a1",
         demos: []
       },
       {
-        step: 2, title: "Cu Dual-Damascene BEOL Module", domain: "ADV-BEOL-Cu", level: "Master",
+        step: 3, title: "Cu Dual-Damascene BEOL Module", domain: "ADV-BEOL-Cu", level: "Master",
         layers: ['substrate', 'stdcells', 'met1', 'met2', 'met3', 'vias', 'fillers'],
         effects: ["Dual damascene", "Barrier/liner", "Cu CMP dishing", "Via bottom voids", "Surface EM"],
         severity: "crit",
-        desc: "Copper interconnects are built by etching dielectric trenches/vias, depositing barrier+seed, electroplating Cu, then CMP — not subtractive Al plasma etch.",
-        physics: "Antenna still exists (dielectric etch / charging contexts) but metal patterning physics differs from Al RIE.",
+        desc: "Copper wires: etch dielectric → barrier/seed → Cu plate → CMP. Not subtractive Al plasma etch.",
+        physics: "Antenna contexts change; barrier/via bottoms dominate reliability.",
         master: {
           phase: "Advanced BEOL (Cu)",
-          cause: "Cu etch is impractical in conventional RIE; damascene fill+CMP defines wires.",
+          cause: "Cu is hard to plasma-etch; damascene fill+CMP defines geometry.",
           when: "From ~130nm-class Cu adoption onward (node-dependent).",
-          keyParams: "TaN/Ta barrier, Cu seed, ECD fill, CMP slurry, capping layer (Co/SiCN).",
-          pitfalls: "Treating Cu like Al antenna-only story; ignoring barrier continuity and CMP topography.",
+          keyParams: "TaN/Ta barrier, Cu seed, ECD, CMP slurry, Co/SiCN cap.",
+          pitfalls: "Treating Cu like Al-only antenna story; ignoring barrier continuity.",
           interviewHook: "Draw single vs dual damascene and where via voids nucleate.",
           formula: "Damascene: dielectric pattern → barrier/seed → Cu fill → CMP"
         },
@@ -2748,18 +3000,18 @@
         demos: []
       },
       {
-        step: 3, title: "Cu Reliability: Barrier, EM Paths, Via Health", domain: "ADV-EM-Cu", level: "Master",
+        step: 4, title: "Cu Reliability: Barrier, EM, Via Health", domain: "ADV-EM-Cu", level: "Master",
         layers: ['met2', 'met3', 'met4', 'vias', 'pdn_straps'],
-        effects: ["Cu EM", "Barrier failure", "Via voiding", "Capping interface diffusion", "Self-heating × EM"],
+        effects: ["Cu EM", "Barrier failure", "Via voiding", "Cap interface diffusion", "Self-heating × EM"],
         severity: "crit",
-        desc: "Cu EM often runs along interfaces; liner/cap quality and via bottom integrity dominate lifetime.",
-        physics: "Black's law still applies; activation energy and path differ from Al.",
+        desc: "Cu EM often runs along interfaces; liner/cap and via bottoms dominate lifetime.",
+        physics: "Black's law still applies; paths differ from Al.",
         master: {
-          phase: "Advanced interconnect reliability",
-          cause: "Electron wind + weak interfaces; thin barriers or poor via cleans → early voids.",
-          when: "HTOL / field life; rules enforced at tapeout.",
-          keyParams: "Jmax tables, via arrays, via pillar, thermal derating, Blech length.",
-          pitfalls: "Copying Al EM widths blindly; ignoring self-heating in FinFET local interconnect.",
+          phase: "Interconnect reliability",
+          cause: "Electron wind + weak interfaces; thin barriers / dirty via bottoms → early voids.",
+          when: "HTOL / field; Jmax rules at tapeout.",
+          keyParams: "Jmax, via arrays, thermal derating, Blech length.",
+          pitfalls: "Copying Al EM widths; ignoring FinFET self-heating.",
           interviewHook: "Why can a via-limited EM fail before the wide Cu line above it?",
           formula: "MTTF ∝ J^(-n)·exp(Ea/kT)"
         },
@@ -2767,56 +3019,132 @@
         demos: []
       },
       {
-        step: 4, title: "Multi-Patterning / EUV Lithography Reality", domain: "ADV-Litho", level: "Master",
+        step: 5, title: "Multi-Patterning / EUV Lithography", domain: "ADV-Litho", level: "Master",
         layers: ['substrate', 'stdcells', 'met1'],
-        effects: ["SADP/SAQP", "LELE overlay", "EUV stochastic", "Pitch walking", "Tip-to-tip limits"],
+        effects: ["SADP/SAQP", "LELE overlay", "EUV stochastic", "Pitch walking", "Tip-to-tip"],
         severity: "crit",
-        desc: "When single exposure cannot resolve pitch, SADP/SAQP or LELE (and EUV) print the grid. Overlay and pitch walking become first-order yield limiters.",
-        physics: "Coloring/decomposition constraints hit routers and custom layout.",
+        desc: "When one exposure cannot print the pitch: SADP/SAQP, LELE, or EUV. Overlay and pitch walking become yield limiters.",
+        physics: "Coloring/decomposition constraints hit routers and custom cells.",
         master: {
-          phase: "Advanced lithography",
+          phase: "Advanced lithography (~7/5nm+)",
           cause: "Resolution limit of λ/NA forces multiple patterns or EUV.",
-          when: "Critical FEOL/BEOL layers at advanced nodes.",
-          keyParams: "Pitch, odd/even tracks, tip-to-tip, EUV dose/stochastic defectivity.",
-          pitfalls: "Drawing illegal odd-cycle colors; ignoring decomposition fails until tapeout.",
-          interviewHook: "Explain pitch walking in SADP and how it affects metal resistance matching.",
-          formula: "SADP: spacer-defined pitch ≈ ½ mandrel pitch"
+          when: "Critical FEOL/BEOL layers at FinFET/GAA nodes.",
+          keyParams: "Pitch, odd/even tracks, tip-to-tip, EUV dose/stochastic.",
+          pitfalls: "Illegal odd-cycle colors; late decomposition fails.",
+          interviewHook: "Explain pitch walking in SADP and resistance matching.",
+          formula: "SADP: spacer pitch ≈ ½ mandrel pitch"
         },
         quizId: "a4",
         demos: []
       },
       {
-        step: 5, title: "Advanced MOL / Local Interconnect Parasitics", domain: "ADV-MOL", level: "Master",
+        step: 6, title: "MOL Parasitics Eat FinFET Gains", domain: "ADV-MOL", level: "Master",
         layers: ['stdcells', 'li1', 'met1', 'vias', 'endcaps'],
-        effects: ["CA/CB resistance", "Contact-to-gate cap", "Local interconnect RC", "MOL reliability"],
+        effects: ["CA/CB R", "Contact-to-gate C", "Local RC", "MOL reliability"],
         severity: "warn",
-        desc: "At FinFET nodes, middle-of-line local interconnect and contact parasitics often dominate path delay as much as long M3–M5 routes.",
-        physics: "Weff boost from fins can be eaten by MOL RC if contacts are sparse.",
+        desc: "At FinFET/GAA nodes, middle-of-line contacts and local interconnect often dominate delay as much as long M3–M5 routes.",
+        physics: "Weff boost from fins can be eaten by MOL RC.",
         master: {
           phase: "Advanced MOL",
-          cause: "Tight CG spaces → high parasitics; tungsten/local Cu MOL resistance is significant.",
-          when: "After device formation, before global BEOL.",
-          keyParams: "Contact multiplicity, MOL stack, CG spacing rules, via0.",
+          cause: "Tight CG spaces → high parasitics; W / local Cu MOL R is large.",
+          when: "After devices, before global BEOL.",
+          keyParams: "Contact multiplicity, MOL stack, CG rules, via0.",
           pitfalls: "Optimizing only global metal while MOL starves the cell.",
-          interviewHook: "Where do you put effort first on a critical path: MOL contacts or M5?",
+          interviewHook: "Critical path: fix MOL contacts first or M5?",
           formula: "τ ≈ Rmol·Cgate + Rbeol·Cwire + …"
         },
         quizId: "a5",
         demos: []
       },
       {
-        step: 6, title: "Advanced Packaging Still Applies (2.5D/HBM)", domain: "Package", level: "Master",
-        layers: ['pads', 'bumps', 'interposer', 'hbm', 'ubumps', 'bga_balls', 'rdl', 'outer_bumps'],
+        step: 7, title: "GAA / Nanosheet (RibbonFET-class)", domain: "ADV-GAA", level: "Master",
+        layers: ['substrate', 'stdcells', 'li1', 'met1', 'endcaps'],
+        effects: ["GAA electrostatics", "Nanosheet stack", "Parasitic C", "Inner spacer", "Channel release"],
+        severity: "crit",
+        desc: "Lowest advanced device step after FinFET: gate-all-around wraps nanosheet channels for stronger SCE control at shorter Lg (~3/2nm-class teaching).",
+        physics: "More gate control → better scalability; process and parasitics get harder.",
+        master: {
+          phase: "GAA FEOL (~3nm-class)",
+          cause: "FinFET SCE limits at extreme Lg; GAA surrounds the channel.",
+          when: "Foundry “3nm/2nm” GAA ramps (names vary: nanosheet, RibbonFET, …).",
+          keyParams: "Sheet thickness/width/#sheets, inner spacer, release etch, work-function stack.",
+          pitfalls: "Calling any GAA “just a thinner FinFET”; ignoring parasitic C between sheets.",
+          interviewHook: "Why does GAA improve DIBL/SCE vs FinFET at the same marketing node?",
+          formula: "Gate wraps channel → superior electrostatic integrity (qualitative)"
+        },
+        quizId: "a7",
+        demos: []
+      },
+      {
+        step: 8, title: "Buried Power Rails (BPR)", domain: "ADV-BPR", level: "Master",
+        layers: ['substrate', 'stdcells', 'bpr', 'pdn_rails', 'met1', 'li1'],
+        effects: ["Track reclaim", "Buried R", "Pin access", "Process complexity", "PDN DTCO"],
+        severity: "crit",
+        desc: "Bury VDD/VSS under the device/STI so frontside metals are freer for signals. Often a stepping stone toward full backside power.",
+        physics: "Frontside track tax from power rails is a first-order congestion/IR driver at ~7→3nm.",
+        master: {
+          phase: "Advanced PDN — BPR",
+          cause: "Stdcell power rails on frontside steal scarce routing tracks and still have high R.",
+          when: "Advanced FinFET/GAA nodes evaluating or shipping buried rails.",
+          keyParams: "Rail metal (W/Ru/…), depth, contact to MOL, keepout to devices.",
+          pitfalls: "Assuming BPR alone equals BSPD; ignoring connection to upper/backside grid.",
+          interviewHook: "BPR vs classic M1 follow-pins — what congestion problem does BPR attack?",
+          formula: "Frontside tracks_free ↑ when power moves below active"
+        },
+        quizId: "a8",
+        demos: []
+      },
+      {
+        step: 9, title: "Backside Power Delivery (BSPD / PowerVia)", domain: "ADV-BSPD", level: "Master",
+        layers: ['substrate', 'stdcells', 'met1', 'met2', 'bpr', 'nano_tsv', 'bspd_metal', 'bumps'],
+        effects: ["BSPDN", "PowerVia", "Nano-TSV", "Frontside free", "Backside EM", "Alignment"],
+        severity: "crit",
+        desc: "Route thick power on the wafer reverse; feed cells through nano-TSVs / PowerVias (often into BPR). Industry names: BSPD, BSPDN, PowerVia-class — schematic only here.",
+        physics: "Shortens on-die power path R; frees frontside for signals. Does NOT erase package L·di/dt.",
+        master: {
+          phase: "Lowest advanced PDN — BSPD",
+          cause: "Frontside BEOL cannot host both dense signals and low-R power at ~2nm-class pitches.",
+          when: "Leading-edge logic (imec BSPDN / Applied backside power / Intel PowerVia-family narratives).",
+          keyParams: "Backside metal stack, nano-TSV R/pitch, BPR attach, wafer thin/bond flows, thermal path.",
+          pitfalls: "Claiming BSPD removes all IR and package bounce; ignoring ECO/extraction/tool gaps; treating as Sky130-real.",
+          interviewHook: "What IR/EM problems does BSPD solve, and what new constraints appear?",
+          formula: "ΔV_die ↓ via thick backside + short vertical path; ΔV_pkg ≈ L_pkg·di/dt remains"
+        },
+        quizId: "a9",
+        demos: []
+      },
+      {
+        step: 10, title: "Lowest-Node Challenge Map & Methods", domain: "ADV-Methods", level: "Master",
+        layers: ['substrate', 'stdcells', 'bpr', 'nano_tsv', 'bspd_metal', 'met1', 'met2', 'pdn_straps', 'interposer', 'hbm', 'ubumps'],
+        effects: ["IR/EM", "Congestion", "Variability", "Thermal", "EUV", "3D packaging"],
+        severity: "crit",
+        desc: "Cheat-sheet: challenges at lowest advanced nodes and the method families used to fight them. Pair with Tech-node selector + Package gallery.",
+        physics: "No single trick — DTCO stacks device + MOL + BEOL + BSPD + package.",
+        master: {
+          phase: "Synthesis of methods",
+          cause: "Physics limits stack: electrostatics, wire R, power delivery, litho stochastic, heat.",
+          when: "Architecture → DTCO → implementation → signoff at leading nodes.",
+          keyParams: "See node HUD: device / BEOL / power strategy per era.",
+          pitfalls: "Cargo-culting PowerVia without package PI; ignoring variability/aging; fake “tapeout-ready” claims in a schematic lab.",
+          interviewHook: "Pick ~7nm vs ~2nm: which challenge dominates and which method moves first?",
+          formula: "Methods: GAA + EUV + BPR/BSPD + DTCO + 2.5D/HBM co-design"
+        },
+        quizId: "a10",
+        demos: []
+      },
+      {
+        step: 11, title: "Advanced Packaging Still Applies (2.5D/HBM)", domain: "Package", level: "Master",
+        layers: ['pads', 'bumps', 'interposer', 'hbm', 'ubumps', 'bga_balls', 'rdl', 'outer_bumps', 'bspd_metal'],
         effects: ["HBM TSV stress", "Interposer warpage", "μbump fatigue", "PDN co-design"],
         severity: "crit",
-        desc: "Advanced nodes still need the packaging suite — often 2.5D/HBM for bandwidth. Use Package selector for visuals.",
-        physics: "On-die Cu + package L co-design the power grid.",
+        desc: "Even with BSPD, bandwidth/power often need 2.5D/HBM. Use Package selector for visuals.",
+        physics: "On-die backside power + package L still co-design the grid.",
         master: {
           phase: "Advanced assembly",
-          cause: "Heterogeneous integration moves the bottleneck to die-to-die and package PDN.",
+          cause: "Heterogeneous integration moves bottlenecks to die-to-die and package PI.",
           when: "After wafer finish — OSAT / foundry turnkey.",
           keyParams: "μbump pitch, TSV keepout, interposer RLC, HBM channels.",
-          pitfalls: "Ignoring package when closing on-die IR/EM.",
+          pitfalls: "Ignoring package when closing on-die IR/EM — even with BSPD.",
           interviewHook: "Why can HBM PHY timing pass on-die but fail with interposer SI/PI?",
           formula: "ΔV ≈ I·R_die + L_pkg·di/dt"
         },
@@ -3034,6 +3362,29 @@
           type: 'pdn_straps',
           depth: is3DMode ? 0.74 : 7.4,
           draw: () => drawPDNStraps(w, h)
+        });
+      }
+
+      // 11b. Advanced-node backside PDN (schematic BPR / nano-TSV / BSPD)
+      if (isLayerActive('bspd_metal')) {
+        primitives.push({
+          type: 'bspd_metal',
+          depth: is3DMode ? -0.2 : -1.2,
+          draw: () => drawBspdMetal(w, h)
+        });
+      }
+      if (isLayerActive('nano_tsv')) {
+        primitives.push({
+          type: 'nano_tsv',
+          depth: is3DMode ? -0.05 : -0.4,
+          draw: () => drawNanoTsvs(w, h)
+        });
+      }
+      if (isLayerActive('bpr')) {
+        primitives.push({
+          type: 'bpr',
+          depth: is3DMode ? 0.08 : 0.35,
+          draw: () => drawBuriedPowerRails(w, h)
         });
       }
 
@@ -3645,6 +3996,100 @@
         ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
       });
+      ctx.restore();
+    }
+
+    /** Buried power rails — schematic under-active rails (advanced-node teaching). */
+    function drawBuriedPowerRails(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const cm = currentDesign.coreMargin || 40;
+      const z = 0.35;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
+      ctx.lineWidth = is3DMode ? 2.2 : 1.6;
+      const rows = 8;
+      for (let i = 0; i <= rows; i++) {
+        const y = cm + ((dh - 2 * cm) * i) / rows;
+        const p1 = project3D(cm, y, z, w, h);
+        const p2 = project3D(dw - cm, y, z, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /** Nano-TSV / PowerVia stubs — vertical schematic links. */
+    function drawNanoTsvs(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const cm = currentDesign.coreMargin || 40;
+      ctx.save();
+      const nx = 6, ny = 5;
+      for (let i = 0; i < nx; i++) {
+        for (let j = 0; j < ny; j++) {
+          const x = cm + ((dw - 2 * cm) * (i + 0.5)) / nx;
+          const y = cm + ((dh - 2 * cm) * (j + 0.5)) / ny;
+          const pTop = project3D(x, y, 0.35, w, h);
+          const pBot = project3D(x, y, -1.15, w, h);
+          ctx.strokeStyle = 'rgba(232, 121, 249, 0.85)';
+          ctx.lineWidth = is3DMode ? 1.8 : 1.2;
+          ctx.beginPath();
+          ctx.moveTo(pTop.x, pTop.y);
+          ctx.lineTo(pBot.x, pBot.y);
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(232, 121, 249, 0.9)';
+          ctx.beginPath();
+          ctx.arc(pBot.x, pBot.y, is3DMode ? 2.2 : 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+    }
+
+    /** Backside power metal mesh — schematic thick grid under the wafer. */
+    function drawBspdMetal(w, h) {
+      const dw = currentDesign.width;
+      const dh = currentDesign.height;
+      const cm = Math.max(8, (currentDesign.coreMargin || 40) * 0.35);
+      const z = -1.2;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(251, 113, 133, 0.75)';
+      ctx.lineWidth = is3DMode ? 2.4 : 1.8;
+      const straps = 5;
+      for (let i = 0; i <= straps; i++) {
+        const x = cm + ((dw - 2 * cm) * i) / straps;
+        const p1 = project3D(x, cm, z, w, h);
+        const p2 = project3D(x, dh - cm, z, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= straps; j++) {
+        const y = cm + ((dh - 2 * cm) * j) / straps;
+        const p1 = project3D(cm, y, z, w, h);
+        const p2 = project3D(dw - cm, y, z, w, h);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+      // Backside plane tint
+      const c0 = project3D(cm, cm, z - 0.05, w, h);
+      const c1 = project3D(dw - cm, cm, z - 0.05, w, h);
+      const c2 = project3D(dw - cm, dh - cm, z - 0.05, w, h);
+      const c3 = project3D(cm, dh - cm, z - 0.05, w, h);
+      ctx.fillStyle = 'rgba(251, 113, 133, 0.08)';
+      ctx.beginPath();
+      ctx.moveTo(c0.x, c0.y);
+      ctx.lineTo(c1.x, c1.y);
+      ctx.lineTo(c2.x, c2.y);
+      ctx.lineTo(c3.x, c3.y);
+      ctx.closePath();
+      ctx.fill();
       ctx.restore();
     }
 
@@ -4476,6 +4921,66 @@
       scheduleRender();
     }
 
+    // ── Tech-node challenges & methods controller ───────────────────
+    function updateNodeHud(node) {
+      const hud = document.getElementById('nodeHud');
+      if (!hud || !node) return;
+      hud.classList.add('active');
+      const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+      setTxt('nodeHudTitle', node.label);
+      setTxt('nodeHudEra', node.era);
+      setTxt('nodeHudDevice', node.device);
+      setTxt('nodeHudBeol', node.beol);
+      setTxt('nodeHudPower', node.power);
+      setTxt('nodeHudChallenge', node.keyChallenge);
+      setTxt('nodeHudChallenges', node.challenges);
+      setTxt('nodeHudMethods', node.methods);
+      setTxt('nodeHudPhysics', node.physics);
+    }
+
+    function setTechNode(id) {
+      if (!TECH_NODE_CATALOG[id]) id = 'n2';
+      currentTechNode = id;
+      const node = TECH_NODE_CATALOG[id];
+      const sel = document.getElementById('nodeSelect');
+      if (sel && sel.value !== id) sel.value = id;
+
+      // Show schematic layers for this node era (does not wipe package curriculum permanently)
+      const keepPkg = new Set(['pads', 'wirebonds', 'bumps', 'leadframe', 'bga_balls', 'rdl', 'outer_bumps', 'interposer', 'hbm', 'ubumps']);
+      LAYER_CONFIG.forEach(l => {
+        if (keepPkg.has(l.id)) return;
+        l.enabled = false;
+      });
+      (node.showLayers || []).forEach(lid => {
+        const layer = LAYER_CONFIG.find(l => l.id === lid);
+        if (layer) layer.enabled = true;
+      });
+      // Always keep substrate for context
+      const sub = LAYER_CONFIG.find(l => l.id === 'substrate');
+      if (sub) sub.enabled = true;
+      updateCheckboxes();
+      updateNodeHud(node);
+
+      const telePdn = document.getElementById('telePdn');
+      if (telePdn) {
+        telePdn.textContent = node.power;
+        telePdn.style.color = /BSPD|BPR|PowerVia/i.test(node.power) ? '#e879f9' : '';
+      }
+
+      // Jump Adv Nodes timeline toward matching theme when already on adv mode
+      if (timelineMode === 'adv') {
+        if (/BSPD|PowerVia|n2/i.test(id)) setFabStep(9);
+        else if (/n3|GAA/i.test(id + node.device)) setFabStep(7);
+        else if (/BPR|n7/i.test(id + node.power)) setFabStep(8);
+        else if (/FinFET|n16|n7/i.test(id + node.device)) setFabStep(2);
+        else setFabStep(1);
+      }
+
+      showLayerPhysics((node.showLayers || []).slice(-1)[0] || 'substrate');
+      markInteraction();
+      scheduleRender();
+    }
+
     // ── RC Interconnect Extraction Controller ───────────────────────
     function updateRcHud(netIdx) {
       if (!currentDesign || !currentDesign.rcNets || !currentDesign.rcNets[netIdx]) return;
@@ -4520,6 +5025,11 @@
       pkgSelect.onchange = (e) => setPkgMode(e.target.value);
     }
 
+    const nodeSelect = document.getElementById('nodeSelect');
+    if (nodeSelect) {
+      nodeSelect.onchange = (e) => setTechNode(e.target.value);
+    }
+
     const rcNet0Btn = document.getElementById('rcNet0Btn');
     if (rcNet0Btn) rcNet0Btn.onclick = () => updateRcHud(0);
 
@@ -4561,7 +5071,8 @@
         const btn = document.getElementById('filterPdnBtn');
         if (btn) btn.classList.add('active');
         LAYER_CONFIG.forEach(l => {
-          l.enabled = (l.domain === 'pdn' || l.id === 'substrate' || l.id === 'decaps');
+          l.enabled = (l.domain === 'pdn' || l.id === 'substrate' || l.id === 'decaps' ||
+            l.id === 'bpr' || l.id === 'nano_tsv' || l.id === 'bspd_metal');
         });
         updateCheckboxes();
         showLayerPhysics('pdn_rings');
@@ -4694,7 +5205,11 @@
     const STATIC_TEACHING_NOTES = {
       'BEOL-Antenna': 'Static note: During BEOL plasma metal/via etch, floating metal collects charge. If tied only to a thin gate oxide (no diffusion path), voltage can rupture the oxide. R_ant = A_metal / A_gate. Fixes: metal jumper → route ECO → antenna diode. (Illustration only — not a live checker.)',
       'BEOL-CMP': 'Static note: CMP polish rate depends on pattern density and feature width. Wide sparse metal dishes; density rules + metal fill keep thickness uniform for litho and resistance. (Illustration only.)',
-      'ADV-BEOL-Cu': 'Static note: Cu dual-damascene = dielectric pattern → barrier/seed → Cu fill → CMP. Not subtractive Al etch. Barrier/via bottoms dominate reliability. (Conceptual advanced-node track.)'
+      'ADV-BEOL-Cu': 'Static note: Cu dual-damascene = dielectric pattern → barrier/seed → Cu fill → CMP. Not subtractive Al etch. Barrier/via bottoms dominate reliability. (Conceptual advanced-node track.)',
+      'ADV-BSPD': 'Static note: BSPD/BSPDN/PowerVia-class = thick power metals on wafer backside + nano-TSVs/PowerVias (often into buried rails). Frees frontside for signals; does not erase package L·di/dt. Educational schematic — not Sky130 OpenLane.',
+      'ADV-BPR': 'Static note: Buried power rails move VDD/VSS under the device so frontside tracks stay available for signals. Often paired with backside metals. Conceptual — not in classic sky130 PDN.',
+      'ADV-GAA': 'Static note: GAA/nanosheet wraps the channel for stronger SCE control than FinFET at lowest advanced nodes. Process + parasitic C between sheets are the hard parts.',
+      'ADV-Node': 'Static note: Marketing “nm” ≠ a single physical pitch. Compare CPP, metal pitch, tracks/cell, and PDN strategy (frontside vs BPR/BSPD). Use the purple Tech-node selector.'
     };
 
     function updateProcHud(step) {
@@ -4733,7 +5248,12 @@
       const noteBody = document.getElementById('procHudStaticNoteBody');
       const noteKey = (step.domain === 'BEOL-Antenna' || isAntenna) ? 'BEOL-Antenna'
         : (step.domain === 'BEOL-CMP' || /CMP/i.test(step.title||'')) ? 'BEOL-CMP'
-        : (step.domain === 'ADV-BEOL-Cu') ? 'ADV-BEOL-Cu' : null;
+        : (step.domain === 'ADV-BEOL-Cu') ? 'ADV-BEOL-Cu'
+        : (step.domain === 'ADV-BSPD') ? 'ADV-BSPD'
+        : (step.domain === 'ADV-BPR') ? 'ADV-BPR'
+        : (step.domain === 'ADV-GAA') ? 'ADV-GAA'
+        : (step.domain === 'ADV-Node' || step.domain === 'ADV-Methods') ? 'ADV-Node'
+        : null;
       if (noteWrap && noteBody) {
         if (noteKey && STATIC_TEACHING_NOTES[noteKey]) {
           noteWrap.style.display = '';
@@ -4749,7 +5269,7 @@
         fxBox.innerHTML = '';
         (step.effects || []).forEach(fx => {
           const chip = document.createElement('span');
-          chip.className = 'proc-fx-chip' + (/antenna|TDDB|EM|latch|rupture|PID|FinFET|damascene|EUV/i.test(fx) ? ' crit' : (step.severity === 'warn' ? ' warn' : ''));
+          chip.className = 'proc-fx-chip' + (/antenna|TDDB|EM|latch|rupture|PID|FinFET|damascene|EUV|BSPD|PowerVia|GAA|BPR|stochastic/i.test(fx) ? ' crit' : (step.severity === 'warn' ? ' warn' : ''));
           chip.textContent = fx;
           fxBox.appendChild(chip);
         });
@@ -4947,6 +5467,12 @@
     // Initialize timeline segments for Master FAB length, then show last step
     rebuildTimelineSegments(getActiveSteps().length);
     setFabStep(getActiveSteps().length);
+    // Tech-node HUD defaults to ~2nm card (layers applied when user picks a node)
+    if (typeof updateNodeHud === 'function') {
+      updateNodeHud(TECH_NODE_CATALOG[currentTechNode] || TECH_NODE_CATALOG.n2);
+    }
+    const nodeSelInit = document.getElementById('nodeSelect');
+    if (nodeSelInit) nodeSelInit.value = currentTechNode || 'n2';
 
     const fileInput = document.getElementById('defFileInput');
     if (fileInput) {
