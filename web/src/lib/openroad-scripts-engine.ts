@@ -592,20 +592,16 @@ docker-run:
 	@./docker-run.sh
 
 lec-synth:
-	@echo "[AceFlow] Running Formal Logic Equivalence: RTL vs. Synthesized Netlist (EQY)..."
-	@if command -v eqy >/dev/null 2>&1; then \
-		eqy scripts/lec_synth.eqy; \
-	else \
-		echo "[NOTE] EQY formal equivalence checker not installed on PATH. Proving via YosysLEC / SMT-SAT..."; \
-	fi
+	@echo "[AceFlow] EQY: RTL vs synthesized netlist (fail-closed if eqy missing)..."
+	@command -v eqy >/dev/null 2>&1 || { echo "ERROR: eqy not on PATH. Install YosysHQ EQY or skip LEC."; exit 1; }
+	@test -f outputs/synthesis_${top}.v || { echo "ERROR: missing outputs/synthesis_${top}.v — run synth first."; exit 1; }
+	eqy scripts/lec_synth.eqy
 
 lec-pnr:
-	@echo "[AceFlow] Running Formal Logic Equivalence: Synthesized Netlist vs. Routed Netlist (EQY)..."
-	@if command -v eqy >/dev/null 2>&1; then \
-		eqy scripts/lec_pnr.eqy; \
-	else \
-		echo "[NOTE] EQY formal equivalence checker not installed on PATH. Proving via YosysLEC / SMT-SAT..."; \
-	fi
+	@echo "[AceFlow] EQY: synth vs post-route netlist (fail-closed if eqy missing)..."
+	@command -v eqy >/dev/null 2>&1 || { echo "ERROR: eqy not on PATH. Install YosysHQ EQY or skip LEC."; exit 1; }
+	@test -f outputs/routing_${top}.nl.v || { echo "ERROR: missing outputs/routing_${top}.nl.v — run route first."; exit 1; }
+	eqy scripts/lec_pnr.eqy
 
 lec: lec-synth lec-pnr
 
@@ -645,67 +641,64 @@ PDK: ${pdk}
 
 ${paths.note}
 
-## Layout
-\`\`\`text
-constraints.sdc              # Primary SDC timing constraints
-Makefile                     # Stage targets (synth, floorplan, placement, cts, route, signoff)
-docker-run.sh                # Container runner helper
-rtl/${top}.v                 # Synthesizable RTL
-logs/                        # Discrete per-stage execution logs
-├── synthesis.log           # Yosys synthesis & mapping log
-├── floorplan.log           # Die sizing, IO pins & PDN log
-├── placement.log           # Global & detailed placement log
-├── cts.log                 # Clock tree synthesis log
-├── routing.log             # FastRoute & TritonRoute log
-├── signoff.log             # Extraction, STA, DRC & LVS log
-└── run.log                 # Master pipeline execution log
-reports/                     # Authentic diagnostic reports by stage
-├── 01_synthesis/           # Cell statistics, pre-layout STA
-├── 02_floorplan/           # Die utilization, IO placements, PDN grid
-├── 03_placement/           # Post-place STA paths, cell density, power
-├── 04_cts/                 # Clock skew, insertion delay, buffer tree
-├── 05_routing/             # Post-route STA, detailed DRC, antenna
-└── 06_signoff/             # Multi-corner PVT STA, DRC, LVS, IR drop
-scripts/
-├── helpers/
-│   ├── reporting.tcl        # Unified diagnostic & reporting procedures
-│   └── pvt_corners.tcl      # Multi-corner PVT timing analysis
-├── 02_floorplan.tcl         # Floorplanning & PDN
-├── 03_placement.tcl         # Placement & post-place STA
-├── 04_cts.tcl               # Clock tree synthesis
-├── 05_routing.tcl           # Routing & antenna protection
-├── 06_signoff.tcl           # Signoff & multi-corner PVT
-├── synth.ys                 # Yosys synthesis script
-├── opensta.tcl              # Standalone multi-corner STA
-└── openroad.tcl             # Master coordinator script
-\`\`\`
+## Honest scope
+
+| Path | What it is |
+|------|------------|
+| **Makefile / OpenROAD Tcl** | Local synth → place → CTS → route → STA scripts |
+| **\`make lec-*\`** | Optional **local** YosysHQ EQY — fails if \`eqy\` missing |
+| **Cloud Ace-Seek Max** | Hosted **OpenLane** Docker (DRC/LVS/GDS) — not AceFlow EQY |
+| **\`ace_flow.py\`** | Optional AceFlow orchestrator when run inside the Ace-Seek monorepo |
+
+Do **not** treat missing EQY as a formal pass. Formal LEC is opt-in and fail-closed.
 
 ## Quick Start
 \`\`\`bash
-# View available stage debugging targets
 make help
-
-# Run full physical implementation flow
-make all
-
-# Run individual stages with dedicated logs
-make synth      # Logs to logs/synthesis.log
-make floorplan  # Logs to logs/floorplan.log
-make placement  # Logs to logs/placement.log
-make cts        # Logs to logs/cts.log
-make route      # Logs to logs/routing.log
-make signoff    # Logs to logs/signoff.log
-
-# Run standalone multi-corner PVT timing analysis
+make synth floorplan placement cts route signoff
 make sta-pvt
 
-# View all generated diagnostic reports and stage logs
-make reports
-make logs
+# Optional formal LEC (requires eqy on PATH + prior synth/route outputs)
+make lec-synth
+make lec-pnr
+\`\`\`
+
+## LEC netlist paths (must match Makefile outputs)
+- Synth: \`outputs/synthesis_${top}.v\`
+- Route: \`outputs/routing_${top}.nl.v\`
+
+## Layout
+\`\`\`text
+constraints.sdc
+Makefile
+flow_config.json          # AceFlow orchestration hints (not a drop-in OpenLane config)
+ace_flow.py               # Optional monorepo AceFlow runner
+openlane_config.json      # Clean OpenLane-shaped keys for reference
+scripts/lec_synth.eqy
+scripts/lec_pnr.eqy
+rtl/${top}.v
+scripts/…                 # OpenROAD / Yosys / OpenSTA
 \`\`\`
 `;
 
   const aceFlowConfig = JSON.stringify(
+    {
+      design_name: top,
+      verilog_files: [`rtl/${top}.v`],
+      clock_port: "clk",
+      clock_period_ns: 15.0,
+      pnr_tool: "openroad",
+      sta_tool: "opensta",
+      lec_tool: "eqy",
+      allow_mock: false,
+      continue_on_failure: false,
+      note: "AceFlow orchestration config — not a drop-in OpenLane config.json",
+    },
+    null,
+    2
+  );
+
+  const openlaneConfig = JSON.stringify(
     {
       DESIGN_NAME: top,
       VERILOG_FILES: [`rtl/${top}.v`],
@@ -713,30 +706,18 @@ make logs
       CLOCK_PERIOD: 15.0,
       DESIGN_IS_CORE: true,
       FP_CORE_UTIL: 45,
-      PL_TARGET_DENSITY: 0.50,
+      PL_TARGET_DENSITY: 0.5,
       GRT_ADJUSTMENT: 0.15,
       RUN_KLAYOUT: true,
       RUN_MAGIC: true,
       RUN_CVC: true,
-      RUN_LEC: true,
-      PNR_TOOL: "openroad",
-      STA_TOOL: "opensta",
-      LEC_TOOL: "eqy",
-      OPTIMIZATION_ENGINES: {
-        ace_macro_placer: true,
-        ace_timing_eco: true,
-        ace_formal_lec: true,
-      },
     },
     null,
     2
   );
 
-  const lecSynthEqy = `# AceFlow Formal Logic Equivalence Checking (EQY)
-# Proves: RTL == Synthesized Gate Netlist
-[options]
-mode flat
-strategy sat
+  const lecSynthEqy = `# AceFlow EQY — RTL vs synthesized netlist
+# Valid EQY sections only: [gold], [gate], [strategy …]
 
 [gold]
 read_verilog -sv rtl/${top}.v
@@ -744,7 +725,7 @@ prep -top ${top}
 
 [gate]
 read_liberty -lib ${paths.liberty}
-read_verilog outputs/${top}.synthesis.v
+read_verilog outputs/synthesis_${top}.v
 prep -top ${top}
 
 [strategy sat]
@@ -752,20 +733,17 @@ use sat
 depth 15
 `;
 
-  const lecPnrEqy = `# AceFlow Formal Logic Equivalence Checking (EQY)
-# Proves: Synthesized Netlist == Post-Route Netlist (Zero ECO / CTS Logic Corruption)
-[options]
-mode flat
-strategy sat
+  const lecPnrEqy = `# AceFlow EQY — synthesized vs post-route netlist
+# Valid EQY sections only: [gold], [gate], [strategy …]
 
 [gold]
 read_liberty -lib ${paths.liberty}
-read_verilog outputs/${top}.synthesis.v
+read_verilog outputs/synthesis_${top}.v
 prep -top ${top}
 
 [gate]
 read_liberty -lib ${paths.liberty}
-read_verilog outputs/${top}.routed.v
+read_verilog outputs/routing_${top}.nl.v
 prep -top ${top}
 
 [strategy sat]
@@ -775,15 +753,17 @@ depth 15
 
   const aceFlowPy = `#!/usr/bin/env python3
 """
-Ace-Seek OpenROAD Studio — AceFlow Step-Based Physical Design Pipeline.
-Modular, hermetic step execution with explicit immutable checkpoints,
-multi-corner STA signoff, formal logic equivalence (EQY), and native Ace-Seek algorithmic acceleration.
+Ace-Seek AceFlow runner (optional).
+
+Requires the Ace-Seek monorepo \`workers.engines.flow\` package on PYTHONPATH.
+Outside the monorepo this falls back to the Makefile (without auto-LEC soft-pass).
+
+Mocks are OFF by default. Set ACE_FLOW_MOCK=1 only for demos.
 """
 
 import os
 import sys
 
-# Try importing AceFlow orchestrator
 try:
     from workers.engines.flow import AceFlow, DesignState
     from workers.engines.flow.steps import (
@@ -794,12 +774,10 @@ try:
         EqyLecStep,
     )
 except ImportError:
-    # Standalone execution mode when run outside backend worker tree
     AceFlow = None
 
 def run_ace_flow(config_file: str = "flow_config.json"):
-    print(f"[Ace-Seek] Starting AceFlow step automation pipeline with {config_file}...")
-    
+    print(f"[Ace-Seek] AceFlow pipeline with {config_file}...")
     if AceFlow is not None:
         steps = [
             YosysSynthesisStep(step_id="01_synthesis"),
@@ -818,13 +796,21 @@ def run_ace_flow(config_file: str = "flow_config.json"):
             rtl_files=("rtl/${top}.v",),
             sdc_file="constraints.sdc"
         )
-        flow = AceFlow(name="${top}_ace_flow", steps=steps, work_dir="run")
+        flow = AceFlow(
+            name="${top}_ace_flow",
+            steps=steps,
+            work_dir="run",
+            config={"allow_mock": False, "continue_on_failure": False},
+        )
         final_state = flow.run(init_state)
-        print(f"[Ace-Seek] Flow completed with status: {final_state.status}")
-        print(f"[Ace-Seek] Final Metrics: {final_state.metrics}")
+        print(f"[Ace-Seek] Flow status: {final_state.status}")
+        print(f"[Ace-Seek] Metrics: {final_state.metrics}")
+        if final_state.status == "failed":
+            sys.exit(1)
     else:
-        print("[INFO] Executing stages via native Makefile orchestrator...")
-        os.system("make clean && make all && make lec")
+        print("[INFO] AceFlow package not importable — using Makefile (no soft-pass LEC).")
+        rc = os.system("make clean && make all")
+        sys.exit(0 if rc == 0 else 1)
 
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -834,6 +820,7 @@ if __name__ == "__main__":
 
   const files: ExportPackFile[] = [
     { filename: "flow_config.json", content: aceFlowConfig },
+    { filename: "openlane_config.json", content: openlaneConfig },
     { filename: "ace_flow.py", content: aceFlowPy },
     { filename: "scripts/lec_synth.eqy", content: lecSynthEqy },
     { filename: "scripts/lec_pnr.eqy", content: lecPnrEqy },

@@ -1,8 +1,9 @@
 """
 workers/engines/flow/flow.py
-AceFlow Orchestrator: High-performance, modular ASIC physical design flow runner.
-Features hermetic step execution, immutable state checkpoints, adaptive feedback loops,
-and clean resume capabilities.
+AceFlow Orchestrator: modular, sequential ASIC physical design flow runner.
+
+Provides hermetic per-step directories, immutable DesignState checkpoints, and resume.
+Stops on status=failed unless config continue_on_failure=True.
 """
 from __future__ import annotations
 
@@ -17,15 +18,15 @@ from workers.engines.flow.step import FlowStep
 
 class AceFlow:
     """
-    Orchestrates the sequential and adaptive execution of FlowSteps.
-    Guarantees state immutability, checkpoint isolation, and metric aggregation.
+    Orchestrates sequential FlowStep execution with checkpoint isolation.
     """
+
     def __init__(
         self,
         name: str,
         steps: Sequence[FlowStep],
         work_dir: str,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
     ):
         self.name = name
         self.steps = list(steps)
@@ -37,16 +38,17 @@ class AceFlow:
         self,
         initial_state: DesignState,
         resume_from: Optional[str | int] = None,
-        on_step_complete: Optional[Callable[[DesignState, FlowStep], None]] = None
+        on_step_complete: Optional[Callable[[DesignState, FlowStep], None]] = None,
     ) -> DesignState:
         """
-        Executes the flow steps in order.
-        If resume_from is specified, restores state from that step's checkpoint
-        and proceeds from the subsequent step.
+        Executes flow steps in order.
+        If resume_from is set, restores that step's checkpoint and continues after it.
+        Aborts remaining steps when a step returns status=failed (unless continue_on_failure).
         """
         os.makedirs(self.work_dir, exist_ok=True)
         start_time = time.time()
         current_state = initial_state
+        continue_on_failure = bool(self.config.get("continue_on_failure", False))
 
         resume_idx = 0
         if resume_from is not None:
@@ -54,18 +56,16 @@ class AceFlow:
             checkpoint_file = self._get_step_checkpoint(resume_idx)
             if os.path.exists(checkpoint_file):
                 current_state = DesignState.load(checkpoint_file)
-            resume_idx += 1  # Resume starting after the saved checkpoint
+            resume_idx += 1
 
         for idx in range(resume_idx, len(self.steps)):
             step = self.steps[idx]
             step_dir = step.setup_work_dir(self.work_dir, idx)
             step_start = time.time()
 
-            # Execute step with current immutable state
             new_state = step.run(current_state, step_dir, self.config)
             step_elapsed = time.time() - step_start
 
-            # Save immutable checkpoint
             checkpoint_path = os.path.join(step_dir, "state.json")
             new_state.save(checkpoint_path)
 
@@ -85,7 +85,9 @@ class AceFlow:
 
             current_state = new_state
 
-        # Finalize summary report
+            if new_state.status == "failed" and not continue_on_failure:
+                break
+
         total_elapsed = time.time() - start_time
         summary_path = os.path.join(self.work_dir, "flow_summary.json")
         summary_data = {
@@ -96,6 +98,9 @@ class AceFlow:
             "final_metrics": current_state.metrics,
             "steps_executed": self.history,
             "artifacts": list(current_state.artifacts),
+            "aborted_on_failure": current_state.status == "failed"
+            and len(self.history) < len(self.steps)
+            and not continue_on_failure,
         }
         with open(summary_path, "w", encoding="utf-8") as f:
             json.dump(summary_data, f, indent=2)

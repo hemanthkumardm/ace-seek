@@ -762,7 +762,8 @@ function ReportViewPanel({
   const [lecMode, setLecMode] = useState<"rtl_vs_synth" | "synth_vs_layout">("rtl_vs_synth");
 
   const designName = project?.designName || "top";
-  const provedCount = cellCount ? Math.max(48, Math.round(cellCount * 0.12)) : 148;
+  // LEC is export-pack / local EQY only — Studio does not invent proved counts.
+  void cellCount;
 
   return (
     <div className="neu-panel p-4 space-y-3 h-full flex flex-col">
@@ -844,28 +845,29 @@ function ReportViewPanel({
 
       {activeReportTab === "lec" && (
         <div className="space-y-4 flex-1 overflow-y-auto pr-1">
-          {/* Top Formal Status Banner */}
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-[#0a1b24] to-[#07131b] border border-emerald-500/30 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-[#0a1b24] to-[#07131b] border border-amber-500/30 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300">
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm font-black uppercase text-white tracking-wide">
-                    Formal Logic Equivalence Signoff (EQY)
+                    Formal LEC — EQY script preview
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                    100% PROVED
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    NOT RUN IN STUDIO
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 font-medium">
-                  SMT/SAT Mathematical Proof engine verified zero functional deviations or corruption.
+                <p className="text-xs text-slate-400 font-medium max-w-xl">
+                  Ace-Seek Studio does not invent formal proofs. Export the OpenROAD pack and run{" "}
+                  <span className="font-mono text-cyan-300">make lec-synth</span> /{" "}
+                  <span className="font-mono text-cyan-300">make lec-pnr</span> locally with YosysHQ EQY.
+                  Cloud tapeout signoff remains OpenLane DRC/LVS/GDS — not EQY.
                 </p>
               </div>
             </div>
 
-            {/* Mode Selector */}
             <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/60 border border-white/10 text-xs">
               <button
                 type="button"
@@ -892,113 +894,56 @@ function ReportViewPanel({
             </div>
           </div>
 
-          {/* Metric Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
-              <p className="text-[9px] font-black uppercase text-slate-400">Matched Compare Points</p>
-              <p className="text-xl font-mono font-black text-cyan-400 mt-1">{provedCount}</p>
-              <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">100% paired state points</p>
+              <p className="text-[9px] font-black uppercase text-slate-400">Studio status</p>
+              <p className="text-lg font-mono font-black text-amber-300 mt-1">Not run</p>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">No synthetic prove counts</p>
             </div>
             <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
-              <p className="text-[9px] font-black uppercase text-slate-400">Proved Equivalence</p>
-              <p className="text-xl font-mono font-black text-emerald-400 mt-1">{provedCount} / {provedCount}</p>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">0 counterexamples</p>
+              <p className="text-[9px] font-black uppercase text-slate-400">Local command</p>
+              <p className="text-sm font-mono font-bold text-cyan-300 mt-1">
+                make {lecMode === "rtl_vs_synth" ? "lec-synth" : "lec-pnr"}
+              </p>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Requires eqy on PATH</p>
             </div>
             <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
-              <p className="text-[9px] font-black uppercase text-slate-400">Unmapped Logic Cones</p>
-              <p className="text-xl font-mono font-black text-white mt-1">0</p>
-              <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">Zero unmapped registers</p>
-            </div>
-            <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
-              <p className="text-[9px] font-black uppercase text-slate-400">Formal Solver Engine</p>
-              <p className="text-sm font-mono font-bold text-amber-300 mt-1">EQY SMT-SAT</p>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">YosysHQ Bitwuzla/Yices2</p>
+              <p className="text-[9px] font-black uppercase text-slate-400">Cloud signoff</p>
+              <p className="text-sm font-mono font-bold text-white mt-1">OpenLane</p>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">DRC / LVS / GDS jobs</p>
             </div>
           </div>
 
-          {/* Compare Point Breakdown */}
-          <div className="p-4 rounded-xl bg-[#070c18] border border-white/10 space-y-3">
-            <h4 className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
-              <Cpu className="w-4 h-4 text-cyan-400" />
-              State Point Decomposition & Proof Results
-            </h4>
-            <div className="overflow-x-auto text-xs">
-              <table className="w-full text-left font-mono">
-                <thead>
-                  <tr className="border-b border-white/10 text-slate-400 text-[10px]">
-                    <th className="pb-1.5">Type</th>
-                    <th className="pb-1.5">Compare Points</th>
-                    <th className="pb-1.5">Proved Status</th>
-                    <th className="pb-1.5">Counterexamples</th>
-                    <th className="pb-1.5">Partition Depth</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-slate-200 text-[11px]">
-                  <tr>
-                    <td className="py-2 text-cyan-400">Sequential Flip-Flops (D-Pins)</td>
-                    <td className="py-2">{Math.max(16, Math.round(provedCount * 0.75))} matched</td>
-                    <td className="py-2 text-emerald-400 font-bold">100% PROVED EQUIVALENT</td>
-                    <td className="py-2 text-emerald-400">0</td>
-                    <td className="py-2 text-slate-400">15 cycles</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-cyan-400">Primary Output Ports (PO)</td>
-                    <td className="py-2">{Math.max(8, Math.round(provedCount * 0.25))} matched</td>
-                    <td className="py-2 text-emerald-400 font-bold">100% PROVED EQUIVALENT</td>
-                    <td className="py-2 text-emerald-400">0</td>
-                    <td className="py-2 text-slate-400">Combinational miter</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 text-cyan-400">Memory & BlackBox Ports</td>
-                    <td className="py-2">Auto-mapped</td>
-                    <td className="py-2 text-emerald-400 font-bold">STABLE EQUIVALENCE</td>
-                    <td className="py-2 text-emerald-400">0</td>
-                    <td className="py-2 text-slate-400">Boundary verified</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Generated EQY Recipe Preview */}
           <div className="p-4 rounded-xl bg-black/60 border border-white/10 space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <h4 className="text-xs font-black uppercase text-slate-300 flex items-center gap-1.5">
                 <Code2 className="w-4 h-4 text-cyan-400" />
-                EQY Formal Specification ({lecMode === "rtl_vs_synth" ? "scripts/lec_synth.eqy" : "scripts/lec_pnr.eqy"})
+                EQY recipe ({lecMode === "rtl_vs_synth" ? "scripts/lec_synth.eqy" : "scripts/lec_pnr.eqy"})
               </h4>
-              <span className="text-[10px] text-slate-400 font-mono">make {lecMode === "rtl_vs_synth" ? "lec-synth" : "lec-pnr"}</span>
+              <span className="text-[10px] text-slate-400 font-mono">export pack · valid EQY sections only</span>
             </div>
             <pre className="neu-inset p-3 text-[10px] font-mono text-cyan-200 bg-black/70 rounded-lg overflow-x-auto whitespace-pre">
 {lecMode === "rtl_vs_synth"
-? `[options]
-mode flat
-strategy sat
-
-[gold]
+? `[gold]
 read_verilog -sv rtl/${designName}.v
 prep -top ${designName}
 
 [gate]
 read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
-read_verilog outputs/${designName}.synthesis.v
+read_verilog outputs/synthesis_${designName}.v
 prep -top ${designName}
 
 [strategy sat]
 use sat
 depth 15`
-: `[options]
-mode flat
-strategy sat
-
-[gold]
+: `[gold]
 read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
-read_verilog outputs/${designName}.synthesis.v
+read_verilog outputs/synthesis_${designName}.v
 prep -top ${designName}
 
 [gate]
 read_liberty -lib sky130_fd_sc_hd__tt_025C_1v80.lib
-read_verilog outputs/${designName}.routed.v
+read_verilog outputs/routing_${designName}.nl.v
 prep -top ${designName}
 
 [strategy sat]

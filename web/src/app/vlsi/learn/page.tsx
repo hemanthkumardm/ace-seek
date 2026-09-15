@@ -168,13 +168,13 @@ export default function VlsiLearnHub() {
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-950 text-cyan-300 border border-cyan-500/40">
               Interactive 3D Lab · Fabrication & BEOL
             </span>
-            <span className="text-xs text-slate-400 font-mono">SkyWater 130nm PDK</span>
+            <span className="text-xs text-slate-400 font-mono">Illustrative Sky130-inspired lab</span>
           </div>
           <h3 className="text-lg font-bold text-white tracking-tight">
             3D Silicon Die, Fabrication & Advanced Packaging Lab
           </h3>
           <p className="text-xs leading-relaxed text-slate-300">
-            Explore complete FEOL/BEOL physical implementation and advanced packaging: Hard Macros with keep-out halos, Endcaps, Welltaps (tap rule ≤25µm), Decap fillers, Standard Cell rows, Dual-Rail Power Rings & Straps, multi-tier Manhattan routing, peripheral I/O Bond Pads with 3D Wirebonds, and C4 Flip-Chip Solder Bumps with live 3D RC delay modeling.
+            Explore an illustrative Sky130-inspired FEOL/BEOL and packaging lab (procedural schematic geometry — not tapeout GDS/DEF): Hard Macros with keep-out halos, Endcaps, Welltaps (~15 µm latch-up spacing), Decap fillers, Standard Cell rows, Dual-Rail Power Rings & Straps, multi-tier Manhattan routing, peripheral I/O Bond Pads with 3D Wirebonds, and C4 Flip-Chip Solder Bumps with live 3D RC delay modeling.
           </p>
         </div>
         <a
