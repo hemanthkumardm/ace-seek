@@ -180,9 +180,10 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
       display: flex;
       flex-direction: column;
-      z-index: 10;
+      z-index: 40; /* always above teaching HUDs — must stay clickable */
       overflow: hidden;
       transition: transform 0.2s ease, opacity 0.2s ease;
+      pointer-events: auto;
     }
     .layer-panel.collapsed {
       transform: translateX(calc(100% - 36px));
@@ -491,8 +492,10 @@
       gap: 5px;
       z-index: 14;
       box-shadow: 0 0 18px rgba(217, 119, 6, 0.28);
-      max-width: min(360px, calc(100vw - 90px));
-      pointer-events: none;
+      max-width: min(340px, calc(100vw - 320px)); /* leave room for Layers on right */
+      max-height: min(28vh, 200px);
+      overflow-y: auto;
+      pointer-events: auto;
     }
     .pkg-hud.active { display: flex; }
     .pkg-hud-title {
@@ -539,11 +542,12 @@
       color: #cbd5e1;
     }
     .pkg-hud-table th { color: #fbbf24; background: rgba(217, 119, 6, 0.12); }
-    /* Tech-node challenges HUD */
+    /* Tech-node challenges HUD — LEFT stack only (never cover Layers) */
     .node-hud {
       position: absolute;
       bottom: 118px;
-      right: 14px;
+      left: 14px;
+      right: auto;
       background: rgba(12, 8, 28, 0.95);
       backdrop-filter: blur(12px);
       border: 1px solid #7c3aed;
@@ -557,12 +561,25 @@
       gap: 4px;
       z-index: 14;
       box-shadow: 0 0 18px rgba(124, 58, 237, 0.32);
-      max-width: min(380px, calc(100vw - 90px));
-      max-height: min(38vh, 280px);
+      max-width: min(340px, calc(100vw - 320px));
+      max-height: min(32vh, 240px);
       overflow-y: auto;
-      pointer-events: none;
+      pointer-events: auto;
     }
     .node-hud.active { display: flex; }
+    .hud-dismiss {
+      margin-left: auto;
+      border: none;
+      background: transparent;
+      color: inherit;
+      opacity: 0.7;
+      cursor: pointer;
+      font-size: 12px;
+      line-height: 1;
+      padding: 0 2px;
+      pointer-events: auto;
+    }
+    .hud-dismiss:hover { opacity: 1; }
     .node-hud-title {
       font-weight: 700;
       font-size: 11px;
@@ -609,7 +626,7 @@
     /* Process Master HUD (Wafer Fab timeline) */
     .proc-hud {
       position: absolute;
-      bottom: 210px;
+      bottom: 118px; /* same left teaching slot — exclusive with pkg/node */
       left: 14px;
       background: rgba(6, 18, 22, 0.95);
       backdrop-filter: blur(12px);
@@ -624,8 +641,8 @@
       gap: 4px;
       z-index: 15;
       box-shadow: 0 0 18px rgba(16, 185, 129, 0.28);
-      max-width: min(380px, calc(100vw - 90px));
-      max-height: min(42vh, 320px);
+      max-width: min(340px, calc(100vw - 320px));
+      max-height: min(36vh, 280px);
       overflow-y: auto;
       pointer-events: auto;
     }
@@ -1066,6 +1083,7 @@
           <div class="proc-hud-badges">
             <span class="proc-hud-phase" id="procHudPhase">Wafer Prep</span>
             <span class="proc-hud-level" id="procHudLevel">Master</span>
+            <button type="button" class="hud-dismiss" id="procHudDismiss" title="Hide process card" aria-label="Hide process card">✕</button>
           </div>
         </div>
         <div class="proc-fx" id="procHudEffects"></div>
@@ -1083,11 +1101,12 @@
         </div>
       </div>
 
-      <!-- Packaging Lesson HUD (always-on compact teaching panel) -->
+      <!-- Packaging Lesson HUD (exclusive left teaching slot) -->
       <div class="pkg-hud active" id="pkgHud" aria-live="polite">
         <div class="pkg-hud-title">
           <span id="pkgHudTitle">📦 Wirebond Leadframe</span>
           <span class="pkg-hud-level" id="pkgHudLevel">Beginner</span>
+          <button type="button" class="hud-dismiss" id="pkgHudDismiss" title="Hide packaging card" aria-label="Hide packaging card">✕</button>
         </div>
         <div class="pkg-hud-grid">
           <span>L (typ)</span><strong id="pkgHudL">~1.2 nH loop</strong>
@@ -1100,11 +1119,12 @@
         <div id="pkgHudTableWrap" style="display:none;"></div>
       </div>
 
-      <!-- Tech-node challenges & methods HUD -->
-      <div class="node-hud active" id="nodeHud" aria-live="polite">
+      <!-- Tech-node challenges & methods HUD (left slot — hidden until node selected) -->
+      <div class="node-hud" id="nodeHud" aria-live="polite">
         <div class="node-hud-title">
           <span id="nodeHudTitle">💎 ~2nm GAA + BSPD</span>
           <span class="node-hud-pill" id="nodeHudEra">Lowest advanced</span>
+          <button type="button" class="hud-dismiss" id="nodeHudDismiss" title="Hide tech-node card" aria-label="Hide tech-node card">✕</button>
         </div>
         <div class="node-hud-grid">
           <span>Device</span><strong id="nodeHudDevice">GAA nanosheet</strong>
@@ -4842,11 +4862,28 @@
       camera.panY = 0;
     }
 
+    // ── Exclusive teaching HUD slot (left) — never cover Layers (right) ──
+    // 'pkg' | 'node' | 'proc' | null
+    let teachingHudFocus = 'pkg';
+
+    function setTeachingHud(focus) {
+      teachingHudFocus = focus; // may be null = all hidden
+      const pkg = document.getElementById('pkgHud');
+      const node = document.getElementById('nodeHud');
+      const proc = document.getElementById('procHud');
+      if (pkg) pkg.classList.toggle('active', focus === 'pkg');
+      if (node) node.classList.toggle('active', focus === 'node');
+      // proc visibility is also gated by timeline content in updateProcHud
+      if (proc) {
+        if (focus === 'proc') proc.classList.add('active');
+        else proc.classList.remove('active');
+      }
+    }
+
     // ── Packaging Curriculum Controller ─────────────────────────────
     function updatePkgHud(cat, mode) {
       const hud = document.getElementById('pkgHud');
       if (!hud || !cat) return;
-      hud.classList.add('active');
       const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       setTxt('pkgHudTitle', `${cat.short === 'Gallery' ? '🏛️' : '📦'} ${cat.label}`);
       setTxt('pkgHudLevel', cat.level);
@@ -4916,6 +4953,7 @@
       }
 
       updatePkgHud(cat, mode);
+      setTeachingHud('pkg');
       showLayerPhysics(cat.primaryLayer || 'pads');
       markInteraction();
       scheduleRender();
@@ -4925,7 +4963,6 @@
     function updateNodeHud(node) {
       const hud = document.getElementById('nodeHud');
       if (!hud || !node) return;
-      hud.classList.add('active');
       const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
       setTxt('nodeHudTitle', node.label);
       setTxt('nodeHudEra', node.era);
@@ -4975,6 +5012,9 @@
         else if (/FinFET|n16|n7/i.test(id + node.device)) setFabStep(2);
         else setFabStep(1);
       }
+
+      // After setFabStep (which may flash proc HUD), keep tech-node card exclusive
+      setTeachingHud('node');
 
       showLayerPhysics((node.showLayers || []).slice(-1)[0] || 'substrate');
       markInteraction();
@@ -5216,7 +5256,11 @@
       const hud = document.getElementById('procHud');
       if (!hud) return;
       const show = (timelineMode === 'fab' || timelineMode === 'adv') && step && step.master;
-      hud.classList.toggle('active', !!show);
+      if (show) {
+        setTeachingHud('proc'); // hides pkg/node so left slot isn't stacked
+      } else if (teachingHudFocus === 'proc') {
+        setTeachingHud('pkg'); // fall back to packaging card
+      }
       if (!show) return;
       const m = step.master;
       const isAntenna = /antenna/i.test(step.domain || '') || (step.effects || []).some(e => /antenna/i.test(e));
@@ -5359,6 +5403,7 @@
           }
         });
         updatePkgHud(cat, currentPkgMode);
+        setTeachingHud('pkg'); // package steps prefer packaging card over proc
       }
       updateCheckboxes();
 
@@ -5467,12 +5512,21 @@
     // Initialize timeline segments for Master FAB length, then show last step
     rebuildTimelineSegments(getActiveSteps().length);
     setFabStep(getActiveSteps().length);
-    // Tech-node HUD defaults to ~2nm card (layers applied when user picks a node)
+    // Prefill tech-node text but do NOT steal the left slot / cover Layers
     if (typeof updateNodeHud === 'function') {
       updateNodeHud(TECH_NODE_CATALOG[currentTechNode] || TECH_NODE_CATALOG.n2);
     }
     const nodeSelInit = document.getElementById('nodeSelect');
     if (nodeSelInit) nodeSelInit.value = currentTechNode || 'n2';
+    // Default left card = packaging; Layers stay clear on the right
+    setTeachingHud(timelineMode === 'pnr' ? 'pkg' : 'proc');
+
+    const pkgDismiss = document.getElementById('pkgHudDismiss');
+    if (pkgDismiss) pkgDismiss.onclick = (e) => { e.stopPropagation(); setTeachingHud(null); };
+    const nodeDismiss = document.getElementById('nodeHudDismiss');
+    if (nodeDismiss) nodeDismiss.onclick = (e) => { e.stopPropagation(); setTeachingHud(null); };
+    const procDismiss = document.getElementById('procHudDismiss');
+    if (procDismiss) procDismiss.onclick = (e) => { e.stopPropagation(); setTeachingHud(null); };
 
     const fileInput = document.getElementById('defFileInput');
     if (fileInput) {
