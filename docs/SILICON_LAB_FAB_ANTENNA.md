@@ -1,27 +1,21 @@
-# 3D Silicon Lab — Master Fab, Quizzes, Demos & FinFET/Cu
+# 3D Silicon Lab — Master Fab (Static Curriculum)
 
-Illustrative curriculum in `web/public/die_viewer_3d.html`.
+Illustrative **static** teaching lab in `web/public/die_viewer_3d.html`.
+
+## Design choice
+
+- **Static** master text, formulas, effect chips, and MCQ quizzes
+- **No** live DEF/GDS loading requirement
+- **No** live/dynamic antenna or CMP animations / signoff checkers
 
 ## Timeline modes
 
 | Mode | Content |
 |------|---------|
-| **Wafer Fab** | 15 master planar/sky130-inspired process steps + stage effects |
-| **PnR Flow** | Design implementation order (antenna-aware route note) |
-| **FinFET/Cu** | Advanced-node addon: FinFET, Cu damascene, Cu EM, multi-patterning/EUV, MOL, 2.5D |
+| **Wafer Fab** | 15 master process steps + stage effects + quiz |
+| **PnR Flow** | Design implementation order |
+| **FinFET/Cu** | Conceptual advanced-node literacy (static) |
 
-## Process HUD (every Fab / Adv step)
+## Antenna & CMP
 
-- Cause · When · Params · Pitfalls · Interview hook · Formula  
-- Effect chips  
-- **Quiz** (MCQ + explanation)  
-- **Demos** where relevant: Antenna (step 9), CMP (steps 8–9, Cu step)
-
-## Interactive demos
-
-- **Antenna:** plasma charge → floating metal → gate oxide stress  
-- **CMP:** density vs wide-feature dishing  
-
-## Still illustrative
-
-Not a foundry signoff tool; geometry remains schematic. Advanced track is conceptual (not a second PDK renderer).
+Covered as **static teaching notes** on the relevant steps (mechanism, phase, ratio/fixes, CMP density/dishing) — not interactive simulations.

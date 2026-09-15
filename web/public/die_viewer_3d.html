@@ -949,7 +949,6 @@
   <!-- Main Canvas Workspace -->
   <div class="workspace" id="workspace">
     <div class="canvas-container" id="canvasContainer">
-      <div class="demo-overlay" id="demoOverlay" aria-hidden="true"><canvas id="demoCanvas"></canvas><div class="demo-banner" id="demoBanner"></div></div>
       <canvas id="viewCanvas"></canvas>
 
       <div class="rc-hint" id="rcHint">Select ⚡ RC Path to open Elmore HUD</div>
@@ -994,7 +993,7 @@
         <div class="proc-hud-section"><strong>Pitfalls</strong><span id="procHudPitfalls">—</span></div>
         <div class="proc-hud-section"><strong>Interview hook</strong><span id="procHudHook">—</span></div>
         <div class="proc-hud-formula" id="procHudFormula">Antenna Ratio = Metal Area (or perimeter) / Gate Oxide Area</div>
-        <div class="proc-demo-btns" id="procHudDemos" style="display:none;"></div>
+        <div class="proc-section" id="procHudStaticNote" style="display:none;"><span class="lbl" style="color:#fbbf24;">Static teaching note</span><div id="procHudStaticNoteBody">—</div></div>
         <div class="proc-quiz" id="procHudQuiz" style="display:none;">
           <div class="proc-quiz-q" id="procQuizQ"></div>
           <div class="proc-quiz-opts" id="procQuizOpts"></div>
@@ -2746,7 +2745,7 @@
           formula: "Damascene: dielectric pattern → barrier/seed → Cu fill → CMP"
         },
         quizId: "a2",
-        demos: ["cmp"]
+        demos: []
       },
       {
         step: 3, title: "Cu Reliability: Barrier, EM Paths, Via Health", domain: "ADV-EM-Cu", level: "Master",
@@ -2828,10 +2827,9 @@
 
     // Attach quizId + demos to planar FAB_STEPS
     (function attachFabQuizzes() {
-      const demoMap = { 8: ['cmp'], 9: ['antenna', 'cmp'] };
       FAB_STEPS.forEach(s => {
         s.quizId = s.quizId || String(s.step);
-        s.demos = s.demos || demoMap[s.step] || (s.domain === 'BEOL-Antenna' ? ['antenna'] : []);
+        s.demos = []; // static lab — no live/dynamic demos
       });
     })();
 
@@ -4688,125 +4686,16 @@
 
 
 
-    let demoMode = null; // null | 'antenna' | 'cmp'
-    let demoT0 = 0;
-    let demoRaf = null;
+    // Static lab mode: no live/dynamic antenna or CMP animations
+    function stopDemo() { /* no-op */ }
+    function startDemo(_kind) { /* disabled — static curriculum only */ }
 
-    function sizeDemoCanvas() {
-      const ov = document.getElementById('demoOverlay');
-      const dc = document.getElementById('demoCanvas');
-      if (!ov || !dc || !container) return;
-      const w = container.clientWidth, h = container.clientHeight;
-      dc.width = w; dc.height = h;
-      dc.style.width = w + 'px'; dc.style.height = h + 'px';
-    }
 
-    function stopDemo() {
-      demoMode = null;
-      if (demoRaf) { cancelAnimationFrame(demoRaf); demoRaf = null; }
-      const ov = document.getElementById('demoOverlay');
-      if (ov) { ov.classList.remove('active'); ov.setAttribute('aria-hidden', 'true'); }
-    }
-
-    function startDemo(kind) {
-      if (kind !== 'antenna' && kind !== 'cmp') return;
-      sizeDemoCanvas();
-      demoMode = kind;
-      demoT0 = performance.now();
-      const ov = document.getElementById('demoOverlay');
-      if (ov) { ov.classList.add('active'); ov.setAttribute('aria-hidden', 'false'); }
-      const banner = document.getElementById('demoBanner');
-      if (banner) {
-        banner.textContent = kind === 'antenna'
-          ? 'DEMO · Process Antenna: plasma charge builds on floating metal → discharges through thin gate oxide'
-          : 'DEMO · CMP: high-density vs wide features — dishing/erosion from pattern-density-dependent polish';
-      }
-      const tick = (ts) => {
-        if (!demoMode) return;
-        drawDemoFrame((ts - demoT0) / 1000);
-        demoRaf = requestAnimationFrame(tick);
-      };
-      if (demoRaf) cancelAnimationFrame(demoRaf);
-      demoRaf = requestAnimationFrame(tick);
-      // auto-stop after 12s
-      setTimeout(() => { if (demoMode === kind) stopDemo(); }, 12000);
-    }
-
-    function drawDemoFrame(t) {
-      const dc = document.getElementById('demoCanvas');
-      if (!dc) return;
-      const c = dc.getContext('2d');
-      const W = dc.width, H = dc.height;
-      c.clearRect(0, 0, W, H);
-      if (demoMode === 'antenna') {
-        // plasma field
-        for (let i = 0; i < 40; i++) {
-          const x = (W * 0.15) + ((i * 37 + t * 80) % (W * 0.7));
-          const y = H * 0.18 + Math.sin(t * 3 + i) * 12;
-          c.fillStyle = `rgba(56,189,248,${0.15 + 0.35 * Math.abs(Math.sin(t + i))})`;
-          c.beginPath(); c.arc(x, y, 2.2, 0, Math.PI * 2); c.fill();
-        }
-        // long metal antenna
-        const mx = W * 0.2, my = H * 0.42, mw = W * 0.45, mh = 14;
-        c.fillStyle = '#94a3b8';
-        c.fillRect(mx, my, mw, mh);
-        c.strokeStyle = '#e2e8f0'; c.strokeRect(mx, my, mw, mh);
-        c.fillStyle = '#fde68a'; c.font = 'bold 12px monospace';
-        c.fillText('Floating metal (collecting plasma charge)', mx, my - 10);
-        // gate oxide victim
-        const gx = mx + mw + 20, gy = my - 30;
-        c.fillStyle = '#38bdf8'; c.fillRect(gx, gy, 16, 70);
-        c.fillStyle = '#f87171'; c.fillRect(gx - 2, gy + 28, 20, 6);
-        c.fillStyle = '#fecaca'; c.font = 'bold 11px monospace';
-        c.fillText('Thin gate oxide (victim)', gx + 24, gy + 36);
-        // charge flash to gate
-        const phase = (Math.sin(t * 4) + 1) / 2;
-        c.strokeStyle = `rgba(251,191,36,${0.4 + 0.6 * phase})`;
-        c.lineWidth = 2 + 3 * phase;
-        c.beginPath(); c.moveTo(mx + mw, my + mh / 2); c.lineTo(gx, gy + 31); c.stroke();
-        if (phase > 0.85) {
-          c.fillStyle = 'rgba(239,68,68,0.55)';
-          c.beginPath(); c.arc(gx + 8, gy + 31, 10 + 6 * phase, 0, Math.PI * 2); c.fill();
-          c.fillStyle = '#fee2e2'; c.font = 'bold 12px monospace';
-          c.fillText('DISCHARGE / OXIDE STRESS', gx - 40, gy + 95);
-        }
-        c.fillStyle = '#94a3b8'; c.font = '10px monospace';
-        c.fillText('R_ant = A_metal / A_gate   ·   Fix: jumper to upper metal or diode to diffusion', W * 0.2, H * 0.78);
-      } else if (demoMode === 'cmp') {
-        // two regions density
-        c.fillStyle = 'rgba(148,163,184,0.25)';
-        c.fillRect(W*0.12, H*0.3, W*0.32, H*0.28);
-        c.fillStyle = 'rgba(56,189,248,0.2)';
-        c.fillRect(W*0.55, H*0.3, W*0.32, H*0.28);
-        // dense pattern
-        for (let i = 0; i < 8; i++) {
-          for (let j = 0; j < 5; j++) {
-            c.fillStyle = '#64748b';
-            c.fillRect(W*0.15 + i*22, H*0.34 + j*18, 14, 10);
-          }
-        }
-        c.fillStyle = '#e2e8f0'; c.font = 'bold 11px monospace';
-        c.fillText('HIGH density (uniform polish)', W*0.14, H*0.28);
-        // wide feature dishing
-        const dish = 18 * Math.min(1, t / 3);
-        c.fillStyle = '#94a3b8';
-        c.beginPath();
-        c.moveTo(W*0.58, H*0.38);
-        c.lineTo(W*0.84, H*0.38);
-        c.quadraticCurveTo(W*0.71, H*0.38 + dish, W*0.58, H*0.38);
-        c.fill();
-        c.strokeStyle = '#fbbf24'; c.stroke();
-        c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace';
-        c.fillText('WIDE feature → DISHING', W*0.56, H*0.28);
-        // polish pad
-        const padY = H*0.22 + Math.sin(t*2)*4;
-        c.fillStyle = 'rgba(251,191,36,0.35)';
-        c.fillRect(W*0.1, padY, W*0.8, 16);
-        c.fillStyle = '#fbbf24'; c.font = '10px monospace';
-        c.fillText('CMP pad motion → rate = f(pattern density, width)', W*0.2, H*0.75);
-      }
-    }
-
+    const STATIC_TEACHING_NOTES = {
+      'BEOL-Antenna': 'Static note: During BEOL plasma metal/via etch, floating metal collects charge. If tied only to a thin gate oxide (no diffusion path), voltage can rupture the oxide. R_ant = A_metal / A_gate. Fixes: metal jumper → route ECO → antenna diode. (Illustration only — not a live checker.)',
+      'BEOL-CMP': 'Static note: CMP polish rate depends on pattern density and feature width. Wide sparse metal dishes; density rules + metal fill keep thickness uniform for litho and resistance. (Illustration only.)',
+      'ADV-BEOL-Cu': 'Static note: Cu dual-damascene = dielectric pattern → barrier/seed → Cu fill → CMP. Not subtractive Al etch. Barrier/via bottoms dominate reliability. (Conceptual advanced-node track.)'
+    };
 
     function updateProcHud(step) {
       const hud = document.getElementById('procHud');
@@ -4840,6 +4729,21 @@
           formula.textContent = '';
         }
       }
+      const noteWrap = document.getElementById('procHudStaticNote');
+      const noteBody = document.getElementById('procHudStaticNoteBody');
+      const noteKey = (step.domain === 'BEOL-Antenna' || isAntenna) ? 'BEOL-Antenna'
+        : (step.domain === 'BEOL-CMP' || /CMP/i.test(step.title||'')) ? 'BEOL-CMP'
+        : (step.domain === 'ADV-BEOL-Cu') ? 'ADV-BEOL-Cu' : null;
+      if (noteWrap && noteBody) {
+        if (noteKey && STATIC_TEACHING_NOTES[noteKey]) {
+          noteWrap.style.display = '';
+          noteBody.textContent = STATIC_TEACHING_NOTES[noteKey];
+        } else {
+          noteWrap.style.display = 'none';
+          noteBody.textContent = '';
+        }
+      }
+
       const fxBox = document.getElementById('procHudEffects');
       if (fxBox) {
         fxBox.innerHTML = '';
@@ -4849,27 +4753,6 @@
           chip.textContent = fx;
           fxBox.appendChild(chip);
         });
-      }
-      // Demos
-      const demoBox = document.getElementById('procHudDemos');
-      if (demoBox) {
-        const demos = step.demos || [];
-        demoBox.style.display = demos.length ? 'flex' : 'none';
-        demoBox.innerHTML = '';
-        demos.forEach(d => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'btn';
-          b.textContent = d === 'antenna' ? '▶ Antenna demo' : d === 'cmp' ? '▶ CMP demo' : '▶ Demo';
-          b.onclick = () => startDemo(d);
-          demoBox.appendChild(b);
-        });
-        if (demos.length) {
-          const stop = document.createElement('button');
-          stop.type = 'button'; stop.className = 'btn'; stop.textContent = '⏹ Stop demo';
-          stop.onclick = () => stopDemo();
-          demoBox.appendChild(stop);
-        }
       }
       // Quiz
       const quizWrap = document.getElementById('procHudQuiz');
