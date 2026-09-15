@@ -449,22 +449,59 @@
       top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(9, 13, 26, 0.92);
-      backdrop-filter: blur(10px);
+      background: rgba(9, 13, 26, 0.94);
+      backdrop-filter: blur(12px);
       border: 1px solid #06b6d4;
-      border-radius: 8px;
-      padding: 6px 14px;
+      border-radius: 10px;
+      padding: 8px 16px;
       font-size: 11px;
       font-family: 'JetBrains Mono', monospace;
       color: #38bdf8;
       display: none;
-      align-items: center;
-      gap: 14px;
+      flex-direction: column;
+      gap: 6px;
       z-index: 15;
-      box-shadow: 0 0 16px rgba(6, 182, 212, 0.3);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.35);
+      max-width: 92vw;
     }
     .rc-hud.active {
       display: flex;
+    }
+    .rc-hud-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .rc-net-btn {
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 3px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 10px;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+    .rc-net-btn:hover {
+      border-color: #38bdf8;
+      color: #f8fafc;
+    }
+    .rc-net-btn.active {
+      background: rgba(6, 182, 212, 0.25);
+      border-color: #06b6d4;
+      color: #38bdf8;
+      font-weight: bold;
+      box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+    }
+    .rc-stat-chip {
+      background: rgba(30, 41, 59, 0.6);
+      padding: 3px 8px;
+      border-radius: 5px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      font-size: 10.5px;
     }
   </style>
 </head>
@@ -488,6 +525,13 @@
         <option value="spm">Design: SPM Multiplier (165 × 165 µm)</option>
         <option value="gcd">Design: GCD Coprocessor (125 × 125 µm)</option>
       </select>
+
+      <!-- Packaging Architecture Selector: Wirebond vs Flip-Chip -->
+      <select id="pkgSelect" class="btn" style="padding: 4px 8px; font-weight: bold; background: #0f172a; color: #fbbf24; border-color: #d97706;" title="Select Packaging Architecture: Wirebond vs Flip-Chip C4 Bumps">
+        <option value="wirebond">📦 Package: Wirebond (Leadframe + Wireload L≈1.2nH)</option>
+        <option value="flipchip">⚡ Package: Flip-Chip (C4 Area-Array Solder Bumps L<0.05nH)</option>
+        <option value="hybrid">🌐 Package: Compare Both (Wirebond + Flip-Chip)</option>
+      </select>
     </div>
 
     <!-- View Modes & Camera Presets -->
@@ -495,7 +539,7 @@
       <!-- Educational Domain Filters -->
       <div class="btn-group">
         <button id="filterAllBtn" class="btn active" title="Show Complete Wafer Stack">All</button>
-        <button id="filterFeolBtn" class="btn" title="FEOL: Substrate, Wells, Endcaps, Welltaps, StdCells, Decaps, Macros">FEOL</button>
+        <button id="filterFeolBtn" class="btn" title="FEOL: Substrate, Wells, Endcaps, Welltaps, StdCells, Decaps, Fillers, Macros">FEOL</button>
         <button id="filterBeolBtn" class="btn" title="BEOL: li1, met1-met5, Vias, Manhattan Routing">BEOL</button>
         <button id="filterPdnBtn" class="btn" title="PDN: Core & Macro Rings, Power Straps, Cell Rails, Decaps">PDN Mesh</button>
         <button id="filterPkgBtn" class="btn" title="Packaging: I/O Bond Pads, 3D Wirebonds, C4 Solder Bumps">Package</button>
@@ -538,16 +582,16 @@
       <span class="telemetry-val" id="teleMacros">2 Macros</span>
     </div>
     <div class="telemetry-item">
-      <span>Taps / Caps:</span>
-      <span class="telemetry-val" id="teleTaps">56 Caps · 184 Taps · 72 Decaps</span>
+      <span>Taps / Caps / Fillers:</span>
+      <span class="telemetry-val" id="teleTaps">56 Caps · 184 Taps · 72 Decaps · 820 Fillers</span>
     </div>
     <div class="telemetry-item">
       <span>PDN Grid:</span>
       <span class="telemetry-val" id="telePdn">Dual Rings + 14 Straps</span>
     </div>
     <div class="telemetry-item">
-      <span>Package Bumps:</span>
-      <span class="telemetry-val" id="teleBumps">64 C4 Solder Bumps</span>
+      <span>Packaging / I/O:</span>
+      <span class="telemetry-val" id="teleBumps">64 Wirebonds · L≈1.2nH</span>
     </div>
     <div class="telemetry-item">
       <span>Z-Spread:</span>
@@ -566,10 +610,26 @@
 
       <!-- RC Interconnect Delay Live HUD -->
       <div class="rc-hud" id="rcHud">
-        <span>⚡ <strong>3D Interconnect Trace:</strong> stdcell_out (li1) → met1 → met2 → met3 → stdcell_in</span>
-        <span><strong>Elmore Delay:</strong> <span style="color: #10b981;">38.4 ps</span></span>
-        <span><strong>Via Jumps:</strong> 4 (R=18.2 Ω)</span>
-        <span><strong>Net C:</strong> 46.8 fF</span>
+        <div class="rc-hud-row" style="justify-content: space-between; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 4px; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="color: #38bdf8; font-weight: bold;">⚡ 3D Interconnect Extraction:</span>
+            <div style="display: flex; gap: 4px;" id="rcNetSelector">
+              <button class="rc-net-btn active" id="rcNet0Btn">Net 1: Local (INV→NAND)</button>
+              <button class="rc-net-btn" id="rcNet1Btn">Net 2: Inter-Row (DFF→AOI)</button>
+              <button class="rc-net-btn" id="rcNet2Btn">Net 3: Highway (BUF→DFF)</button>
+            </div>
+          </div>
+          <span id="rcDriverInfo" style="color: #94a3b8; font-size: 10px;">Driver: INV_X2 (Rd=450Ω) → Load: NAND2_X1 (Cin=2.4fF)</span>
+        </div>
+        <div class="rc-hud-row" id="rcMetricsRow">
+          <span class="rc-stat-chip">Manhattan Length: <strong id="rcNetLen" style="color: #f8fafc;">34.2 µm</strong></span>
+          <span class="rc-stat-chip">Wire R: <strong id="rcWireR" style="color: #f59e0b;">24.5 Ω</strong></span>
+          <span class="rc-stat-chip">Wire C: <strong id="rcWireC" style="color: #38bdf8;">6.15 fF</strong></span>
+          <span class="rc-stat-chip">Vias: <strong id="rcVias" style="color: #fbbf24;">4 cuts (27.6 Ω)</strong></span>
+          <span class="rc-stat-chip">Elmore τ: <strong id="rcElmoreTau" style="color: #10b981;">6.42 ps</strong></span>
+          <span class="rc-stat-chip">t_pd (50%): <strong id="rcDelay50" style="color: #34d399;">4.45 ps</strong></span>
+          <span class="rc-stat-chip">Slew (10→90%): <strong id="rcSlew" style="color: #a7f3d0;">14.1 ps</strong></span>
+        </div>
       </div>
 
       <!-- Quick Camera Gizmo -->
@@ -730,6 +790,20 @@
         sheetRes: 'Capacitance: ~120 fF/cell, ESR: 12 Ω',
         role: 'Provides localized charge reservoirs directly under VDD/VSS rails to clamp dynamic IR-drop during clock transitions.',
         designRule: 'Placed in row filler sites adjacent to power straps. Suppresses high-frequency L·di/dt inductive supply bounce.'
+      },
+      {
+        id: 'fillers',
+        name: 'Filler Cells (CMP & Well Continuity)',
+        color: '#64748b',
+        zLevel: 0.58,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.15 µm Active/Poly Dummy',
+        material: 'Non-functional Diffusion + Abutted Rails (sky130_fd_sc_hd__fill_1/2/4/8)',
+        sheetRes: 'Base Silicon Substrate Continuity',
+        role: 'Fills unoccupied row sites to guarantee continuous N-Well/P-Substrate, abut VDD/VSS rails, and satisfy CMP density rules.',
+        designRule: 'Mandatory 100% row site occupancy. Prevents CMP dielectric dishing and gate oxide thickness variations.'
       },
       {
         id: 'macros',
@@ -949,17 +1023,17 @@
       },
       {
         step: 3,
-        title: "Transistor Active Gates, StdCells & Decaps (FEOL)",
+        title: "Transistor Active Gates, StdCells, Decaps & Fillers (FEOL)",
         domain: "FEOL",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps'],
-        desc: "Poly-silicon gate deposition (L=150nm) over 2.1 nm gate oxide. Self-aligned source/drain implants create CMOS logic gates (INV, NAND, NOR, DFF). Decap capacitors act as local charge reservoirs.",
-        physics: "Fixed row height: 2.72 µm. Decap MOS capacitors (Cox ~ 8.4 fF/µm²) suppress dynamic L·di/dt voltage droop."
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers'],
+        desc: "Poly-silicon gate deposition (L=150nm) over 2.1 nm gate oxide. Logic gates placed in rows with decap fillers and 100% density filler cells to prevent oxide dishing.",
+        physics: "Fixed row height: 2.72 µm. Fillers guarantee N-well/P-substrate continuity and CMP planarization density compliance."
       },
       {
         step: 4,
         title: "Hard IP Macros, Halos & Dedicated Macro Rings (Floorplanning)",
         domain: "FEOL",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros'],
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'macros'],
         desc: "Pre-designed IP blocks (SRAM memory, register files, PLLs) placed at die periphery with 10-15 µm routing halos and dedicated perimeter power rings.",
         physics: "Macro halos prevent standard cell overlap and provide isolated routing corridors for memory address/data buses."
       },
@@ -967,7 +1041,7 @@
         step: 5,
         title: "Local Interconnect li1 & Metal 1 Cell Supply Rails (MOL / BEOL)",
         domain: "MOL",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1'],
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'macros', 'li1', 'pdn_rails', 'met1'],
         desc: "Titanium Nitride (TiN) local interconnect forms dense intra-cell connections without consuming Metal 1 tracks. Metal 1 creates continuous horizontal VDD and VSS rails.",
         physics: "li1 sheet resistance: 12.8 Ω/sq (restricted to short jogs <15 µm). Metal 1 thickness: 360 nm (0.125 Ω/sq)."
       },
@@ -975,7 +1049,7 @@
         step: 6,
         title: "Multi-Tier Manhattan Routing Highways & Vias (met1–met4)",
         domain: "BEOL",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'vias'],
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'vias'],
         desc: "Orthogonal Manhattan routing grid (met2 vertical, met3 horizontal 840nm thick, met4 CTS clock tree). Tungsten/copper vias connect wires across dielectric oxide.",
         physics: "Interconnect delay governed by Elmore model: tau = Rwire * Cwire + sum(Rvia * Cload). Redundant double vias enforced in signoff."
       },
@@ -983,7 +1057,7 @@
         step: 7,
         title: "Global Power Distribution Network: Core Rings & Straps (PDN Mesh)",
         domain: "PDN",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps'],
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps'],
         desc: "Low-impedance concentric dual-rail power rings (VDD/VSS) surround core and macros. Thick vertical (met4) and horizontal (met5) straps form an equipotential mesh.",
         physics: "Ultra-thick 1.26 µm met5 (0.028 Ω/sq) minimizes static IR-drop (<2% VDD) and satisfies electromigration current limits."
       },
@@ -991,7 +1065,7 @@
         step: 8,
         title: "I/O Bond Pads, Wirebonds, Wireload & C4 Solder Bumps (Packaging)",
         domain: "Package",
-        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps'],
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'fillers', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps'],
         desc: "Peripheral I/O bond pads with ESD diodes and 3D parabolic gold wirebonds. Area-array C4 flip-chip solder micro-bumps feed power directly into core mesh.",
         physics: "C4 flip-chip bumps slash loop inductance from 1.2 nH (wirebonds) to <0.05 nH, virtually eliminating ground bounce during simultaneous switching."
       }
@@ -1097,7 +1171,83 @@
         }
       }
 
-      // 6. Power Rings (Core & Macros)
+      // 6. Filler Cells (sky130_fd_sc_hd__fill_1/2/4/8)
+      // Every unoccupied row site must be filled for CMP density and N-Well/P-Substrate continuity
+      const fillers = [];
+      const fillSizes = [
+        { type: 'fill_8', w: 3.68 },
+        { type: 'fill_4', w: 1.84 },
+        { type: 'fill_2', w: 0.92 },
+        { type: 'fill_1', w: 0.46 }
+      ];
+
+      for (let r = 0; r < rowCount; r++) {
+        const y = cm + r * rowH;
+        const occ = [];
+        // Macros intersecting this row
+        macros.forEach(m => {
+          if (y >= (m.y - m.halo) && y <= (m.y + m.h + m.halo)) {
+            occ.push({ x1: Math.max(cm, m.x - m.halo), x2: Math.min(w - cm, m.x + m.w + m.halo) });
+          }
+        });
+        // Endcaps
+        occ.push({ x1: cm, x2: cm + 3.5 });
+        occ.push({ x1: w - cm - 3.5, x2: w - cm });
+        // Welltaps on this row
+        for (let i = 0; i < welltaps.length; i++) {
+          if (welltaps[i].row === r) occ.push({ x1: welltaps[i].x, x2: welltaps[i].x + welltaps[i].w });
+        }
+        // Decaps on this row
+        for (let i = 0; i < decaps.length; i++) {
+          if (decaps[i].row === r) occ.push({ x1: decaps[i].x, x2: decaps[i].x + decaps[i].w });
+        }
+        // StdCells on this row
+        for (let i = 0; i < stdcells.length; i++) {
+          if (stdcells[i].row === r) occ.push({ x1: stdcells[i].x, x2: stdcells[i].x + stdcells[i].w });
+        }
+
+        occ.sort((a, b) => a.x1 - b.x1);
+        const merged = [];
+        for (const seg of occ) {
+          if (merged.length === 0 || seg.x1 > merged[merged.length - 1].x2) {
+            merged.push({ x1: Math.max(cm, seg.x1), x2: Math.min(w - cm, seg.x2) });
+          } else {
+            merged[merged.length - 1].x2 = Math.max(merged[merged.length - 1].x2, Math.min(w - cm, seg.x2));
+          }
+        }
+
+        let curX = cm + 3.5;
+        for (const seg of merged) {
+          if (seg.x1 > curX) {
+            let gap = seg.x1 - curX;
+            let fx = curX;
+            while (gap >= 0.46) {
+              let placed = false;
+              for (const fs of fillSizes) {
+                if (gap >= fs.w) {
+                  fillers.push({
+                    id: `fill_${r}_${Math.round(fx * 10)}`,
+                    type: fs.type,
+                    x: fx,
+                    y: y + rowH * 0.12,
+                    w: fs.w,
+                    h: rowH * 0.76,
+                    row: r
+                  });
+                  fx += fs.w;
+                  gap -= fs.w;
+                  placed = true;
+                  break;
+                }
+              }
+              if (!placed) break;
+            }
+          }
+          curX = Math.max(curX, seg.x2);
+        }
+      }
+
+      // 7. Power Rings (Core & Macros)
       const rings = [];
       rings.push({ type: 'core_vdd', x: cm - 8, y: cm - 8, w: w - 2 * cm + 16, h: h - 2 * cm + 16, width: 4.2, color: '#ef4444', label: 'VDD Ring (1.8V)' });
       rings.push({ type: 'core_vss', x: cm - 2, y: cm - 2, w: w - 2 * cm + 4, h: h - 2 * cm + 4, width: 4.2, color: '#0284c7', label: 'VSS Ring (0V)' });
@@ -1115,7 +1265,7 @@
         });
       });
 
-      // 7. Power Straps (Vertical met4 & Horizontal met5)
+      // 8. Power Straps (Vertical met4 & Horizontal met5)
       const straps = [];
       for (let s = 1; s < strapCount; s++) {
         const sx = cm + s * strapStep;
@@ -1144,7 +1294,7 @@
         });
       }
 
-      // 8. I/O Bond Pads (Perimeter)
+      // 9. I/O Bond Pads (Perimeter)
       const pads = [];
       const padSize = Math.max(22, Math.min(44, Math.round(w * 0.07)));
       const padStep = padSize * 1.5;
@@ -1161,7 +1311,7 @@
         pads.push({ id: `pad_right_${p}`, x: w - 4 - padSize * 0.8, y: py, w: padSize * 0.8, h: padSize, side: 'right' });
       }
 
-      // 9. 3D Wirebonds
+      // 10. 3D Wirebonds
       const wirebonds = pads.map(pad => {
         let leadX = pad.x + pad.w / 2;
         let leadY = pad.y + pad.h / 2;
@@ -1180,7 +1330,7 @@
         };
       });
 
-      // 10. C4 Flip-Chip Solder Bumps (Area Array Grid)
+      // 11. C4 Flip-Chip Solder Bumps (Area Array Grid)
       const bumps = [];
       const bumpCols = Math.max(4, Math.min(10, Math.round(w / 70)));
       const bumpRows = Math.max(4, Math.min(10, Math.round(h / 70)));
@@ -1202,6 +1352,154 @@
         }
       }
 
+      // 12. Rigorous 3D Interconnect Extraction Engine (SkyWater 130nm)
+      const R_LI1 = 75.3;    // Ω/µm (TiN 12.8 Ω/sq, w=0.17µm)
+      const R_MET1 = 0.893;  // Ω/µm (Cu 0.125 Ω/sq, w=0.14µm)
+      const R_MET2 = 0.893;  // Ω/µm (Cu 0.125 Ω/sq, w=0.14µm)
+      const R_MET3 = 0.157;  // Ω/µm (Cu 0.047 Ω/sq, w=0.30µm)
+      const R_MCON = 9.3;    // Ω/cut
+      const R_VIA1 = 4.5;    // Ω/cut
+      const R_VIA2 = 3.4;    // Ω/cut
+      const C_WIRE = 0.18;   // fF/µm (Carea + 2*Cfringe)
+
+      function calcElmore(driverR, loadC, segs, vias) {
+        let totalLen = 0;
+        let totalWireR = 0;
+        let totalWireC = 0;
+        for (const s of segs) {
+          totalLen += s.len;
+          totalWireR += s.len * s.rUnit;
+          totalWireC += s.len * s.cUnit;
+        }
+        let viasR = vias.reduce((sum, v) => sum + v.r, 0);
+
+        let cDown = totalWireC + loadC;
+        let delayFemto = driverR * cDown;
+
+        for (const s of segs) {
+          const segC = s.len * s.cUnit;
+          const segR = s.len * s.rUnit;
+          cDown -= segC;
+          delayFemto += segR * (segC * 0.5 + cDown);
+        }
+
+        let vDown = loadC;
+        for (let k = vias.length - 1; k >= 0; k--) {
+          delayFemto += vias[k].r * vDown;
+          vDown += (totalWireC / Math.max(1, vias.length));
+        }
+
+        const tauPs = delayFemto * 0.001;
+        const tpdPs = tauPs * 0.69315;
+        const slewPs = tauPs * 2.1972;
+
+        return { totalLen, totalWireR, totalWireC, viasCount: vias.length, viasR, tauPs, tpdPs, slewPs };
+      }
+
+      // Net 0: Local Short Net (INV_X2 -> NAND2_X1)
+      const n0_x1 = cm + 28;
+      const n0_y1 = cm + rowH * 1.5;
+      const n0_x2 = cm + Math.min(w * 0.45, cm + 55);
+      const n0_segs = [
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE },
+        { len: (n0_x2 - n0_x1), rUnit: R_MET1, cUnit: C_WIRE },
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE }
+      ];
+      const n0_vias = [{ r: R_MCON }, { r: R_MCON }];
+      const n0_metrics = calcElmore(450, 2.4, n0_segs, n0_vias);
+      const net0 = {
+        name: 'Net 1: Local (INV→NAND)',
+        driverName: 'INV_X2 (Rd=450Ω)',
+        loadName: 'NAND2_X1 (Cin=2.4fF)',
+        ...n0_metrics,
+        pts: [
+          { x: n0_x1, y: n0_y1, z: 0.6, label: 'SRC: U1/Y (INV_X2)' },
+          { x: n0_x1, y: n0_y1, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n0_x1, y: n0_y1, z: 3.6, layer: 'met1' },
+          { x: n0_x2, y: n0_y1, z: 3.6, layer: 'met1' },
+          { x: n0_x2, y: n0_y1, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n0_x2, y: n0_y1, z: 0.6, label: 'DST: U2/A (NAND2_X1)' }
+        ]
+      };
+
+      // Net 1: Inter-Row Data Net (DFCNQ_X2 -> AOI22_X1)
+      const n1_x1 = cm + 70;
+      const n1_y1 = cm + rowH * 2.2;
+      const n1_xtrk = cm + 115;
+      const n1_y2 = cm + rowH * Math.min(rowCount - 2, 6.2);
+      const n1_x2 = cm + Math.min(w * 0.7, cm + 165);
+      const n1_segs = [
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE },
+        { len: (n1_xtrk - n1_x1), rUnit: R_MET1, cUnit: C_WIRE },
+        { len: Math.abs(n1_y2 - n1_y1), rUnit: R_MET2, cUnit: C_WIRE },
+        { len: (n1_x2 - n1_xtrk), rUnit: R_MET1, cUnit: C_WIRE },
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE }
+      ];
+      const n1_vias = [{ r: R_MCON }, { r: R_VIA1 }, { r: R_VIA1 }, { r: R_MCON }];
+      const n1_metrics = calcElmore(520, 3.6, n1_segs, n1_vias);
+      const net1 = {
+        name: 'Net 2: Inter-Row (DFF→AOI)',
+        driverName: 'DFCNQ_X2 (Rd=520Ω)',
+        loadName: 'AOI22_X1 (Cin=3.6fF)',
+        ...n1_metrics,
+        pts: [
+          { x: n1_x1, y: n1_y1, z: 0.6, label: 'SRC: FF1/Q (DFCNQ_X2)' },
+          { x: n1_x1, y: n1_y1, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n1_x1, y: n1_y1, z: 3.6, layer: 'met1' },
+          { x: n1_xtrk, y: n1_y1, z: 3.6, layer: 'met1' },
+          { x: n1_xtrk, y: n1_y1, z: 4.4, layer: 'met2', via: 'via1' },
+          { x: n1_xtrk, y: n1_y2, z: 4.4, layer: 'met2' },
+          { x: n1_xtrk, y: n1_y2, z: 3.6, layer: 'met1', via: 'via1' },
+          { x: n1_x2, y: n1_y2, z: 3.6, layer: 'met1' },
+          { x: n1_x2, y: n1_y2, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n1_x2, y: n1_y2, z: 0.6, label: 'DST: GATE2/A1 (AOI22_X1)' }
+        ]
+      };
+
+      // Net 2: Global Critical Highway (BUF_X4 -> DFCNQ_X2)
+      const n2_x1 = cm + 32;
+      const n2_y1 = cm + rowH * 3.0;
+      const n2_xtrk1 = cm + 65;
+      const n2_yhwy = cm + rowH * Math.floor(rowCount * 0.52);
+      const n2_xtrk2 = w - cm - 55;
+      const n2_y2 = h - cm - rowH * 2.8;
+      const n2_x2 = w - cm - 25;
+      const n2_segs = [
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE },
+        { len: (n2_xtrk1 - n2_x1), rUnit: R_MET1, cUnit: C_WIRE },
+        { len: Math.abs(n2_yhwy - n2_y1), rUnit: R_MET2, cUnit: C_WIRE },
+        { len: (n2_xtrk2 - n2_xtrk1), rUnit: R_MET3, cUnit: C_WIRE },
+        { len: Math.abs(n2_y2 - n2_yhwy), rUnit: R_MET2, cUnit: C_WIRE },
+        { len: (n2_x2 - n2_xtrk2), rUnit: R_MET1, cUnit: C_WIRE },
+        { len: 2.2, rUnit: R_LI1, cUnit: C_WIRE }
+      ];
+      const n2_vias = [{ r: R_MCON }, { r: R_VIA1 }, { r: R_VIA2 }, { r: R_VIA2 }, { r: R_VIA1 }, { r: R_MCON }];
+      const n2_metrics = calcElmore(220, 4.2, n2_segs, n2_vias);
+      const net2 = {
+        name: 'Net 3: Highway (BUF→DFF)',
+        driverName: 'BUF_X4 (Rd=220Ω)',
+        loadName: 'DFCNQ_X2 (Cin=4.2fF)',
+        ...n2_metrics,
+        pts: [
+          { x: n2_x1, y: n2_y1, z: 0.6, label: 'SRC: BUF1/X (BUF_X4)' },
+          { x: n2_x1, y: n2_y1, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n2_x1, y: n2_y1, z: 3.6, layer: 'met1' },
+          { x: n2_xtrk1, y: n2_y1, z: 3.6, layer: 'met1' },
+          { x: n2_xtrk1, y: n2_y1, z: 4.4, layer: 'met2', via: 'via1' },
+          { x: n2_xtrk1, y: n2_yhwy, z: 4.4, layer: 'met2' },
+          { x: n2_xtrk1, y: n2_yhwy, z: 5.2, layer: 'met3', via: 'via2' },
+          { x: n2_xtrk2, y: n2_yhwy, z: 5.2, layer: 'met3' },
+          { x: n2_xtrk2, y: n2_yhwy, z: 4.4, layer: 'met2', via: 'via2' },
+          { x: n2_xtrk2, y: n2_y2, z: 4.4, layer: 'met2' },
+          { x: n2_xtrk2, y: n2_y2, z: 3.6, layer: 'met1', via: 'via1' },
+          { x: n2_x2, y: n2_y2, z: 3.6, layer: 'met1' },
+          { x: n2_x2, y: n2_y2, z: 2.8, layer: 'li1', via: 'mcon' },
+          { x: n2_x2, y: n2_y2, z: 0.6, label: 'DST: REG_FF/D (DFCNQ_X2)' }
+        ]
+      };
+
+      const rcNets = [net0, net1, net2];
+
       return {
         name,
         width: w,
@@ -1215,12 +1513,14 @@
         endcaps,
         welltaps,
         decaps,
+        fillers,
         stdcells,
         rings,
         straps,
         pads,
         wirebonds,
         bumps,
+        rcNets,
         metalLayers: 5,
         viasCount: Math.round(cellsCount * 9.2),
         routes: generateDesignRoutes(w, h, Math.min(650, Math.max(200, Math.round(cellsCount * 0.05))), 5)
@@ -1301,6 +1601,8 @@
     let fabPlayTimer = null;
     let signalPathActive = false;
     let activeDomainFilter = 'all'; // 'all' | 'feol' | 'beol'
+    let currentPkgMode = 'wirebond'; // 'wirebond' | 'flipchip' | 'hybrid'
+    let activeNetIndex = 0; // 0: Local, 1: Inter-Row, 2: Highway
 
     // Canvas Context
     const canvas = document.getElementById('viewCanvas');
@@ -1419,7 +1721,16 @@
         });
       }
 
-      // 6. Hard Macros & Halos
+      // 6. Filler Cells (CMP Density & Substrate Continuity)
+      if (isLayerActive('fillers') && currentDesign.fillers) {
+        primitives.push({
+          type: 'fillers',
+          depth: is3DMode ? 0.082 : 1.21,
+          draw: () => drawFillerCells(w, h)
+        });
+      }
+
+      // 7. Hard Macros & Halos
       if (isLayerActive('macros') && currentDesign.macros && currentDesign.macros.length > 0) {
         primitives.push({
           type: 'macros',
@@ -1428,7 +1739,7 @@
         });
       }
 
-      // 7. Metal 1 Standard Cell Power Rails
+      // 8. Metal 1 Standard Cell Power Rails
       if (isLayerActive('pdn_rails')) {
         primitives.push({
           type: 'pdn_rails',
@@ -1437,7 +1748,7 @@
         });
       }
 
-      // 8. Metal Routing Layers (li1, met1..met5)
+      // 9. Metal Routing Layers (li1, met1..met5)
       ['li1', 'met1', 'met2', 'met3', 'met4', 'met5'].forEach((layerId, idx) => {
         if (isLayerActive(layerId)) {
           const lCfg = LAYER_CONFIG.find(l => l.id === layerId);
@@ -1449,7 +1760,7 @@
         }
       });
 
-      // 9. Core & Macro Power Rings
+      // 10. Core & Macro Power Rings
       if (isLayerActive('pdn_rings')) {
         primitives.push({
           type: 'pdn_rings',
@@ -1458,7 +1769,7 @@
         });
       }
 
-      // 10. PDN Power Straps (Met4 Vertical & Met5 Horizontal Mesh)
+      // 11. PDN Power Straps (Met4 Vertical & Met5 Horizontal Mesh)
       if (isLayerActive('pdn_straps')) {
         primitives.push({
           type: 'pdn_straps',
@@ -1467,7 +1778,7 @@
         });
       }
 
-      // 11. Peripheral I/O Bond Pads
+      // 12. Peripheral I/O Bond Pads
       if (isLayerActive('pads')) {
         primitives.push({
           type: 'pads',
@@ -1476,8 +1787,8 @@
         });
       }
 
-      // 12. 3D Wirebond Loops & Wireload Modeling
-      if (isLayerActive('wirebonds')) {
+      // 13. 3D Wirebond Loops & Wireload Modeling
+      if (isLayerActive('wirebonds') && (currentPkgMode === 'wirebond' || currentPkgMode === 'hybrid')) {
         primitives.push({
           type: 'wirebonds',
           depth: is3DMode ? 0.90 : 9.5,
@@ -1485,8 +1796,8 @@
         });
       }
 
-      // 13. C4 Flip-Chip Power Micro-Bumps
-      if (isLayerActive('bumps')) {
+      // 14. C4 Flip-Chip Power Micro-Bumps
+      if (isLayerActive('bumps') && (currentPkgMode === 'flipchip' || currentPkgMode === 'hybrid')) {
         primitives.push({
           type: 'bumps',
           depth: is3DMode ? 0.95 : 10.5,
@@ -1494,7 +1805,7 @@
         });
       }
 
-      // 14. Educational 3D Signal RC Path Animation
+      // 15. Educational 3D Signal RC Path Animation
       if (signalPathActive) {
         primitives.push({
           type: 'signal_path',
@@ -1511,81 +1822,156 @@
       requestAnimationFrame(render);
     }
 
-    function drawSignalPath(w, h, timeMs) {
-      const dw = currentDesign.width;
-      const dh = currentDesign.height;
-
-      // 3D Interconnect Waypoints (Pin -> Via -> Met1 -> Via -> Met2 -> Via -> Met3 -> Via -> Met2 -> Pin)
-      const pts = [
-        { x: dw * 0.28, y: dh * 0.35, z: 2.8, label: 'SRC: INV_X2/Y (li1)' },
-        { x: dw * 0.28, y: dh * 0.35, z: 3.6 },
-        { x: dw * 0.48, y: dh * 0.35, z: 3.6 },
-        { x: dw * 0.48, y: dh * 0.35, z: 4.4 },
-        { x: dw * 0.48, y: dh * 0.68, z: 4.4 },
-        { x: dw * 0.48, y: dh * 0.68, z: 5.2 },
-        { x: dw * 0.72, y: dh * 0.68, z: 5.2 },
-        { x: dw * 0.72, y: dh * 0.68, z: 4.4 },
-        { x: dw * 0.72, y: dh * 0.68, z: 3.6 },
-        { x: dw * 0.72, y: dh * 0.68, z: 2.8, label: 'DST: DFF_X1/D (li1)' },
-      ];
-
+    function drawFillerCells(w, h) {
+      if (!currentDesign.fillers) return;
+      const z = 0.58;
       ctx.save();
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.85)';
-      ctx.shadowColor = '#06b6d4';
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      for (let i = 0; i < pts.length; i++) {
-        const p = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.stroke();
+      currentDesign.fillers.forEach(f => {
+        const p0 = project3D(f.x, f.y, z, w, h);
+        const p1 = project3D(f.x + f.w, f.y, z, w, h);
+        const p2 = project3D(f.x + f.w, f.y + f.h, z, w, h);
+        const p3 = project3D(f.x, f.y + f.h, z, w, h);
 
-      // Via Contact Nodes
-      for (let i = 0; i < pts.length; i++) {
-        const p = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
-        ctx.fillStyle = '#fbbf24';
+        const isHovered = (hoveredObject === f.id);
+        ctx.fillStyle = isHovered ? '#64748b' : 'rgba(51, 65, 85, 0.72)';
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
         ctx.fill();
 
-        if (pts[i].label) {
-          ctx.fillStyle = '#f8fafc';
-          ctx.font = 'bold 9px "JetBrains Mono", monospace';
-          ctx.shadowBlur = 6;
-          ctx.shadowColor = '#000000';
-          ctx.fillText(pts[i].label, p.x + 8, p.y - 4);
+        ctx.strokeStyle = isHovered ? '#94a3b8' : 'rgba(100, 116, 139, 0.4)';
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+
+        // Subtle dummy poly hatch pattern when zoomed in
+        if (camera.zoom > 1.2 && f.w >= 1.84) {
+          const midX = (p0.x + p1.x) / 2;
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.25)';
+          ctx.beginPath();
+          ctx.moveTo(midX, p0.y + 1); ctx.lineTo(midX, p2.y - 1);
+          ctx.stroke();
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawSignalPath(w, h, timeMs) {
+      if (!currentDesign || !currentDesign.rcNets || !currentDesign.rcNets[activeNetIndex]) return;
+      const net = currentDesign.rcNets[activeNetIndex];
+      const pts = net.pts;
+
+      ctx.save();
+
+      // Draw multi-layer 3D routing wire segments with physics color tokens
+      for (let i = 0; i < pts.length - 1; i++) {
+        const pA = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
+        const pB = project3D(pts[i + 1].x, pts[i + 1].y, pts[i + 1].z, w, h);
+
+        const layer = pts[i + 1].layer || pts[i].layer || 'met1';
+        let strokeColor = '#38bdf8';
+        let lineW = 2.5;
+        if (layer === 'li1') { strokeColor = '#14b8a6'; lineW = 2.0; }
+        else if (layer === 'met1') { strokeColor = '#38bdf8'; lineW = 2.8; }
+        else if (layer === 'met2') { strokeColor = '#a855f7'; lineW = 2.8; }
+        else if (layer === 'met3') { strokeColor = '#10b981'; lineW = 3.6; }
+
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = lineW;
+        ctx.shadowColor = strokeColor;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(pA.x, pA.y);
+        ctx.lineTo(pB.x, pB.y);
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+
+      // Draw Vias & Terminal Pin Nodes
+      for (let i = 0; i < pts.length; i++) {
+        const p = project3D(pts[i].x, pts[i].y, pts[i].z, w, h);
+
+        if (pts[i].via) {
+          ctx.fillStyle = '#fbbf24';
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          if (camera.zoom > 1.1) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 8px "JetBrains Mono", monospace';
+            ctx.fillText(pts[i].via, p.x + 6, p.y - 3);
+          }
+        } else if (i === 0 || i === pts.length - 1) {
+          ctx.fillStyle = (i === 0) ? '#22c55e' : '#06b6d4';
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+
+          if (pts[i].label) {
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = 'bold 9.5px "JetBrains Mono", monospace';
+            ctx.shadowColor = '#000000';
+            ctx.shadowBlur = 6;
+            ctx.fillText(pts[i].label, p.x + 8, p.y - 5);
+            ctx.shadowBlur = 0;
+          }
         }
       }
 
-      // Traveling Electron Pulse
-      const progress = ((timeMs % 2000) / 2000) * (pts.length - 1);
-      const segIdx = Math.floor(progress);
-      const segT = progress - segIdx;
-      const pA = pts[segIdx];
-      const pB = pts[Math.min(pts.length - 1, segIdx + 1)];
+      // Nonlinear RC Traveling Wavefront Animation
+      const cycleMs = 2400;
+      const t = (timeMs % cycleMs) / cycleMs;
+      // Step response: 1 - exp(-4*t) normalized
+      const normProgress = Math.min(1, Math.max(0, (1 - Math.exp(-4 * t)) / (1 - Math.exp(-4))));
+      const targetLen = normProgress * net.totalLen;
 
-      const curX = pA.x + (pB.x - pA.x) * segT;
-      const curY = pA.y + (pB.y - pA.y) * segT;
-      const curZ = pA.z + (pB.z - pA.z) * segT;
+      let accLen = 0;
+      let curX = pts[0].x;
+      let curY = pts[0].y;
+      let curZ = pts[0].z;
+
+      for (let i = 0; i < pts.length - 1; i++) {
+        const segLen = Math.hypot(pts[i + 1].x - pts[i].x, pts[i + 1].y - pts[i].y) + Math.abs(pts[i + 1].z - pts[i].z);
+        if (accLen + segLen >= targetLen || i === pts.length - 2) {
+          const segT = segLen > 0 ? (targetLen - accLen) / segLen : 0;
+          const clampedT = Math.max(0, Math.min(1, segT));
+          curX = pts[i].x + (pts[i + 1].x - pts[i].x) * clampedT;
+          curY = pts[i].y + (pts[i + 1].y - pts[i].y) * clampedT;
+          curZ = pts[i].z + (pts[i + 1].z - pts[i].z) * clampedT;
+          break;
+        }
+        accLen += segLen;
+      }
 
       const pPulse = project3D(curX, curY, curZ, w, h);
-
-      // Pulse Glow
-      const glowGrad = ctx.createRadialGradient(pPulse.x, pPulse.y, 1, pPulse.x, pPulse.y, 14);
+      const glowGrad = ctx.createRadialGradient(pPulse.x, pPulse.y, 1, pPulse.x, pPulse.y, 16);
       glowGrad.addColorStop(0, '#ffffff');
-      glowGrad.addColorStop(0.35, '#38bdf8');
+      glowGrad.addColorStop(0.3, '#38bdf8');
       glowGrad.addColorStop(1, 'rgba(56, 189, 248, 0)');
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(pPulse.x, pPulse.y, 14, 0, Math.PI * 2);
+      ctx.arc(pPulse.x, pPulse.y, 16, 0, Math.PI * 2);
       ctx.fill();
+
+      // Bright voltage charge center
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(pPulse.x, pPulse.y, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
       ctx.restore();
     }
 
     function isLayerActive(id) {
       if (soloLayerId !== null) return soloLayerId === id;
+      if (currentPkgMode === 'wirebond' && id === 'bumps') return false;
+      if (currentPkgMode === 'flipchip' && id === 'wirebonds') return false;
       const l = LAYER_CONFIG.find(item => item.id === id);
       return l ? l.enabled : true;
     }
@@ -2141,8 +2527,27 @@
       const w = container.clientWidth;
       const h = container.clientHeight;
 
+      // 0. Check Active RC Interconnect Nodes & Vias
+      if (signalPathActive && currentDesign.rcNets && currentDesign.rcNets[activeNetIndex]) {
+        const net = currentDesign.rcNets[activeNetIndex];
+        for (let i = 0; i < net.pts.length; i++) {
+          const pt = net.pts[i];
+          const p = project3D(pt.x, pt.y, pt.z, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (12 * camera.zoom)) {
+            hoveredObject = `rc_node_${i}`;
+            document.getElementById('inspTitle').textContent = pt.label || `RC Net Via (${pt.via || pt.layer || 'interconnect'})`;
+            document.getElementById('inspObj').textContent = `${net.name} [${net.driverName} → ${net.loadName}]`;
+            document.getElementById('inspCoords').textContent = `X: ${pt.x.toFixed(1)} µm, Y: ${pt.y.toFixed(1)} µm (Z: ${pt.z.toFixed(1)} µm)`;
+            document.getElementById('inspMaterial').textContent = pt.via ? `Tungsten/Copper Via Plug (${pt.via})` : `${(pt.layer || 'met1').toUpperCase()} Interconnect`;
+            document.getElementById('inspRes').textContent = `Net R: ${net.totalWireR.toFixed(1)} Ω, Net C: ${net.totalWireC.toFixed(2)} fF, Vias: ${net.viasR.toFixed(1)} Ω`;
+            document.getElementById('inspRule').textContent = `Elmore τ = ${net.tauPs.toFixed(2)} ps (t_pd 50% = ${net.tpdPs.toFixed(2)} ps, Slew 10→90% = ${net.slewPs.toFixed(2)} ps)`;
+            return;
+          }
+        }
+      }
+
       // 1. Check C4 Solder Bumps
-      if (isLayerActive('bumps') && currentDesign.bumps) {
+      if (isLayerActive('bumps') && currentDesign.bumps && (currentPkgMode === 'flipchip' || currentPkgMode === 'hybrid')) {
         for (const b of currentDesign.bumps) {
           const p = project3D(b.x, b.y, 8.6, w, h);
           const rScreen = Math.max(5, b.radius * 0.5 * camera.zoom);
@@ -2160,7 +2565,7 @@
       }
 
       // 2. Check I/O Bond Pads & Wirebonds
-      if ((isLayerActive('pads') || isLayerActive('wirebonds')) && currentDesign.pads) {
+      if ((isLayerActive('pads') || isLayerActive('wirebonds')) && currentDesign.pads && (currentPkgMode === 'wirebond' || currentPkgMode === 'hybrid')) {
         for (const pad of currentDesign.pads) {
           const p = project3D(pad.x + pad.w / 2, pad.y + pad.h / 2, 7.2, w, h);
           if (Math.hypot(p.x - mx, p.y - my) < (pad.w * 0.6 * camera.zoom)) {
@@ -2256,6 +2661,23 @@
             document.getElementById('inspMaterial').textContent = '150nm Doped Poly Gates + Source/Drain Diffusion (Abutted VDD/VSS)';
             document.getElementById('inspRes').textContent = 'Salicided Poly: ~5.5 Ω/sq, Diffusion: ~8.0 Ω/sq';
             document.getElementById('inspRule').textContent = 'Standard cell height: 2.72 µm. Abutted rails eliminate routing congestion for power.';
+            return;
+          }
+        }
+      }
+
+      // 8. Check Filler Cells
+      if (isLayerActive('fillers') && currentDesign.fillers) {
+        for (const f of currentDesign.fillers) {
+          const p = project3D(f.x + f.w / 2, f.y + f.h / 2, 0.58, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (Math.max(4, f.w * 0.6) * camera.zoom)) {
+            hoveredObject = f.id;
+            document.getElementById('inspTitle').textContent = `Filler Cell (sky130_fd_sc_hd__${f.type})`;
+            document.getElementById('inspObj').textContent = `Row ${f.row} Non-Functional FEOL Filler (${f.w.toFixed(2)} µm)`;
+            document.getElementById('inspCoords').textContent = `Row: ${f.row}, X: ${f.x.toFixed(1)} µm, Y: ${f.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = 'Continuous N-Well/P-Substrate + Dummy Poly + Abutted Rails';
+            document.getElementById('inspRes').textContent = 'No active gates (Diffusion and rail continuity only)';
+            document.getElementById('inspRule').textContent = 'CMP density rule: Guarantees 100% row site fill, preventing dielectric dishing and oxide erosion.';
             return;
           }
         }
@@ -2421,22 +2843,122 @@
       const numCaps = currentDesign.endcaps ? currentDesign.endcaps.length : 0;
       const numTaps = currentDesign.welltaps ? currentDesign.welltaps.length : 0;
       const numDecaps = currentDesign.decaps ? currentDesign.decaps.length : 0;
+      const numFillers = currentDesign.fillers ? currentDesign.fillers.length : 0;
       const teleTapsEl = document.getElementById('teleTaps');
-      if (teleTapsEl) teleTapsEl.textContent = `${numCaps} Caps · ${numTaps} Taps · ${numDecaps} Decaps`;
+      if (teleTapsEl) teleTapsEl.textContent = `${numCaps} Caps · ${numTaps} Taps · ${numDecaps} Decaps · ${numFillers} Fillers`;
 
       const numRings = currentDesign.rings ? currentDesign.rings.length : 0;
       const numStraps = currentDesign.straps ? currentDesign.straps.length : 0;
       const telePdnEl = document.getElementById('telePdn');
       if (telePdnEl) telePdnEl.textContent = `${numRings} Rings · ${numStraps} Straps`;
 
-      const numBumps = currentDesign.bumps ? currentDesign.bumps.length : 0;
-      const teleBumpsEl = document.getElementById('teleBumps');
-      if (teleBumpsEl) teleBumpsEl.textContent = `${numBumps} C4 Solder Bumps`;
+      setPkgMode(currentPkgMode);
+      updateRcHud(activeNetIndex);
 
       camera.zoom = 1.0;
       camera.panX = 0;
       camera.panY = 0;
     }
+
+    // ── Packaging Architecture Controller (Wirebond vs Flip-Chip) ───
+    function setPkgMode(mode) {
+      currentPkgMode = mode;
+      const pkgSelect = document.getElementById('pkgSelect');
+      if (pkgSelect && pkgSelect.value !== mode) {
+        pkgSelect.value = mode;
+      }
+
+      const wireLayer = LAYER_CONFIG.find(l => l.id === 'wirebonds');
+      const padLayer = LAYER_CONFIG.find(l => l.id === 'pads');
+      const bumpLayer = LAYER_CONFIG.find(l => l.id === 'bumps');
+
+      if (mode === 'wirebond') {
+        if (wireLayer) wireLayer.enabled = true;
+        if (padLayer) padLayer.enabled = true;
+        if (bumpLayer) bumpLayer.enabled = false;
+      } else if (mode === 'flipchip') {
+        if (bumpLayer) bumpLayer.enabled = true;
+        if (wireLayer) wireLayer.enabled = false;
+        if (padLayer) padLayer.enabled = false;
+      } else if (mode === 'hybrid') {
+        if (wireLayer) wireLayer.enabled = true;
+        if (padLayer) padLayer.enabled = true;
+        if (bumpLayer) bumpLayer.enabled = true;
+      }
+      updateCheckboxes();
+
+      const teleBumpsEl = document.getElementById('teleBumps');
+      if (teleBumpsEl && currentDesign) {
+        const numBonds = currentDesign.wirebonds ? currentDesign.wirebonds.length : 0;
+        const numBumps = currentDesign.bumps ? currentDesign.bumps.length : 0;
+        if (mode === 'wirebond') {
+          teleBumpsEl.textContent = `${numBonds} Wirebonds · L≈1.2nH (Leadframe)`;
+        } else if (mode === 'flipchip') {
+          teleBumpsEl.textContent = `${numBumps} C4 Bumps · L<0.05nH (Flip-Chip)`;
+        } else {
+          teleBumpsEl.textContent = `${numBonds} Wires + ${numBumps} Bumps (Compare)`;
+        }
+      }
+
+      if (mode === 'flipchip') {
+        showLayerPhysics('bumps');
+      } else {
+        showLayerPhysics('wirebonds');
+      }
+    }
+
+    // ── RC Interconnect Extraction Controller ───────────────────────
+    function updateRcHud(netIdx) {
+      if (!currentDesign || !currentDesign.rcNets || !currentDesign.rcNets[netIdx]) return;
+      activeNetIndex = netIdx;
+      const net = currentDesign.rcNets[netIdx];
+
+      [0, 1, 2].forEach(i => {
+        const btn = document.getElementById(`rcNet${i}Btn`);
+        if (btn) {
+          if (i === netIdx) btn.classList.add('active');
+          else btn.classList.remove('active');
+        }
+      });
+
+      const drvEl = document.getElementById('rcDriverInfo');
+      if (drvEl) drvEl.textContent = `Driver: ${net.driverName} → Load: ${net.loadName}`;
+
+      const lenEl = document.getElementById('rcNetLen');
+      if (lenEl) lenEl.textContent = `${net.totalLen.toFixed(1)} µm`;
+
+      const rEl = document.getElementById('rcWireR');
+      if (rEl) rEl.textContent = `${net.totalWireR.toFixed(1)} Ω`;
+
+      const cEl = document.getElementById('rcWireC');
+      if (cEl) cEl.textContent = `${net.totalWireC.toFixed(2)} fF`;
+
+      const viaEl = document.getElementById('rcVias');
+      if (viaEl) viaEl.textContent = `${net.viasCount} cuts (${net.viasR.toFixed(1)} Ω)`;
+
+      const tauEl = document.getElementById('rcElmoreTau');
+      if (tauEl) tauEl.textContent = `${net.tauPs.toFixed(2)} ps`;
+
+      const d50El = document.getElementById('rcDelay50');
+      if (d50El) d50El.textContent = `${net.tpdPs.toFixed(2)} ps`;
+
+      const slewEl = document.getElementById('rcSlew');
+      if (slewEl) slewEl.textContent = `${net.slewPs.toFixed(2)} ps`;
+    }
+
+    const pkgSelect = document.getElementById('pkgSelect');
+    if (pkgSelect) {
+      pkgSelect.onchange = (e) => setPkgMode(e.target.value);
+    }
+
+    const rcNet0Btn = document.getElementById('rcNet0Btn');
+    if (rcNet0Btn) rcNet0Btn.onclick = () => updateRcHud(0);
+
+    const rcNet1Btn = document.getElementById('rcNet1Btn');
+    if (rcNet1Btn) rcNet1Btn.onclick = () => updateRcHud(1);
+
+    const rcNet2Btn = document.getElementById('rcNet2Btn');
+    if (rcNet2Btn) rcNet2Btn.onclick = () => updateRcHud(2);
 
     // ── Educational Domain Filter Controller ──────────────────────
     function setDomainFilter(mode) {
@@ -2506,6 +3028,7 @@
           filterSignalBtn.style.borderColor = '#06b6d4';
           filterSignalBtn.style.background = 'rgba(6, 182, 212, 0.25)';
           if (rcHud) rcHud.classList.add('active');
+          updateRcHud(activeNetIndex);
         } else {
           filterSignalBtn.classList.remove('active');
           filterSignalBtn.style.borderColor = '';
