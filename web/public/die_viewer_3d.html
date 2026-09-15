@@ -629,6 +629,33 @@
       line-height: 1.4;
     }
     .proc-hud.antenna-alert .proc-hud-formula { display: block; }
+    .proc-hud.critical-alert {
+      border-color: #f43f5e;
+      box-shadow: 0 0 18px rgba(244, 63, 94, 0.28);
+    }
+    .proc-fx {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+    .proc-fx-chip {
+      font-size: 8.5px;
+      padding: 1px 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      color: #a7f3d0;
+      background: rgba(16, 185, 129, 0.12);
+    }
+    .proc-fx-chip.warn {
+      border-color: rgba(251, 191, 36, 0.45);
+      color: #fde68a;
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .proc-fx-chip.crit {
+      border-color: rgba(251, 113, 133, 0.55);
+      color: #fecdd3;
+      background: rgba(244, 63, 94, 0.15);
+    }
     .rc-net-btn {
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid #334155;
@@ -768,6 +795,41 @@
       }
       .camera-gizmo { top: auto; bottom: 120px; }
     }
+
+    .proc-quiz {
+      margin-top: 4px; padding-top: 6px; border-top: 1px solid rgba(56,189,248,0.25);
+    }
+    .proc-quiz-q { color: #e0f2fe; font-weight: 600; font-size: 10px; margin-bottom: 4px; line-height: 1.35; }
+    .proc-quiz-opts { display: flex; flex-direction: column; gap: 3px; }
+    .proc-quiz-opt {
+      text-align: left; font-size: 9.5px; padding: 4px 6px; border-radius: 6px; cursor: pointer;
+      background: rgba(15,23,42,0.9); border: 1px solid rgba(148,163,184,0.35); color: #cbd5e1;
+      font-family: inherit;
+    }
+    .proc-quiz-opt:hover { border-color: #38bdf8; color: #f8fafc; }
+    .proc-quiz-opt.correct { border-color: #10b981; background: rgba(16,185,129,0.15); color: #a7f3d0; }
+    .proc-quiz-opt.wrong { border-color: #ef4444; background: rgba(239,68,68,0.12); color: #fecaca; }
+    .proc-quiz-fb { font-size: 9.5px; color: #94a3b8; margin-top: 4px; line-height: 1.35; }
+    .proc-quiz-fb.ok { color: #6ee7b7; }
+    .proc-demo-btns { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .proc-demo-btns .btn { font-size: 9px; padding: 3px 7px; }
+    .demo-overlay {
+      position: absolute; inset: 0; pointer-events: none; z-index: 8;
+      display: none;
+    }
+    .demo-overlay.active { display: block; }
+    .demo-banner {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(9,13,26,0.92); border: 1px solid #f59e0b; color: #fde68a;
+      padding: 6px 12px; border-radius: 8px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+      max-width: min(520px, 90vw); text-align: center; pointer-events: none;
+      box-shadow: 0 0 20px rgba(245,158,11,0.25);
+    }
+    .node-track-pill {
+      font-size: 9px; padding: 2px 8px; border-radius: 999px;
+      border: 1px solid rgba(168,85,247,0.5); color: #e9d5ff; background: rgba(88,28,135,0.35);
+    }
+
   </style>
 </head>
 <body>
@@ -887,6 +949,7 @@
   <!-- Main Canvas Workspace -->
   <div class="workspace" id="workspace">
     <div class="canvas-container" id="canvasContainer">
+      <div class="demo-overlay" id="demoOverlay" aria-hidden="true"><canvas id="demoCanvas"></canvas><div class="demo-banner" id="demoBanner"></div></div>
       <canvas id="viewCanvas"></canvas>
 
       <div class="rc-hint" id="rcHint">Select ⚡ RC Path to open Elmore HUD</div>
@@ -924,12 +987,19 @@
             <span class="proc-hud-level" id="procHudLevel">Master</span>
           </div>
         </div>
+        <div class="proc-fx" id="procHudEffects"></div>
         <div class="proc-hud-section"><strong>Cause</strong><span id="procHudCause">—</span></div>
         <div class="proc-hud-section"><strong>When (phase)</strong><span id="procHudWhen">—</span></div>
         <div class="proc-hud-section"><strong>Key params</strong><span id="procHudParams">—</span></div>
         <div class="proc-hud-section"><strong>Pitfalls</strong><span id="procHudPitfalls">—</span></div>
         <div class="proc-hud-section"><strong>Interview hook</strong><span id="procHudHook">—</span></div>
         <div class="proc-hud-formula" id="procHudFormula">Antenna Ratio = Metal Area (or perimeter) / Gate Oxide Area</div>
+        <div class="proc-demo-btns" id="procHudDemos" style="display:none;"></div>
+        <div class="proc-quiz" id="procHudQuiz" style="display:none;">
+          <div class="proc-quiz-q" id="procQuizQ"></div>
+          <div class="proc-quiz-opts" id="procQuizOpts"></div>
+          <div class="proc-quiz-fb" id="procQuizFb"></div>
+        </div>
       </div>
 
       <!-- Packaging Lesson HUD (always-on compact teaching panel) -->
@@ -1008,6 +1078,7 @@
             <div class="timeline-mode-toggle" role="group" aria-label="Timeline mode">
               <button id="timelineModeFab" class="btn active" type="button" aria-pressed="true" title="Wafer fabrication process timeline">Wafer Fab</button>
               <button id="timelineModePnr" class="btn" type="button" aria-pressed="false" title="Place-and-route flow timeline">PnR Flow</button>
+              <button id="timelineModeAdv" class="btn" type="button" aria-pressed="false" title="Advanced node: FinFET + Cu dual-damascene track">FinFET/Cu</button>
             </div>
             <span class="step-pill" id="fabStepPill">FAB STEP 1 / 8</span>
             <span class="step-title" id="fabStepTitle">Silicon Substrate & Wells (FEOL)</span>
@@ -1576,11 +1647,10 @@
           phase: "Wafer Prep",
           cause: "Single-crystal Si is pulled from melt (CZ) or zone-refined (FZ). Slicing + grind introduce subsurface damage; CMP removes damage and sets nanotopography.",
           when: "Before any fab module — incoming wafer acceptance (IWA).",
-          params: "Orientation ⟨100⟩; TTV/warp/bow specs; particle counts; oxygen [Oi] in CZ (gettering vs slips); notch/flat ID.",
-          risks: "Crystal originated particles (COPs), oxygen precipitates → oxide defects later; warpage → overlay fail; metallic contamination → junction leakage.",
-          fix: "Gettering (IG/EG), clean FOUP logistics, polish slurry control, reject out-of-spec warp/TTV lots.",
-          formula: "",
-          hook: "Why do digital flows often prefer CZ while some RF/power prefer FZ or epi on heavily doped substrates?"
+          keyParams: "Orientation ⟨100⟩; TTV/warp/bow specs; particle counts; oxygen [Oi] in CZ (gettering vs slips); notch/flat ID.",
+          pitfalls: "Crystal originated particles (COPs), oxygen precipitates → oxide defects later; warpage → overlay fail; metallic contamination → junction leakage. | Mitigate: Gettering (IG/EG), clean FOUP logistics, polish slurry control, reject out-of-spec warp/TTV lots.",
+          interviewHook: "Why do digital flows often prefer CZ while some RF/power prefer FZ or epi on heavily doped substrates?",
+          formula: ""
         }
       },
       {
@@ -1594,11 +1664,10 @@
           phase: "FEOL / every patterning loop",
           cause: "Optical projection + resist chemistry define edges. Defocus, dose, PEB, and substrate reflectivity create CD and profile errors.",
           when: "Before etch or implant of that layer — litho is the pattern definition step.",
-          params: "λ, NA, k1; dose/focus matrix; PEB temp; BARC; reticle OPC/SRAF; overlay to prior layer.",
-          risks: "Hotspots → bridging/necking; overlay → contact-to-gate shorts or leakage; flare → iso-dense bias; mask defects print as killer defects.",
-          fix: "OPC, assist features, overlay APC, focus-exposure control, defect inspection (ADI/AEI).",
-          formula: "CD ≈ f(dose, focus, PEB); Overlay error = scanner + process + mark noise",
-          hook: "Explain iso-dense bias and why OPC differs for nested vs isolated lines."
+          keyParams: "λ, NA, k1; dose/focus matrix; PEB temp; BARC; reticle OPC/SRAF; overlay to prior layer.",
+          pitfalls: "Hotspots → bridging/necking; overlay → contact-to-gate shorts or leakage; flare → iso-dense bias; mask defects print as killer defects. | Mitigate: OPC, assist features, overlay APC, focus-exposure control, defect inspection (ADI/AEI).",
+          interviewHook: "Explain iso-dense bias and why OPC differs for nested vs isolated lines.",
+          formula: "CD ≈ f(dose, focus, PEB); Overlay error = scanner + process + mark noise"
         }
       },
       {
@@ -1612,11 +1681,10 @@
           phase: "FEOL (and later BEOL metal etch)",
           cause: "Plasma sheath accelerates ions; radicals chemically etch. Dense vs sparse patterns load the plasma differently (microloading).",
           when: "Immediately after litho develop for that hardmask/film stack.",
-          params: "Bias power, pressure, gas chemistry (Cl/F/O), overetch %, selectivity, endpoint detect.",
-          risks: "Notching at interfaces; footing; residue → opens; charging can damage thin oxides (early PID); ARDE slows deep features.",
-          fix: "Pulse bias, optimized overetch, soft-landing steps, post-etch clean, charge-dissipation recipes.",
-          formula: "Selectivity = ER_target / ER_underlayer",
-          hook: "Why does increasing ion energy improve anisotropy but worsen charging damage?"
+          keyParams: "Bias power, pressure, gas chemistry (Cl/F/O), overetch %, selectivity, endpoint detect.",
+          pitfalls: "Notching at interfaces; footing; residue → opens; charging can damage thin oxides (early PID); ARDE slows deep features. | Mitigate: Pulse bias, optimized overetch, soft-landing steps, post-etch clean, charge-dissipation recipes.",
+          interviewHook: "Why does increasing ion energy improve anisotropy but worsen charging damage?",
+          formula: "Selectivity = ER_target / ER_underlayer"
         }
       },
       {
@@ -1630,11 +1698,10 @@
           phase: "FEOL isolation",
           cause: "Trench etch + liner + dielectric fill + CMP. Stress from fill/thermal cycles couples into channel silicon.",
           when: "After active-area litho/etch, before well implants (flow-order dependent).",
-          params: "Trench depth/angle, liner thickness, HDP/SOG fill, CMP slurry, active width/space (LOD).",
-          risks: "LOD/WPE-like layout-dependent Vth/Ids; seam voids; oxide dishing in wide STI; poly wrapping into divots.",
-          fix: "Stress-aware PDK models, dummy active, optimized CMP, corner rounding, foundry LOD tables in STA/extraction.",
-          formula: "LOD: Ids = f(SA, SB distances to STI edges)",
-          hook: "How do SA/SB parameters in SPICE capture STI stress, and when do dummies help?"
+          keyParams: "Trench depth/angle, liner thickness, HDP/SOG fill, CMP slurry, active width/space (LOD).",
+          pitfalls: "LOD/WPE-like layout-dependent Vth/Ids; seam voids; oxide dishing in wide STI; poly wrapping into divots. | Mitigate: Stress-aware PDK models, dummy active, optimized CMP, corner rounding, foundry LOD tables in STA/extraction.",
+          interviewHook: "How do SA/SB parameters in SPICE capture STI stress, and when do dummies help?",
+          formula: "LOD: Ids = f(SA, SB distances to STI edges)"
         }
       },
       {
@@ -1648,11 +1715,10 @@
           phase: "FEOL doping",
           cause: "Energetic ions displace Si atoms; photoresist edges scatter ions (WPE). Anneal must activate dopants without uncontrolled diffusion (TED).",
           when: "Well/Vt/halo/SDE implants at defined FEOL modules; anneal after implant clusters.",
-          params: "Dose, energy, tilt/twist, species (B/P/As/In), screen ox, RTA T/t profile.",
-          risks: "WPE ΔVth mismatch in matched pairs; channeling → deep tails; incomplete anneal → leakage; sparse taps → latch-up.",
-          fix: "Well-edge keepouts, matched layout symmetry, tap grid ~15 µm, halo/pocket engineering, calibrated WPE models.",
-          formula: "WPE ΔVth ≈ f(scather dose, distance to well mask edge)",
-          hook: "Why do analog matched transistors ban asymmetric well edges nearby?"
+          keyParams: "Dose, energy, tilt/twist, species (B/P/As/In), screen ox, RTA T/t profile.",
+          pitfalls: "WPE ΔVth mismatch in matched pairs; channeling → deep tails; incomplete anneal → leakage; sparse taps → latch-up. | Mitigate: Well-edge keepouts, matched layout symmetry, tap grid ~15 µm, halo/pocket engineering, calibrated WPE models.",
+          interviewHook: "Why do analog matched transistors ban asymmetric well edges nearby?",
+          formula: "WPE ΔVth ≈ f(scather dose, distance to well mask edge)"
         }
       },
       {
@@ -1666,11 +1732,10 @@
           phase: "FEOL gate stack",
           cause: "Thermal/ radical oxidation or high-k deposition. Any charge or defect in tox becomes a reliability weak link.",
           when: "After well formation / cleans; gate etch follows litho of gate layer.",
-          params: "EOT/tox, interface state Dit, nitrogen content, gate CD, poly doping.",
-          risks: "TDDB hard breakdown; NBTI/PBTI Vth shift in life; SILC soft leakage; antenna/PID later in BEOL can rupture this film.",
-          fix: "GOI monitors, careful cleans, PID-aware BEOL, antenna rules protecting gates, burn-in screens.",
-          formula: "Eox = Vg / tox ; TDDB lifetime ↓ as Eox ↑",
-          hook: "Relate antenna BEOL charging back to this FEOL tox film — why is gate the victim?"
+          keyParams: "EOT/tox, interface state Dit, nitrogen content, gate CD, poly doping.",
+          pitfalls: "TDDB hard breakdown; NBTI/PBTI Vth shift in life; SILC soft leakage; antenna/PID later in BEOL can rupture this film. | Mitigate: GOI monitors, careful cleans, PID-aware BEOL, antenna rules protecting gates, burn-in screens.",
+          interviewHook: "Relate antenna BEOL charging back to this FEOL tox film — why is gate the victim?",
+          formula: "Eox = Vg / tox ; TDDB lifetime ↓ as Eox ↑"
         }
       },
       {
@@ -1684,11 +1749,10 @@
           phase: "MOL / contact",
           cause: "Silicide consumes Si; contacts land on silicide. Misalignment or under-etch → opens; over-etch → junction leakage.",
           when: "After gate sidewall spacers / S/D; before BEOL Metal-1.",
-          params: "Contact CD, aspect ratio, barrier/liner, W fill, silicide thermal budget.",
-          risks: "High Rc → timing/IR; piping shorts; junction leakage; contact random defect yield.",
-          fix: "Contact enlarge on critical nets, redundant contacts, landing rules, thermal budget control.",
-          formula: "R_path ≈ Rdevice + Σ Rcontact/n_cuts + Rli1",
-          hook: "Why do clock cells often mandate multi-cut contacts?"
+          keyParams: "Contact CD, aspect ratio, barrier/liner, W fill, silicide thermal budget.",
+          pitfalls: "High Rc → timing/IR; piping shorts; junction leakage; contact random defect yield. | Mitigate: Contact enlarge on critical nets, redundant contacts, landing rules, thermal budget control.",
+          interviewHook: "Why do clock cells often mandate multi-cut contacts?",
+          formula: "R_path ≈ Rdevice + Σ Rcontact/n_cuts + Rli1"
         }
       },
       {
@@ -1702,11 +1766,10 @@
           phase: "BEOL dielectric / CMP",
           cause: "Pad pressure + slurry remove high features faster; wide metal/oxide regions dish; sparse regions erode differently.",
           when: "After each ILD or metal polish module in damascene/subtractive flows.",
-          params: "Pattern density windows, dummy metal/fill, slurry chemistry, downforce, endpoint.",
-          risks: "Dishing → thickness variation → Rc/timing; erosion → shorts; low density → puddling; film peel.",
-          fix: "Foundry density rules, metal fill, timing-aware fill keepouts, CMP model in extraction.",
-          formula: "Local polish rate ≈ f(density, feature width)",
-          hook: "Why can timing change after metal fill even if logic netlist is unchanged?"
+          keyParams: "Pattern density windows, dummy metal/fill, slurry chemistry, downforce, endpoint.",
+          pitfalls: "Dishing → thickness variation → Rc/timing; erosion → shorts; low density → puddling; film peel. | Mitigate: Foundry density rules, metal fill, timing-aware fill keepouts, CMP model in extraction.",
+          interviewHook: "Why can timing change after metal fill even if logic netlist is unchanged?",
+          formula: "Local polish rate ≈ f(density, feature width)"
         }
       },
       {
@@ -1715,16 +1778,15 @@
         effects: ["Process Antenna", "Plasma Induced Damage (PID)", "Gate oxide rupture", "Latent TDDB", "Charging imbalance"],
         severity: "crit",
         desc: "During plasma etch of metals/vias, long floating interconnects collect charge and can discharge through thin gate oxide — the Process Antenna Effect. Layout from PD routing sets the vulnerability; damage occurs in BEOL manufacturing.",
-        physics: "Antenna Ratio R_ant = A_metal (or perimeter) / A_gate ≤ foundry limit. Victim is the FEOL gate oxide.",
+        physics: "Antenna Ratio R_ant = A_metal (or perimeter) / A_gate ≤ foundry limit (often hundreds:1). Failure is oxide breakdown / latent TDDB — not a stuck-at ATPG will reliably catch.",
         master: {
-          phase: "BEOL manufacturing (plasma metal/via etch) — vulnerability from PD routing",
-          cause: "Plasma ions/electrons charge exposed conductors. If a large metal island ties only to a MOSFET gate (no diffusion discharge path yet), voltage builds across tox and punches through or creates latent traps.",
-          when: "Strictly during BEOL plasma patterning of that metal/via layer. Not during FEOL implant; not package attach.",
-          params: "Antenna ratio limits per layer; cumulative multi-layer rules; diode leakage budgets; jumper layer availability.",
-          risks: "Hard GOX breakdown (dead gate); soft damage → early TDDB/NBTI fail in field; yield fallout after stress.",
-          fix: "Priority: (1) metal jumper / layer-hop to break antenna (2) router ECO (3) antenna diode to diffusion (4) manual IP pin edits. Recheck density after ECO. Avoid diodes on critical clocks/analog when jumpers legal.",
-          formula: "R_ant = A_metal(or perimeter) / A_gate  ≤  R_max (foundry)",
-          hook: "Walk cumulative antenna across M1→M2→M3 and when a higher-metal jumper clears a lower-layer violation."
+          phase: "BEOL",
+          cause: "Plasma bombardment during metal/via etch charges floating conductors. Unfinished long metal tied only to a gate (no diffusion discharge path) funnels charge into gate oxide — process antenna.",
+          when: "Strictly BEOL manufacturing (plasma etch of each metal/via). Vulnerability is set by PD routing layout (long same-layer runs to gates).",
+          keyParams: "• R = A_metal (or perimeter) / A_gate ≤ foundry limit (often hundreds:1)  • Cumulative multi-layer antenna rules  • Fixes priority: (1) metal jumper / layer hop (2) route ECO (3) antenna diode to diffusion (4) manual IP pin fixes  • Diode Cin + leakage — bad on clocks/analog  • Recheck after ECO; don’t freeze fill first",
+          pitfalls: "Calling antenna a PnR-only DRC while ignoring plasma cause; diode-spamming every net; freezing metal fill before antenna recheck; assuming stuck-at tests catch latent GOX damage. | Mitigate: jumper → ECO → diode → manual IP; protect clocks/analog from diode Cin.",
+          interviewHook: "Walk cumulative antenna across M1→M2→M3 and when a higher-metal jumper clears a lower-layer violation.",
+          formula: "R_ant = A_metal(or perimeter) / A_gate  ≤  R_max (foundry)"
         }
       },
       {
@@ -1738,11 +1800,10 @@
           phase: "BEOL interconnect reliability",
           cause: "Momentum transfer from electrons (EM) and residual stress/void nucleation (SM) create opens or resistance drift.",
           when: "In field life / HTOL — but rules enforced at tapeout from layout currents.",
-          params: "Jmax, temperature, Blech length, via array count, metal width/thickness.",
-          risks: "Early open on clocks/power; via depletion; thermal runaway with self-heating.",
-          fix: "EM-aware PDN/signal widths, via multiplicity, downspread current, derating tables in signoff.",
-          formula: "MTTF ∝ J^(-n) · exp(Ea / kT)  (Black's equation)",
-          hook: "Why does doubling vias help both yield and EM, and when does Blech length protect short wires?"
+          keyParams: "Jmax, temperature, Blech length, via array count, metal width/thickness.",
+          pitfalls: "Early open on clocks/power; via depletion; thermal runaway with self-heating. | Mitigate: EM-aware PDN/signal widths, via multiplicity, downspread current, derating tables in signoff.",
+          interviewHook: "Why does doubling vias help both yield and EM, and when does Blech length protect short wires?",
+          formula: "MTTF ∝ J^(-n) · exp(Ea / kT)  (Black's equation)"
         }
       },
       {
@@ -1756,11 +1817,10 @@
           phase: "BEOL power delivery",
           cause: "Ohmic drop I·R and inductive L·di/dt during simultaneous switching. Package L adds to on-die mesh impedance.",
           when: "Signoff rail analysis (static/dynamic) pre-tapeout; failures appear in silicon as speed path / logic fail at low V.",
-          params: "Strap pitch/width, via farm density, decap budget, package L, activity factor.",
-          risks: "Setup fail from Vdroop; hold exotic cases; EM on narrow straps; resonance with package.",
-          fix: "Add straps, via pillars, intentional decap near hotspots, package bump map co-design.",
-          formula: "ΔV ≈ I·R + L·di/dt",
-          hook: "Separate static IR vs dynamic droop — which needs decap vs metal resistance fixes?"
+          keyParams: "Strap pitch/width, via farm density, decap budget, package L, activity factor.",
+          pitfalls: "Setup fail from Vdroop; hold exotic cases; EM on narrow straps; resonance with package. | Mitigate: Add straps, via pillars, intentional decap near hotspots, package bump map co-design.",
+          interviewHook: "Separate static IR vs dynamic droop — which needs decap vs metal resistance fixes?",
+          formula: "ΔV ≈ I·R + L·di/dt"
         }
       },
       {
@@ -1774,11 +1834,10 @@
           phase: "Final BEOL / pad",
           cause: "Passivation blocks moisture/ions; pad etch opens windows. Edge seal/crackstop rings stop dicing cracks.",
           when: "End of wafer BEOL before sort.",
-          params: "Passivation stack, pad size/pitch, ESD device sizes, seal ring continuity.",
-          risks: "Corrosion, mobile ion Vth shift, crack propagation into core, ESD kill at handling.",
-          fix: "Seal rings, moisture barriers, ESD strategy, pad rules, careful probe/pack handling.",
-          formula: "",
-          hook: "Why does a broken crackstop at one corner risk the entire die after dicing?"
+          keyParams: "Passivation stack, pad size/pitch, ESD device sizes, seal ring continuity.",
+          pitfalls: "Corrosion, mobile ion Vth shift, crack propagation into core, ESD kill at handling. | Mitigate: Seal rings, moisture barriers, ESD strategy, pad rules, careful probe/pack handling.",
+          interviewHook: "Why does a broken crackstop at one corner risk the entire die after dicing?",
+          formula: ""
         }
       },
       {
@@ -1792,11 +1851,10 @@
           phase: "Post-fab test",
           cause: "Contact resistance and mechanical scrub between probe tips and pads; thermal chuck sets test corner.",
           when: "After passivation, before dicing (usually).",
-          params: "Probe card planarity, overtravel, temperature, continuity limits, DFT coverage.",
-          risks: "Pad gouging → bond fail; false fail from dirty probes; escape of bad dice to package.",
-          fix: "Probe recipe control, re-probe rules, DFT quality, map correlation to final test.",
-          formula: "",
-          hook: "Why might a die pass sort but fail after packaging (and vice versa)?"
+          keyParams: "Probe card planarity, overtravel, temperature, continuity limits, DFT coverage.",
+          pitfalls: "Pad gouging → bond fail; false fail from dirty probes; escape of bad dice to package. | Mitigate: Probe recipe control, re-probe rules, DFT quality, map correlation to final test.",
+          interviewHook: "Why might a die pass sort but fail after packaging (and vice versa)?",
+          formula: ""
         }
       },
       {
@@ -1810,11 +1868,10 @@
           phase: "Singulation",
           cause: "Blade/laser stress + vibration; water jet carries particles.",
           when: "After sort (typical).",
-          params: "Blade grit/speed, kerf width, tape mount, laser recipe.",
-          risks: "Edge chip → reliability crack growth in temp cycle; particle shorts on pads.",
-          fix: "Crackstop design, street rules, optimized dicing, inspection.",
-          formula: "",
-          hook: "How do crackstop / seal-ring layouts trade die area vs mechanical reliability?"
+          keyParams: "Blade grit/speed, kerf width, tape mount, laser recipe.",
+          pitfalls: "Edge chip → reliability crack growth in temp cycle; particle shorts on pads. | Mitigate: Crackstop design, street rules, optimized dicing, inspection.",
+          interviewHook: "How do crackstop / seal-ring layouts trade die area vs mechanical reliability?",
+          formula: ""
         }
       },
       {
@@ -1828,11 +1885,10 @@
           phase: "Assembly / packaging",
           cause: "Mechanical attach + metallurgical joints. CTE mismatch drives warpage/stress; joint quality sets R/L and lifetime.",
           when: "After singulation — OSAT assembly.",
-          params: "Bond force/ultrasonic, reflow profile, underfill Tg, bump metallurgy, substrate CTE.",
-          risks: "Open/short, cratered pads, brittle IMC, thermal cycle fails, HBM TSV cracks, high package L → SSO.",
-          fix: "Package co-design with PDN, proper BOM, underfill, warpage control, choose WLCSP/FC/2.5D per I/O & power needs.",
-          formula: "ΔV_SSO ≈ L_pkg · di/dt_simultaneous",
-          hook: "Pick wirebond vs flip-chip vs 2.5D for a 200 A GPU rail vs a 50 MHz MCU — justify with L and I/O density."
+          keyParams: "Bond force/ultrasonic, reflow profile, underfill Tg, bump metallurgy, substrate CTE.",
+          pitfalls: "Open/short, cratered pads, brittle IMC, thermal cycle fails, HBM TSV cracks, high package L → SSO. | Mitigate: Package co-design with PDN, proper BOM, underfill, warpage control, choose WLCSP/FC/2.5D per I/O & power needs.",
+          interviewHook: "Pick wirebond vs flip-chip vs 2.5D for a 200 A GPU rail vs a 50 MHz MCU — justify with L and I/O density.",
+          formula: "ΔV_SSO ≈ L_pkg · di/dt_simultaneous"
         }
       }
     ];
@@ -2568,7 +2624,7 @@
     let soloLayerId = null;
 
     // Educational Learning Modes
-    let timelineMode = 'fab'; // 'fab' | 'pnr' — never mix wafer fab with PnR
+    let timelineMode = 'fab'; // 'fab' | 'pnr' | 'adv' (FinFET/Cu)
     let currentFabStep = 8; // 1..N for active timeline
     let fabPlaying = false;
     let fabPlayTimer = null;
@@ -2586,9 +2642,206 @@
     const IDLE_MS = 2500;
     const SHOW_VIA_MARKERS = false; // gate per-frame random via flicker
 
+
+    // ── Master quizzes (per FAB / ADV step id) ─────────────────────
+    const MASTER_QUIZZES = {
+      1: { q: "Why does incoming wafer warpage/TTV matter before any FEOL patterning?",
+           choices: ["It only affects packaging cost", "It consumes lithography overlay/focus budget and can cause misalignment fail", "It increases metal sheet resistance", "It prevents CMP entirely"],
+           answer: 1, explain: "Warpage/TTV shifts focus and overlay; scanners cannot perfectly flatten every wafer." },
+      2: { q: "What is iso-dense bias in lithography?",
+           choices: ["Same CD for all pitches always", "Nested vs isolated features print different CDs without OPC", "Only EUV has bias", "Bias means implant tilt"],
+           answer: 1, explain: "Optical proximity makes dense and isolated lines print differently — OPC corrects this." },
+      3: { q: "Increasing ion energy in RIE generally…",
+           choices: ["Improves anisotropy but can worsen charging damage", "Removes all charging", "Only helps wet etch", "Stops ARDE completely"],
+           answer: 0, explain: "Higher ion energy → more directional etch, but more charging risk to thin oxides." },
+      4: { q: "STI LOD (length of diffusion) effects primarily change…",
+           choices: ["Package inductance", "Channel stress → mobility/Ids vs SA/SB to STI edges", "Antenna ratio only", "Bump pitch"],
+           answer: 1, explain: "Mechanical stress from STI modulates mobility; SPICE SA/SB capture this." },
+      5: { q: "Well Proximity Effect (WPE) is caused by…",
+           choices: ["Wirebond sweep", "Ion scatter off photoresist edges enriching dopants near well boundaries", "BGA voiding", "Met5 EM only"],
+           answer: 1, explain: "Implant ions scatter from resist sidewalls → local doping / ΔVth near well edges." },
+      6: { q: "Why is the FEOL gate oxide the victim of BEOL antenna charging?",
+           choices: ["Gates are thicker than ILD", "Ultra-thin tox sees high E-field when floating metal charges during plasma etch", "Antenna only hurts bumps", "Sort probe causes antenna"],
+           answer: 1, explain: "Charge on metal tied only to gate elevates Eox = V/tox across the thin dielectric." },
+      7: { q: "Multi-cut contacts on clocks help mainly because…",
+           choices: ["They increase antenna ratio", "Lower Rc + random defect / EM robustness", "They replace CTS", "They remove WPE"],
+           answer: 1, explain: "Parallel cuts reduce resistance and give redundancy against opens." },
+      8: { q: "Metal fill / density rules exist primarily due to…",
+           choices: ["Marketing", "CMP rate depends on pattern density (dishing/erosion)", "Antenna diodes need fill", "Flip-chip law"],
+           answer: 1, explain: "CMP polish rate varies with density; fill keeps thickness uniform." },
+      9: { q: "Process antenna damage occurs during which manufacturing phase?",
+           choices: ["Wafer boule pull", "BEOL plasma metal/via etch (vulnerability set by PD routing)", "Only dicing", "Only wirebond"],
+           answer: 1, explain: "Plasma etch charges floating metal; layout decides if that metal ties only to a gate." },
+      10: { q: "Black's equation for EM MTTF depends most strongly on…",
+            choices: ["Antenna ratio only", "Current density J and temperature T", "Probe overtravel", "Reticle OPC"],
+            answer: 1, explain: "MTTF ∝ J^(-n)·exp(Ea/kT) — current density and temperature dominate." },
+      11: { q: "Dynamic IR / droop is best fought with…",
+            choices: ["Only wider metal never decap", "Decap near hotspots + low-L PDN/package (ΔV≈IR + L di/dt)", "More antenna diodes", "Skipping CTS"],
+            answer: 1, explain: "Resistive IR and inductive L·di/dt both matter; decap supplies charge for fast edges." },
+      12: { q: "A broken crackstop / seal ring risks…",
+            choices: ["Faster synthesis", "Moisture/crack propagation into the core after dicing", "Lower antenna ratio", "Free EM immunity"],
+            answer: 1, explain: "Seal rings stop cracks/moisture from scribe streets into active circuitry." },
+      13: { q: "Excessive probe overtravel typically causes…",
+            choices: ["Better yield always", "Pad scrub/gouging that can hurt later bonding", "Zero false fails", "CMP dishing"],
+            answer: 1, explain: "Mechanical scrub damages pads/UBM needed for reliable assembly." },
+      14: { q: "Die chipping at singulation is mitigated by…",
+            choices: ["Ignoring street width", "Crackstop design + controlled dicing recipe", "More poly sheet R", "Skipping sort"],
+            answer: 1, explain: "Mechanical design + process control limit crack entry into the die." },
+      15: { q: "Wirebond vs flip-chip for a high di/dt power rail — prefer flip-chip mainly because…",
+            choices: ["Higher loop L", "Much lower package loop inductance → less SSO bounce", "No need for PDN", "It eliminates EM"],
+            answer: 1, explain: "L_pkg dominates ΔV≈L di/dt; C4/WLCSP cut loop L vs wirebond." },
+      // Advanced node quizzes
+      a1: { q: "In FinFET, which statement is true?",
+            choices: ["Channel is planar only", "Fully depleted fin improves SCE control vs planar at same Lg", "No need for strain", "Antenna disappears"],
+            answer: 1, explain: "3D fully depleted fins give stronger electrostatic control and better short-channel behavior." },
+      a2: { q: "Cu dual-damascene differs from subtractive Al etch mainly because…",
+            choices: ["Cu is subtractively plasma-etched like Al in all nodes", "Cu is patterned by dielectric etch + Cu fill + CMP (damascene)", "Cu needs no barrier", "CMP is never used"],
+            answer: 1, explain: "Cu cannot be easily plasma-etched; dual-damascene trenches/vias are filled then polished." },
+      a3: { q: "A key Cu BEOL reliability concern beyond classic Al EM is…",
+            choices: ["Only wirebond sweep", "Barrier/liner integrity, via voiding, and surface EM paths", "Boule oxygen only", "Probe card color"],
+            answer: 1, explain: "TaN/Ta barriers, via bottoms, and Cu surface diffusion paths are critical." },
+      a4: { q: "Self-aligned double patterning (SADP) is used to…",
+            choices: ["Package HBM", "Print pitches below single-exposure litho limits", "Grow gate oxide", "Replace CMP"],
+            answer: 1, explain: "Multiple patterning extends resolution below the single-exposure k1 limit." },
+      a5: { q: "Middle-of-line in FinFET flows is critical because…",
+            choices: ["No contacts exist", "Contact-to-gate parasitics and local interconnect dominate RC/performance", "Only bumps matter", "Litho is skipped"],
+            answer: 1, explain: "CA/CB/local interconnect parasitics are first-order at advanced nodes." },
+    };
+
+    // ── Advanced Node track (FinFET + Cu) ─────────────────────────
+    const ADV_STEPS = [
+      {
+        step: 1, title: "FinFET Device Architecture vs Planar", domain: "ADV-FEOL", level: "Master",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells'],
+        effects: ["SCE control", "Fin quantization", "Vt variation", "Self-heating", "Strain engineering"],
+        severity: "crit",
+        desc: "Advanced-node teaching track: fully depleted fins wrap the gate for electrostatic control. Fins are quantized; width comes in fin counts.",
+        physics: "Shorter Lg with controlled SCE; trade self-heating and fin roughness variation.",
+        master: {
+          phase: "Advanced FEOL (FinFET)",
+          cause: "Gate controls channel from multiple sides on a thin Si fin → stronger electrostatic integrity.",
+          when: "Sub-20nm class logic nodes (conceptual track — not sky130 silicon).",
+          keyParams: "Fin height/width/pitch, number of fins, Lg, spacer, work-function metals, strain (SiGe/eSiC).",
+          pitfalls: "Assuming planar SPICE intuition; ignoring fin quantization and self-heating on EM/timing.",
+          interviewHook: "Compare planar vs FinFET short-channel control and why multi-fin devices are used for drive current.",
+          formula: "Effective Weff ≈ Nfin · (2Hfin + Wfin) (approx)"
+        },
+        quizId: "a1",
+        demos: []
+      },
+      {
+        step: 2, title: "Cu Dual-Damascene BEOL Module", domain: "ADV-BEOL-Cu", level: "Master",
+        layers: ['substrate', 'stdcells', 'met1', 'met2', 'met3', 'vias', 'fillers'],
+        effects: ["Dual damascene", "Barrier/liner", "Cu CMP dishing", "Via bottom voids", "Surface EM"],
+        severity: "crit",
+        desc: "Copper interconnects are built by etching dielectric trenches/vias, depositing barrier+seed, electroplating Cu, then CMP — not subtractive Al plasma etch.",
+        physics: "Antenna still exists (dielectric etch / charging contexts) but metal patterning physics differs from Al RIE.",
+        master: {
+          phase: "Advanced BEOL (Cu)",
+          cause: "Cu etch is impractical in conventional RIE; damascene fill+CMP defines wires.",
+          when: "From ~130nm-class Cu adoption onward (node-dependent).",
+          keyParams: "TaN/Ta barrier, Cu seed, ECD fill, CMP slurry, capping layer (Co/SiCN).",
+          pitfalls: "Treating Cu like Al antenna-only story; ignoring barrier continuity and CMP topography.",
+          interviewHook: "Draw single vs dual damascene and where via voids nucleate.",
+          formula: "Damascene: dielectric pattern → barrier/seed → Cu fill → CMP"
+        },
+        quizId: "a2",
+        demos: ["cmp"]
+      },
+      {
+        step: 3, title: "Cu Reliability: Barrier, EM Paths, Via Health", domain: "ADV-EM-Cu", level: "Master",
+        layers: ['met2', 'met3', 'met4', 'vias', 'pdn_straps'],
+        effects: ["Cu EM", "Barrier failure", "Via voiding", "Capping interface diffusion", "Self-heating × EM"],
+        severity: "crit",
+        desc: "Cu EM often runs along interfaces; liner/cap quality and via bottom integrity dominate lifetime.",
+        physics: "Black's law still applies; activation energy and path differ from Al.",
+        master: {
+          phase: "Advanced interconnect reliability",
+          cause: "Electron wind + weak interfaces; thin barriers or poor via cleans → early voids.",
+          when: "HTOL / field life; rules enforced at tapeout.",
+          keyParams: "Jmax tables, via arrays, via pillar, thermal derating, Blech length.",
+          pitfalls: "Copying Al EM widths blindly; ignoring self-heating in FinFET local interconnect.",
+          interviewHook: "Why can a via-limited EM fail before the wide Cu line above it?",
+          formula: "MTTF ∝ J^(-n)·exp(Ea/kT)"
+        },
+        quizId: "a3",
+        demos: []
+      },
+      {
+        step: 4, title: "Multi-Patterning / EUV Lithography Reality", domain: "ADV-Litho", level: "Master",
+        layers: ['substrate', 'stdcells', 'met1'],
+        effects: ["SADP/SAQP", "LELE overlay", "EUV stochastic", "Pitch walking", "Tip-to-tip limits"],
+        severity: "crit",
+        desc: "When single exposure cannot resolve pitch, SADP/SAQP or LELE (and EUV) print the grid. Overlay and pitch walking become first-order yield limiters.",
+        physics: "Coloring/decomposition constraints hit routers and custom layout.",
+        master: {
+          phase: "Advanced lithography",
+          cause: "Resolution limit of λ/NA forces multiple patterns or EUV.",
+          when: "Critical FEOL/BEOL layers at advanced nodes.",
+          keyParams: "Pitch, odd/even tracks, tip-to-tip, EUV dose/stochastic defectivity.",
+          pitfalls: "Drawing illegal odd-cycle colors; ignoring decomposition fails until tapeout.",
+          interviewHook: "Explain pitch walking in SADP and how it affects metal resistance matching.",
+          formula: "SADP: spacer-defined pitch ≈ ½ mandrel pitch"
+        },
+        quizId: "a4",
+        demos: []
+      },
+      {
+        step: 5, title: "Advanced MOL / Local Interconnect Parasitics", domain: "ADV-MOL", level: "Master",
+        layers: ['stdcells', 'li1', 'met1', 'vias', 'endcaps'],
+        effects: ["CA/CB resistance", "Contact-to-gate cap", "Local interconnect RC", "MOL reliability"],
+        severity: "warn",
+        desc: "At FinFET nodes, middle-of-line local interconnect and contact parasitics often dominate path delay as much as long M3–M5 routes.",
+        physics: "Weff boost from fins can be eaten by MOL RC if contacts are sparse.",
+        master: {
+          phase: "Advanced MOL",
+          cause: "Tight CG spaces → high parasitics; tungsten/local Cu MOL resistance is significant.",
+          when: "After device formation, before global BEOL.",
+          keyParams: "Contact multiplicity, MOL stack, CG spacing rules, via0.",
+          pitfalls: "Optimizing only global metal while MOL starves the cell.",
+          interviewHook: "Where do you put effort first on a critical path: MOL contacts or M5?",
+          formula: "τ ≈ Rmol·Cgate + Rbeol·Cwire + …"
+        },
+        quizId: "a5",
+        demos: []
+      },
+      {
+        step: 6, title: "Advanced Packaging Still Applies (2.5D/HBM)", domain: "Package", level: "Master",
+        layers: ['pads', 'bumps', 'interposer', 'hbm', 'ubumps', 'bga_balls', 'rdl', 'outer_bumps'],
+        effects: ["HBM TSV stress", "Interposer warpage", "μbump fatigue", "PDN co-design"],
+        severity: "crit",
+        desc: "Advanced nodes still need the packaging suite — often 2.5D/HBM for bandwidth. Use Package selector for visuals.",
+        physics: "On-die Cu + package L co-design the power grid.",
+        master: {
+          phase: "Advanced assembly",
+          cause: "Heterogeneous integration moves the bottleneck to die-to-die and package PDN.",
+          when: "After wafer finish — OSAT / foundry turnkey.",
+          keyParams: "μbump pitch, TSV keepout, interposer RLC, HBM channels.",
+          pitfalls: "Ignoring package when closing on-die IR/EM.",
+          interviewHook: "Why can HBM PHY timing pass on-die but fail with interposer SI/PI?",
+          formula: "ΔV ≈ I·R_die + L_pkg·di/dt"
+        },
+        quizId: "15",
+        demos: []
+      }
+    ];
+
+    // Attach quizId + demos to planar FAB_STEPS
+    (function attachFabQuizzes() {
+      const demoMap = { 8: ['cmp'], 9: ['antenna', 'cmp'] };
+      FAB_STEPS.forEach(s => {
+        s.quizId = s.quizId || String(s.step);
+        s.demos = s.demos || demoMap[s.step] || (s.domain === 'BEOL-Antenna' ? ['antenna'] : []);
+      });
+    })();
+
+
     function getActiveSteps() {
-      return timelineMode === 'pnr' ? PNR_STEPS : FAB_STEPS;
+      if (timelineMode === 'pnr') return PNR_STEPS;
+      if (timelineMode === 'adv') return ADV_STEPS;
+      return FAB_STEPS;
     }
+
 
     function markInteraction() {
       lastInteractionTs = performance.now();
@@ -4406,9 +4659,11 @@
     }
 
     function setTimelineMode(mode) {
-      timelineMode = mode === 'pnr' ? 'pnr' : 'fab';
+      timelineMode = (mode === 'pnr') ? 'pnr' : (mode === 'adv') ? 'adv' : 'fab';
+      stopDemo();
       const fabBtn = document.getElementById('timelineModeFab');
       const pnrBtn = document.getElementById('timelineModePnr');
+      const advBtn = document.getElementById('timelineModeAdv');
       if (fabBtn) {
         fabBtn.classList.toggle('active', timelineMode === 'fab');
         fabBtn.setAttribute('aria-pressed', timelineMode === 'fab' ? 'true' : 'false');
@@ -4417,48 +4672,241 @@
         pnrBtn.classList.toggle('active', timelineMode === 'pnr');
         pnrBtn.setAttribute('aria-pressed', timelineMode === 'pnr' ? 'true' : 'false');
       }
+      if (advBtn) {
+        advBtn.classList.toggle('active', timelineMode === 'adv');
+        advBtn.setAttribute('aria-pressed', timelineMode === 'adv' ? 'true' : 'false');
+      }
       const steps = getActiveSteps();
       rebuildTimelineSegments(steps.length);
       const ph = document.getElementById('procHud');
-      if (ph && timelineMode !== 'fab') ph.classList.remove('active');
-      setFabStep(steps.length);
+      // Master HUD shows for fab + advanced node tracks
+      if (ph && timelineMode === 'pnr') ph.classList.remove('active');
+      setFabStep(Math.min(steps.length, Math.max(1, currentFabStep)));
       markInteraction();
       scheduleRender();
+    }
+
+
+
+    let demoMode = null; // null | 'antenna' | 'cmp'
+    let demoT0 = 0;
+    let demoRaf = null;
+
+    function sizeDemoCanvas() {
+      const ov = document.getElementById('demoOverlay');
+      const dc = document.getElementById('demoCanvas');
+      if (!ov || !dc || !container) return;
+      const w = container.clientWidth, h = container.clientHeight;
+      dc.width = w; dc.height = h;
+      dc.style.width = w + 'px'; dc.style.height = h + 'px';
+    }
+
+    function stopDemo() {
+      demoMode = null;
+      if (demoRaf) { cancelAnimationFrame(demoRaf); demoRaf = null; }
+      const ov = document.getElementById('demoOverlay');
+      if (ov) { ov.classList.remove('active'); ov.setAttribute('aria-hidden', 'true'); }
+    }
+
+    function startDemo(kind) {
+      if (kind !== 'antenna' && kind !== 'cmp') return;
+      sizeDemoCanvas();
+      demoMode = kind;
+      demoT0 = performance.now();
+      const ov = document.getElementById('demoOverlay');
+      if (ov) { ov.classList.add('active'); ov.setAttribute('aria-hidden', 'false'); }
+      const banner = document.getElementById('demoBanner');
+      if (banner) {
+        banner.textContent = kind === 'antenna'
+          ? 'DEMO · Process Antenna: plasma charge builds on floating metal → discharges through thin gate oxide'
+          : 'DEMO · CMP: high-density vs wide features — dishing/erosion from pattern-density-dependent polish';
+      }
+      const tick = (ts) => {
+        if (!demoMode) return;
+        drawDemoFrame((ts - demoT0) / 1000);
+        demoRaf = requestAnimationFrame(tick);
+      };
+      if (demoRaf) cancelAnimationFrame(demoRaf);
+      demoRaf = requestAnimationFrame(tick);
+      // auto-stop after 12s
+      setTimeout(() => { if (demoMode === kind) stopDemo(); }, 12000);
+    }
+
+    function drawDemoFrame(t) {
+      const dc = document.getElementById('demoCanvas');
+      if (!dc) return;
+      const c = dc.getContext('2d');
+      const W = dc.width, H = dc.height;
+      c.clearRect(0, 0, W, H);
+      if (demoMode === 'antenna') {
+        // plasma field
+        for (let i = 0; i < 40; i++) {
+          const x = (W * 0.15) + ((i * 37 + t * 80) % (W * 0.7));
+          const y = H * 0.18 + Math.sin(t * 3 + i) * 12;
+          c.fillStyle = `rgba(56,189,248,${0.15 + 0.35 * Math.abs(Math.sin(t + i))})`;
+          c.beginPath(); c.arc(x, y, 2.2, 0, Math.PI * 2); c.fill();
+        }
+        // long metal antenna
+        const mx = W * 0.2, my = H * 0.42, mw = W * 0.45, mh = 14;
+        c.fillStyle = '#94a3b8';
+        c.fillRect(mx, my, mw, mh);
+        c.strokeStyle = '#e2e8f0'; c.strokeRect(mx, my, mw, mh);
+        c.fillStyle = '#fde68a'; c.font = 'bold 12px monospace';
+        c.fillText('Floating metal (collecting plasma charge)', mx, my - 10);
+        // gate oxide victim
+        const gx = mx + mw + 20, gy = my - 30;
+        c.fillStyle = '#38bdf8'; c.fillRect(gx, gy, 16, 70);
+        c.fillStyle = '#f87171'; c.fillRect(gx - 2, gy + 28, 20, 6);
+        c.fillStyle = '#fecaca'; c.font = 'bold 11px monospace';
+        c.fillText('Thin gate oxide (victim)', gx + 24, gy + 36);
+        // charge flash to gate
+        const phase = (Math.sin(t * 4) + 1) / 2;
+        c.strokeStyle = `rgba(251,191,36,${0.4 + 0.6 * phase})`;
+        c.lineWidth = 2 + 3 * phase;
+        c.beginPath(); c.moveTo(mx + mw, my + mh / 2); c.lineTo(gx, gy + 31); c.stroke();
+        if (phase > 0.85) {
+          c.fillStyle = 'rgba(239,68,68,0.55)';
+          c.beginPath(); c.arc(gx + 8, gy + 31, 10 + 6 * phase, 0, Math.PI * 2); c.fill();
+          c.fillStyle = '#fee2e2'; c.font = 'bold 12px monospace';
+          c.fillText('DISCHARGE / OXIDE STRESS', gx - 40, gy + 95);
+        }
+        c.fillStyle = '#94a3b8'; c.font = '10px monospace';
+        c.fillText('R_ant = A_metal / A_gate   ·   Fix: jumper to upper metal or diode to diffusion', W * 0.2, H * 0.78);
+      } else if (demoMode === 'cmp') {
+        // two regions density
+        c.fillStyle = 'rgba(148,163,184,0.25)';
+        c.fillRect(W*0.12, H*0.3, W*0.32, H*0.28);
+        c.fillStyle = 'rgba(56,189,248,0.2)';
+        c.fillRect(W*0.55, H*0.3, W*0.32, H*0.28);
+        // dense pattern
+        for (let i = 0; i < 8; i++) {
+          for (let j = 0; j < 5; j++) {
+            c.fillStyle = '#64748b';
+            c.fillRect(W*0.15 + i*22, H*0.34 + j*18, 14, 10);
+          }
+        }
+        c.fillStyle = '#e2e8f0'; c.font = 'bold 11px monospace';
+        c.fillText('HIGH density (uniform polish)', W*0.14, H*0.28);
+        // wide feature dishing
+        const dish = 18 * Math.min(1, t / 3);
+        c.fillStyle = '#94a3b8';
+        c.beginPath();
+        c.moveTo(W*0.58, H*0.38);
+        c.lineTo(W*0.84, H*0.38);
+        c.quadraticCurveTo(W*0.71, H*0.38 + dish, W*0.58, H*0.38);
+        c.fill();
+        c.strokeStyle = '#fbbf24'; c.stroke();
+        c.fillStyle = '#fde68a'; c.font = 'bold 11px monospace';
+        c.fillText('WIDE feature → DISHING', W*0.56, H*0.28);
+        // polish pad
+        const padY = H*0.22 + Math.sin(t*2)*4;
+        c.fillStyle = 'rgba(251,191,36,0.35)';
+        c.fillRect(W*0.1, padY, W*0.8, 16);
+        c.fillStyle = '#fbbf24'; c.font = '10px monospace';
+        c.fillText('CMP pad motion → rate = f(pattern density, width)', W*0.2, H*0.75);
+      }
     }
 
 
     function updateProcHud(step) {
       const hud = document.getElementById('procHud');
       if (!hud) return;
-      const show = timelineMode === 'fab' && step && step.master;
+      const show = (timelineMode === 'fab' || timelineMode === 'adv') && step && step.master;
       hud.classList.toggle('active', !!show);
       if (!show) return;
       const m = step.master;
-      hud.classList.toggle('antenna-alert', step.domain === 'BEOL-Antenna' || (step.effects||[]).some(e => /antenna/i.test(e)));
-      hud.classList.toggle('critical-alert', step.severity === 'crit' && step.domain !== 'BEOL-Antenna');
+      const isAntenna = /antenna/i.test(step.domain || '') || (step.effects || []).some(e => /antenna/i.test(e));
+      hud.classList.toggle('antenna-alert', isAntenna);
+      hud.classList.toggle('critical-alert', step.severity === 'crit' && !isAntenna);
       const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
-      set('procHudTitle', step.title);
+      set('procHudTitle', `${isAntenna ? '📡 ' : '🔬 '}${step.title}`);
       set('procHudPhase', m.phase || step.domain);
+      set('procHudLevel', step.level || 'Master');
       set('procHudCause', m.cause);
       set('procHudWhen', m.when);
-      set('procHudParams', m.params);
-      set('procHudRisks', m.risks);
-      set('procHudFix', m.fix);
-      set('procHudHook', m.hook);
+      set('procHudParams', m.keyParams || m.params);
+      set('procHudPitfalls', m.pitfalls || m.risks);
+      set('procHudHook', m.interviewHook || m.hook);
       const formula = document.getElementById('procHudFormula');
       if (formula) {
-        if (m.formula) { formula.style.display = 'block'; formula.textContent = m.formula; }
-        else { formula.style.display = 'none'; formula.textContent = ''; }
+        if (isAntenna) {
+          formula.style.display = 'block';
+          formula.textContent = m.formula || 'Antenna Ratio = Metal Area (or perimeter) / Gate Oxide Area';
+        } else if (m.formula) {
+          formula.style.display = 'block';
+          formula.textContent = m.formula;
+        } else {
+          formula.style.display = 'none';
+          formula.textContent = '';
+        }
       }
       const fxBox = document.getElementById('procHudEffects');
       if (fxBox) {
         fxBox.innerHTML = '';
         (step.effects || []).forEach(fx => {
           const chip = document.createElement('span');
-          chip.className = 'proc-fx-chip' + (/antenna|TDDB|EM|latch|rupture|PID/i.test(fx) ? ' crit' : (step.severity === 'warn' ? ' warn' : ''));
+          chip.className = 'proc-fx-chip' + (/antenna|TDDB|EM|latch|rupture|PID|FinFET|damascene|EUV/i.test(fx) ? ' crit' : (step.severity === 'warn' ? ' warn' : ''));
           chip.textContent = fx;
           fxBox.appendChild(chip);
         });
+      }
+      // Demos
+      const demoBox = document.getElementById('procHudDemos');
+      if (demoBox) {
+        const demos = step.demos || [];
+        demoBox.style.display = demos.length ? 'flex' : 'none';
+        demoBox.innerHTML = '';
+        demos.forEach(d => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn';
+          b.textContent = d === 'antenna' ? '▶ Antenna demo' : d === 'cmp' ? '▶ CMP demo' : '▶ Demo';
+          b.onclick = () => startDemo(d);
+          demoBox.appendChild(b);
+        });
+        if (demos.length) {
+          const stop = document.createElement('button');
+          stop.type = 'button'; stop.className = 'btn'; stop.textContent = '⏹ Stop demo';
+          stop.onclick = () => stopDemo();
+          demoBox.appendChild(stop);
+        }
+      }
+      // Quiz
+      const quizWrap = document.getElementById('procHudQuiz');
+      const qid = step.quizId || String(step.step);
+      const quiz = (typeof MASTER_QUIZZES !== 'undefined') ? MASTER_QUIZZES[qid] : null;
+      if (quizWrap) {
+        if (!quiz) { quizWrap.style.display = 'none'; }
+        else {
+          quizWrap.style.display = 'block';
+          const qEl = document.getElementById('procQuizQ');
+          const opts = document.getElementById('procQuizOpts');
+          const fb = document.getElementById('procQuizFb');
+          if (qEl) qEl.textContent = 'Quiz · ' + quiz.q;
+          if (fb) { fb.textContent = ''; fb.className = 'proc-quiz-fb'; }
+          if (opts) {
+            opts.innerHTML = '';
+            quiz.choices.forEach((text, idx) => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'proc-quiz-opt';
+              btn.textContent = String.fromCharCode(65 + idx) + ') ' + text;
+              btn.onclick = () => {
+                [...opts.querySelectorAll('button')].forEach(x => { x.disabled = true; x.classList.remove('correct','wrong'); });
+                if (idx === quiz.answer) {
+                  btn.classList.add('correct');
+                  if (fb) { fb.textContent = 'Correct — ' + quiz.explain; fb.className = 'proc-quiz-fb ok'; }
+                } else {
+                  btn.classList.add('wrong');
+                  const right = opts.children[quiz.answer];
+                  if (right) right.classList.add('correct');
+                  if (fb) { fb.textContent = 'Not quite — ' + quiz.explain; fb.className = 'proc-quiz-fb'; }
+                }
+              };
+              opts.appendChild(btn);
+            });
+          }
+        }
       }
     }
 
@@ -4467,7 +4915,7 @@
       if (stepNum < 1 || stepNum > steps.length) return;
       currentFabStep = stepNum;
       const step = steps[stepNum - 1];
-      const prefix = timelineMode === 'pnr' ? 'PNR' : 'FAB';
+      const prefix = timelineMode === 'pnr' ? 'PNR' : (timelineMode === 'adv' ? 'ADV' : 'FAB');
 
       const pillEl = document.getElementById('fabStepPill');
       if (pillEl) pillEl.textContent = `${prefix} STEP ${step.step} / ${steps.length}`;
@@ -4515,6 +4963,19 @@
         ? ((PKG_CATALOG[currentPkgMode] || PKG_CATALOG.wirebond).primaryLayer)
         : step.layers[step.layers.length - 1];
       showLayerPhysics(topLayerId);
+      if (/antenna/i.test(step.domain || '') && step.master) {
+        const m = step.master;
+        const inspTitle = document.getElementById('inspTitle');
+        const inspObj = document.getElementById('inspObj');
+        const inspMaterial = document.getElementById('inspMaterial');
+        const inspRes = document.getElementById('inspRes');
+        const inspRule = document.getElementById('inspRule');
+        if (inspTitle) inspTitle.textContent = 'Process Antenna Effect (BEOL Plasma)';
+        if (inspObj) inspObj.textContent = 'BEOL-Antenna · Master curriculum';
+        if (inspMaterial) inspMaterial.textContent = m.cause || 'Plasma charge on floating metal → gate oxide';
+        if (inspRes) inspRes.textContent = m.formula || 'R_ant = A_metal (or perimeter) / A_gate ≤ foundry limit';
+        if (inspRule) inspRule.textContent = m.pitfalls || m.interviewHook || step.physics;
+      }
       markInteraction();
       scheduleRender();
     }
@@ -4554,6 +5015,8 @@
     if (timelineModeFab) timelineModeFab.onclick = () => setTimelineMode('fab');
     const timelineModePnr = document.getElementById('timelineModePnr');
     if (timelineModePnr) timelineModePnr.onclick = () => setTimelineMode('pnr');
+    const timelineModeAdv = document.getElementById('timelineModeAdv');
+    if (timelineModeAdv) timelineModeAdv.onclick = () => setTimelineMode('adv');
 
     const fabPrevBtn = document.getElementById('fabPrevBtn');
     if (fabPrevBtn) {

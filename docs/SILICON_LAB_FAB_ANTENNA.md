@@ -1,37 +1,27 @@
-# 3D Silicon Lab — Master Fab Process & Stage Effects
+# 3D Silicon Lab — Master Fab, Quizzes, Demos & FinFET/Cu
 
-Illustrative curriculum in `web/public/die_viewer_3d.html` (not foundry tapeout).
+Illustrative curriculum in `web/public/die_viewer_3d.html`.
 
-Open **Wafer Fab** timeline → use **Master Process HUD** (`#procHud`) on every step.
+## Timeline modes
 
-## 15 Master FAB steps + primary effects
+| Mode | Content |
+|------|---------|
+| **Wafer Fab** | 15 master planar/sky130-inspired process steps + stage effects |
+| **PnR Flow** | Design implementation order (antenna-aware route note) |
+| **FinFET/Cu** | Advanced-node addon: FinFET, Cu damascene, Cu EM, multi-patterning/EUV, MOL, 2.5D |
 
-| # | Stage | Effects taught |
-|---|--------|----------------|
-| 1 | Wafer Prep | Crystal defects, Oi precipitates, warpage/TTV, particles |
-| 2 | Photolithography | Overlay, CD variation, standing waves, flare, mask defects |
-| 3 | Etch (wet/RIE) | ARDE/microloading, notching, residue, plasma charging |
-| 4 | STI | LOD stress, divots, seam voids, CMP dishing |
-| 5 | Implant + RTA | **WPE**, channeling, TED, latch-up / taps |
-| 6 | Gate oxide | **TDDB**, NBTI/PBTI, pinholes, SILC |
-| 7 | MOL contacts | Rc, silicide piping, junction leakage |
-| 8 | ILD + CMP | Dishing, erosion, density, puddling |
-| 9 | **BEOL plasma metal** | **Process Antenna**, PID, GOX rupture, latent TDDB |
-| 10 | Vias / metal | **EM**, stress migration, via voids (Black’s law) |
-| 11 | PDN mesh | Static IR, dynamic di/dt, strap EM, SSO coupling |
-| 12 | Passivation / pads | Moisture, mobile ions, crackstop, ESD |
-| 13 | Wafer sort | Probe scrub, false fails, pad wear |
-| 14 | Dicing | Chipping, crack propagation, kerf particles |
-| 15 | Packaging | Wire sweep, cratering, C4 voids, IMC, warpage, TSV stress, package L |
+## Process HUD (every Fab / Adv step)
 
-Each step HUD includes: **Cause · When · Params · Risks · Mitigations · Interview trap · Formula (when applicable)**.
+- Cause · When · Params · Pitfalls · Interview hook · Formula  
+- Effect chips  
+- **Quiz** (MCQ + explanation)  
+- **Demos** where relevant: Antenna (step 9), CMP (steps 8–9, Cu step)
 
-## Antenna (step 9) — master essentials
+## Interactive demos
 
-- Damage during **BEOL plasma etch**; vulnerability from **PD routing**
-- \(R_{ant} = A_{metal}/A_{gate}\) (or perimeter form)
-- Fixes: jumper → ECO → diode → manual; diode Cin/leakage tradeoffs
+- **Antenna:** plasma charge → floating metal → gate oxide stress  
+- **CMP:** density vs wide-feature dishing  
 
-## Packaging
+## Still illustrative
 
-Separate Package selector still covers wirebond → 2.5D (see `SILICON_LAB_PACKAGING.md`).
+Not a foundry signoff tool; geometry remains schematic. Advanced track is conceptual (not a second PDK renderer).

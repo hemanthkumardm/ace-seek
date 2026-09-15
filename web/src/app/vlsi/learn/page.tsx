@@ -174,7 +174,7 @@ export default function VlsiLearnHub() {
             3D Silicon Die, Fabrication & Advanced Packaging Lab
           </h3>
           <p className="text-xs leading-relaxed text-slate-300">
-            Master-level illustrative fab + packaging lab (schematic geometry — not tapeout GDS/DEF): full Wafer Fab timeline with stage effects (litho overlay, STI/LOD stress, WPE, TDDB/NBTI, CMP dishing, process antenna/PID, EM/SM, IR/SSO), plus packaging — Wirebond/QFN, Flip-Chip, WLCSP, FC-BGA, Fan-out, 2.5D+HBM — and live 3D RC modeling.
+            Master-level Wafer Fab process + plasma antenna curriculum and packaging lab (schematic geometry — not tapeout GDS/DEF): 15-step fab timeline (litho, STI/LOD, WPE, TDDB, CMP, process antenna/PID, EM, IR/SSO) with Process Master HUD, plus Wirebond/QFN → Flip-Chip → WLCSP → FC-BGA → Fan-out → 2.5D+HBM and live 3D RC modeling.
           </p>
         </div>
         <a
