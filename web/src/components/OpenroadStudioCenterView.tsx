@@ -18,7 +18,6 @@ import {
   Sparkles,
   ShieldCheck,
   CheckCircle2,
-  Cpu,
   Code2,
 } from "lucide-react";
 import { OpenroadIoPlanner } from "@/components/OpenroadIoPlanner";
