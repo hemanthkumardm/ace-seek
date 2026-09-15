@@ -49,10 +49,19 @@ const FALLBACK_ENGINES: EngineInfo[] = [
     name: "ppa_optimizer",
     available: true,
     description:
-      "Ace-Matrix PPA grid sweep — analytic/model DSE (not a live OpenLane multi-run).",
+      "Ace-Matrix analytic PPA model (legacy). Prefer Studio Measured DSE for real job metrics.",
     tier: "max",
     status: "model_dse",
-    studio: "Offline/model exploration only. Does not replace container PnR signoff.",
+    studio: "Model-only. Use Compare & DSE panel for measured 3-run Pareto.",
+  },
+  {
+    name: "measured_dse",
+    available: true,
+    description:
+      "Measured density sweep — 3 real container jobs → Pareto from extracted WNS/area/power.",
+    tier: "max",
+    status: "production",
+    studio: "Studio → Compare & DSE → Launch measured DSE",
   },
   {
     name: "matrix_sweeper",

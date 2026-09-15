@@ -67,6 +67,7 @@ import {
   OpenroadEnginesPanel,
   loadAutomacroEnabled,
 } from "@/components/OpenroadEnginesPanel";
+import { OpenroadCompareDsePanel } from "@/components/OpenroadCompareDsePanel";
 import {
   ClockWaveform,
   MetricTiles,
@@ -2388,6 +2389,14 @@ export default function OpenroadPnRStudioPage() {
           <OpenroadEnginesPanel
             automacroReport={automacroReportText}
             apiKey={apiKeyResolved()}
+          />
+          <OpenroadCompareDsePanel
+            project={project}
+            apiKey={apiKeyResolved()}
+            openlaneConfig={{
+              ACE_AUTOMACRO: loadAutomacroEnabled() ? 1 : 0,
+              ACE_FLOW_PROFILE: project.flowProfile || "legacy_pnr",
+            }}
           />
           <MetricTiles metrics={parsed.metrics} />
           {parsed.metrics.areaBreakdown.length > 0 && (

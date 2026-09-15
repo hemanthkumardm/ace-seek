@@ -745,6 +745,46 @@ export function listDockerJobs(): DockerJobRecord[] {
   );
 }
 
+/** List recent jobs for one owner (memory + disk). */
+export function listOwnerDockerJobs(
+  ownerId: string,
+  limit = 24
+): DockerJobRecord[] {
+  const oid = safeOwnerId(ownerId);
+  const seen = new Set<string>();
+  const out: DockerJobRecord[] = [];
+
+  for (const j of listDockerJobs()) {
+    if (j.ownerId !== oid) continue;
+    if (seen.has(j.jobId)) continue;
+    seen.add(j.jobId);
+    refreshJobArtifacts(j);
+    out.push(j);
+  }
+
+  try {
+    const jroot = ownerJobsDir(oid);
+    if (fs.existsSync(jroot)) {
+      for (const name of fs.readdirSync(jroot)) {
+        if (seen.has(name)) continue;
+        const dir = path.join(jroot, name);
+        if (!fs.statSync(dir).isDirectory()) continue;
+        const rec = loadJobFromDisk(name, dir, oid);
+        if (rec) {
+          seen.add(rec.jobId);
+          out.push(rec);
+        }
+      }
+    }
+  } catch {
+    /* */
+  }
+
+  return out
+    .sort((a, b) => (b.startedAt || "").localeCompare(a.startedAt || ""))
+    .slice(0, limit);
+}
+
 /** Map Studio stage → OpenLane stop point (single source: openroad-until-map).
  *  Unknown ids return null — callers must fail closed (never default to full GDS).
  */
