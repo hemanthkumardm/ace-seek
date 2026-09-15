@@ -8,6 +8,10 @@ import {
   type OpenroadManifest,
   type OpenroadPdkId,
 } from "./openroad-format";
+import {
+  type AceFlowProfileId,
+  getFlowProfile,
+} from "./openroad-flow-profiles";
 
 const STORAGE_KEY = "ace_openroad_project_v1";
 
@@ -25,6 +29,8 @@ export interface OpenroadProjectState {
   designName: string;
   topModule: string;
   pdk: OpenroadPdkId;
+  /** AceForge Classic / Chip vs legacy Docker PnR */
+  flowProfile: AceFlowProfileId;
   files: OpenroadProjectFile[];
   updatedAt: string;
 }
@@ -35,6 +41,7 @@ export function emptyOpenroadProject(): OpenroadProjectState {
     designName: "design",
     topModule: "top",
     pdk: "sky130",
+    flowProfile: "legacy_pnr",
     files: [],
     updatedAt: new Date().toISOString(),
   };
@@ -110,9 +117,11 @@ export function loadOpenroadProject(): OpenroadProjectState {
     if (!raw) return emptyOpenroadProject();
     const parsed = JSON.parse(raw) as OpenroadProjectState;
     if (!parsed || !Array.isArray(parsed.files)) return emptyOpenroadProject();
+    const fp = (parsed as OpenroadProjectState).flowProfile;
     return {
       ...emptyOpenroadProject(),
       ...parsed,
+      flowProfile: getFlowProfile(fp).id,
       files: parsed.files.map((f) => ({
         ...f,
         role: f.role || inferRole(f.name),

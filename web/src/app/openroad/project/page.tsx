@@ -44,6 +44,11 @@ import {
   getPdkDef,
   type OpenroadPdkId as CatalogPdkId,
 } from "@/lib/openroad-pdk-catalog";
+import {
+  ACE_FLOW_PROFILES,
+  getFlowProfile,
+  type AceFlowProfileId,
+} from "@/lib/openroad-flow-profiles";
 import { useEntitlements } from "@/hooks/useEntitlements";
 
 type PdkAvail = {
@@ -379,6 +384,53 @@ export default function OpenroadProjectPage() {
                       persist({ ...project, topModule: e.target.value })
                     }
                   />
+                </label>
+                <label className="text-[11px] font-black uppercase space-y-1.5 block sm:col-span-2">
+                  <span className="text-[var(--neu-text-muted)]">
+                    Flow profile
+                  </span>
+                  <select
+                    className="neu-input w-full px-3 py-2 text-sm font-bold"
+                    value={project.flowProfile || "legacy_pnr"}
+                    onChange={(e) =>
+                      persist({
+                        ...project,
+                        flowProfile: e.target.value as AceFlowProfileId,
+                      })
+                    }
+                  >
+                    {ACE_FLOW_PROFILES.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label} [{p.badge}]
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {ACE_FLOW_PROFILES.map((p) => {
+                      const active = (project.flowProfile || "legacy_pnr") === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() =>
+                            persist({ ...project, flowProfile: p.id })
+                          }
+                          className={`px-2 py-1 rounded-lg text-[10px] font-black border transition ${
+                            active
+                              ? "bg-violet-600 text-white border-violet-500"
+                              : "bg-white/60 text-slate-700 border-slate-200 hover:border-violet-300"
+                          }`}
+                          title={p.blurb}
+                        >
+                          {p.short}
+                          <span className="opacity-80"> · {p.badge}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <span className="block text-[10px] font-bold normal-case text-[var(--neu-text-muted)] mt-1">
+                    {getFlowProfile(project.flowProfile).blurb}
+                  </span>
                 </label>
                 <label className="text-[11px] font-black uppercase space-y-1.5 block sm:col-span-2">
                   <span className="text-[var(--neu-text-muted)]">

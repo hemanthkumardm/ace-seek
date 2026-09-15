@@ -31,10 +31,19 @@ const FALLBACK_ENGINES: EngineInfo[] = [
   {
     name: "openlane_docker",
     available: true,
-    description: "Hosted OpenLane Docker PnR (synth → GDS) — primary Studio path.",
+    description: "Legacy Docker PnR (synth → GDS) — default Studio path.",
     tier: "max",
     status: "production",
-    studio: "POST /api/openroad/run mode=container",
+    studio: "Flow profile: Legacy Docker PnR",
+  },
+  {
+    name: "ace_forge",
+    available: true,
+    description:
+      "AceForge Classic/Chip — AceFlow step orchestration with checkpoints; Chip adds pad-ring intent.",
+    tier: "max",
+    status: "production",
+    studio: "Project → Flow profile: AceForge Classic or AceForge Chip",
   },
   {
     name: "ppa_optimizer",
@@ -130,7 +139,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       source: fromPy ? "python_registry" : "fallback_catalog",
-      cloudSpine: "OpenLane Docker (mode=container) is the production PnR path.",
+      cloudSpine:
+        "Production PnR: Legacy Docker PnR (default) or AceForge Classic/Chip — set Project → Flow profile.",
       engines,
     });
   } catch (e) {

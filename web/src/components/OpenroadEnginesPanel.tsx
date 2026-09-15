@@ -107,11 +107,10 @@ export function OpenroadEnginesPanel({ automacroReport, apiKey }: Props) {
         </button>
       </div>
 
-      {cloudSpine && (
-        <p className="text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-2 py-1.5">
-          {cloudSpine}
-        </p>
-      )}
+      <p className="text-[10px] font-bold text-sky-800 bg-sky-50 border border-sky-200 rounded-lg px-2 py-1.5">
+        {cloudSpine ||
+          "Cloud spine: Legacy Docker PnR (default) or AceForge Classic/Chip — pick Flow profile on Project."}
+      </p>
 
       {/* Ace-AutoMacro control */}
       <div className="neu-inset p-3 space-y-2">

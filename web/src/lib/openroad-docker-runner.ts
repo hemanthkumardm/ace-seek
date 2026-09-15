@@ -106,6 +106,10 @@ export type OpenroadSpawnMeta = {
   enqueuedAt: string;
   /** "1" = run Ace-AutoMacro on floorplan when macros exist; "0" = skip */
   aceAutomacro: "0" | "1";
+  /** AceForge backend: legacy_ol | ace_forge */
+  flowBackend: "legacy_ol" | "ace_forge";
+  /** classic | chip when flowBackend=ace_forge */
+  forgeProfile: "classic" | "chip";
 };
 
 const jobs = new Map<string, DockerJobRecord>();
@@ -959,6 +963,14 @@ export function startOpenroadDockerJob(
   delete mergedConfig.ACE_AUTOMACRO;
   const aceAutomacro: "0" | "1" =
     rawAm === 0 || rawAm === false || rawAm === "0" ? "0" : "1";
+  const rawProfile = String(mergedConfig.ACE_FLOW_PROFILE || "legacy_pnr");
+  delete mergedConfig.ACE_FLOW_PROFILE;
+  const flowBackend: "legacy_ol" | "ace_forge" =
+    rawProfile === "ace_forge_classic" || rawProfile === "ace_forge_chip"
+      ? "ace_forge"
+      : "legacy_ol";
+  const forgeProfile: "classic" | "chip" =
+    rawProfile === "ace_forge_chip" ? "chip" : "classic";
   fs.writeFileSync(
     path.join(jobDir, "user_openlane_config.json"),
     JSON.stringify(mergedConfig, null, 2),
@@ -997,6 +1009,8 @@ export function startOpenroadDockerJob(
     ckptSlug,
     enqueuedAt,
     aceAutomacro,
+    flowBackend,
+    forgeProfile,
   };
   writeSpawnMeta(jobDir, spawnMeta);
 
@@ -1051,10 +1065,20 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
   const runOl = path.join(wd, "run_openlane.sh");
   const prepareOrfs = path.join(wd, "prepare_orfs_design.sh");
   const runOrfs = path.join(wd, "run_orfs.sh");
+  const prepareForge = path.join(wd, "prepare_ace_forge.sh");
+  const runForge = path.join(wd, "run_ace_forge.sh");
   const mergePy = path.join(wd, "merge_user_config.py");
   const packCkpt = path.join(wd, "pack_checkpoint.sh");
 
-  for (const p of [prepareOl, runOl, prepareOrfs, runOrfs, packCkpt]) {
+  for (const p of [
+    prepareOl,
+    runOl,
+    prepareOrfs,
+    runOrfs,
+    prepareForge,
+    runForge,
+    packCkpt,
+  ]) {
     try {
       fs.chmodSync(p, 0o755);
     } catch {
@@ -1078,6 +1102,7 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     ACE_OPENLANE_UNTIL: meta.until,
     ACE_OPENLANE_OVERWRITE: meta.overwrite,
     ACE_AUTOMACRO: meta.aceAutomacro ?? "1",
+    ACE_FORGE_PROFILE: meta.forgeProfile ?? "classic",
     OPENROAD_SSH_HOST: process.env.OPENROAD_SSH_HOST || "",
     OPENROAD_SSH_USER: process.env.OPENROAD_SSH_USER || "root",
     OPENROAD_SSH_KEY: process.env.OPENROAD_SSH_KEY || "",
@@ -1088,8 +1113,11 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
   };
 
   let cmd: string;
+  const backend = meta.flowBackend ?? "legacy_ol";
   if (meta.runner === "orfs") {
     cmd = `set -e; "${prepareOrfs}" "${jobDir}" "${safeSlug(meta.designName)}" "${meta.topModule}" "${meta.orfsPlatform}"; "${runOrfs}" "${jobDir}"`;
+  } else if (backend === "ace_forge") {
+    cmd = `set -e; "${prepareForge}" "${jobDir}" "${meta.topModule}" "${meta.forgeProfile || "classic"}"; "${runForge}" "${jobDir}"; "${packCkpt}" "${jobDir}" "${meta.ckptSlug}" "${meta.untilStage || meta.until}" "${oid}" || true`;
   } else {
     cmd = `set -e; "${prepareOl}" "${jobDir}" "${safeSlug(meta.designName)}" "${meta.topModule}" "${meta.openlanePdk}"; python3 "${mergePy}" "${jobDir}"; "${runOl}" "${jobDir}"; "${packCkpt}" "${jobDir}" "${meta.ckptSlug}" "${meta.untilStage || meta.until}" "${oid}" || true`;
   }
@@ -1098,7 +1126,9 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
   rec.message =
     meta.runner === "orfs"
       ? `Preparing ORFS (${meta.orfsPlatform})…`
-      : `Preparing OpenLane until ${meta.until} (${meta.openlanePdk})…`;
+      : backend === "ace_forge"
+        ? `Preparing AceForge ${meta.forgeProfile || "classic"} until ${meta.until}…`
+        : `Preparing OpenLane until ${meta.until} (${meta.openlanePdk})…`;
   writeStatusJson(jobDir, "preparing", rec.message);
 
   let shell: ChildProcess;

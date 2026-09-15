@@ -27,7 +27,16 @@ _ENGINE_META: dict[str, dict] = {
         "description": "Ace-AutoMacro: electrostatic macro placement, legalization, halos, flightline/RUDY.",
         "tier": "max",
         "status": "production",
-        "studio": "Runs inside OpenLane floorplan when hard macros are present (ACE_AUTOMACRO=1).",
+        "studio": "Runs on floorplan when hard macros are present (ACE_AUTOMACRO=1).",
+    },
+    "ace_forge": {
+        "module": "workers.engines.forge.driver",
+        "class": "run_ace_forge",
+        "description": "AceForge Classic/Chip step-orchestrated PnR (AceFlow + OpenROAD).",
+        "tier": "max",
+        "status": "production",
+        "runnable": False,
+        "studio": "Select AceForge Classic or Chip in Project → Flow profile.",
     },
     "ppa_optimizer": {
         "module": "workers.engines.ppa_optimizer.engine",

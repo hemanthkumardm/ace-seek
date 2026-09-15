@@ -1326,6 +1326,7 @@ export default function OpenroadPnRStudioPage() {
     });
     openlaneConfig.DESIGN_NAME = project.topModule || "top";
     openlaneConfig.ACE_AUTOMACRO = loadAutomacroEnabled() ? 1 : 0;
+    openlaneConfig.ACE_FLOW_PROFILE = project.flowProfile || "legacy_pnr";
     openlaneConfig.LINT_TOP =
       resolveField("lint", "LINT_TOP", stageInputs) || project.topModule;
     openlaneConfig.SIM_TB_TOP = resolveField(
