@@ -59,11 +59,13 @@ export async function POST(req: NextRequest) {
       sendTrialAdminNotify(trial),
     ]);
 
-    console.log("[trial/request] mail", {
-      id: trial.id,
-      applicant: applicant.sent ? "sent" : applicant.error,
-      admin: admin.sent ? "sent" : admin.error,
-    });
+    if (process.env.NODE_ENV !== "production") {
+      console.log("[trial/request] mail", {
+        id: trial.id,
+        applicant: applicant.sent ? "sent" : applicant.error,
+        admin: admin.sent ? "sent" : admin.error,
+      });
+    }
 
     return NextResponse.json({
       ok: true,

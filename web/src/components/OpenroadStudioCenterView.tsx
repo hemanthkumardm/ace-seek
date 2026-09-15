@@ -2,7 +2,7 @@
 
 /**
  * Center stage panel for OpenROAD PnR Studio (lint / sim / io / synth / chip / report).
- * Enhanced with 3D Silicon Die Viewer, Multi-Layer GDS/DEF Inspector, and Automated Timing Violation Cockpit.
+ * Real ODB/DEF + OpenSTA timing; formal LEC tab is an EQY script preview (not a Studio-run proof).
  */
 
 import React, { useState } from "react";

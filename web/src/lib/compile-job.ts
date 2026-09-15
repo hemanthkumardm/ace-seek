@@ -283,7 +283,9 @@ async function runJob(
 
   const t0 = Date.now();
   try {
-    console.log(`[job ${id}] start`, args.join(" "));
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[job ${id}] start`, args.join(" "));
+    }
     const result = await runCmd(aic, args, { cwd: root, timeoutMs });
     const ms = Date.now() - t0;
     const log = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
@@ -318,7 +320,9 @@ async function runJob(
     job.outFile = outputPath;
     job.logTail = log.slice(-1500);
     writeJob(job);
-    console.log(`[job ${id}] done ${ms}ms backend=${job.backend} engine=${job.engine}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[job ${id}] done ${ms}ms backend=${job.backend} engine=${job.engine}`);
+    }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     job.status = "error";

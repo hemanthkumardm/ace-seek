@@ -296,7 +296,9 @@ async function runConvertJob(
     job.outFile = outputPath;
     job.logTail = logs.join("\n").slice(-2000);
     writeJob(job);
-    console.log(`[convert ${id}] done ${job.ms}ms ${from}→${to}`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[convert ${id}] done ${job.ms}ms ${from}→${to}`);
+    }
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
     job.status = "error";

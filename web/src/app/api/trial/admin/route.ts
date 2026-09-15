@@ -38,12 +38,14 @@ export async function POST(req: NextRequest) {
     if (action === "approve") {
       const trial = await approveTrialRequest(id, note);
       const mail = await sendTrialApprovedMail(trial);
-      console.log("[trial/admin] approve mail", {
-        id: trial.id,
-        to: trial.email,
-        sent: mail.sent,
-        error: mail.error,
-      });
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[trial/admin] approve mail", {
+          id: trial.id,
+          to: trial.email,
+          sent: mail.sent,
+          error: mail.error,
+        });
+      }
       return NextResponse.json({
         ok: true,
         request: trial,
@@ -55,12 +57,14 @@ export async function POST(req: NextRequest) {
     if (action === "reject") {
       const trial = await rejectTrialRequest(id, note);
       const mail = await sendTrialRejectedMail(trial);
-      console.log("[trial/admin] reject mail", {
-        id: trial.id,
-        to: trial.email,
-        sent: mail.sent,
-        error: mail.error,
-      });
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[trial/admin] reject mail", {
+          id: trial.id,
+          to: trial.email,
+          sent: mail.sent,
+          error: mail.error,
+        });
+      }
       return NextResponse.json({
         ok: true,
         request: trial,

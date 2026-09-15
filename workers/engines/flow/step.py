@@ -69,7 +69,10 @@ class FlowStep(ABC):
                 exit_code = proc.wait()
             except FileNotFoundError as e:
                 bin_name = cmd if is_shell else cmd[0]
-                lf.write(f"[NOTE] Binary '{bin_name}' not found on PATH ({e}). Running in fallback mode.\n")
+                lf.write(
+                    f"[AceFlow] Binary '{bin_name}' not found on PATH ({e}). "
+                    f"Exit 127 — install the tool or set ACE_FLOW_MOCK=1 for demos only.\n"
+                )
                 exit_code = 127
 
         elapsed = time.time() - start_time
