@@ -171,10 +171,10 @@ export default function VlsiLearnHub() {
             <span className="text-xs text-slate-400 font-mono">SkyWater 130nm PDK</span>
           </div>
           <h3 className="text-lg font-bold text-white tracking-tight">
-            3D Silicon Die & Multi-Layer Interconnect Stack Explorer
+            3D Silicon Die, Fabrication & Advanced Packaging Lab
           </h3>
           <p className="text-xs leading-relaxed text-slate-300">
-            Visualize silicon wafer substrate physics, exploded Z-spread elevation, and Back-End-Of-Line (BEOL) metal layer stacking from <code className="text-cyan-300">li1</code> through <code className="text-amber-300">met5</code>. Inspect power distribution grids, via pillars, and macro keep-out halos with 3D orbit and cross-section cutaway.
+            Explore complete FEOL/BEOL physical implementation and advanced packaging: Hard Macros with keep-out halos, Endcaps, Welltaps (tap rule ≤25µm), Decap fillers, Standard Cell rows, Dual-Rail Power Rings & Straps, multi-tier Manhattan routing, peripheral I/O Bond Pads with 3D Wirebonds, and C4 Flip-Chip Solder Bumps with live 3D RC delay modeling.
           </p>
         </div>
         <a

@@ -494,10 +494,12 @@
     <div class="toolbar-group">
       <!-- Educational Domain Filters -->
       <div class="btn-group">
-        <button id="filterAllBtn" class="btn active" title="Show Complete Wafer Stack">All Layers</button>
-        <button id="filterFeolBtn" class="btn" title="Isolate Front-End of Line (Substrate, Wells, Transistor Gates)">FEOL</button>
-        <button id="filterBeolBtn" class="btn" title="Isolate Back-End of Line (Metal 1 to Metal 5 + Vias)">BEOL</button>
-        <button id="filterSignalBtn" class="btn" style="color: #38bdf8;" title="Trace 3D Signal Path & RC Delay">⚡ RC Signal Path</button>
+        <button id="filterAllBtn" class="btn active" title="Show Complete Wafer Stack">All</button>
+        <button id="filterFeolBtn" class="btn" title="FEOL: Substrate, Wells, Endcaps, Welltaps, StdCells, Decaps, Macros">FEOL</button>
+        <button id="filterBeolBtn" class="btn" title="BEOL: li1, met1-met5, Vias, Manhattan Routing">BEOL</button>
+        <button id="filterPdnBtn" class="btn" title="PDN: Core & Macro Rings, Power Straps, Cell Rails, Decaps">PDN Mesh</button>
+        <button id="filterPkgBtn" class="btn" title="Packaging: I/O Bond Pads, 3D Wirebonds, C4 Solder Bumps">Package</button>
+        <button id="filterSignalBtn" class="btn" style="color: #38bdf8;" title="Trace 3D Signal Path & RC Delay">⚡ RC Path</button>
       </div>
 
       <div class="btn-group">
@@ -528,19 +530,27 @@
       <span class="telemetry-val" id="teleDieArea">553.84 × 552.16 µm</span>
     </div>
     <div class="telemetry-item">
-      <span>Components:</span>
-      <span class="telemetry-val" id="teleCells">11,126 StdCells</span>
+      <span>StdCells:</span>
+      <span class="telemetry-val" id="teleCells">11,126 Cells</span>
     </div>
     <div class="telemetry-item">
-      <span>Hard Macros:</span>
-      <span class="telemetry-val" id="teleMacros">0 Macros</span>
+      <span>Macros & Halos:</span>
+      <span class="telemetry-val" id="teleMacros">2 Macros</span>
     </div>
     <div class="telemetry-item">
-      <span>Metal Layers:</span>
-      <span class="telemetry-val" id="teleLayers">5 Layers (li1 → met4)</span>
+      <span>Taps / Caps:</span>
+      <span class="telemetry-val" id="teleTaps">56 Caps · 184 Taps · 72 Decaps</span>
     </div>
     <div class="telemetry-item">
-      <span>Z-Stack Spread:</span>
+      <span>PDN Grid:</span>
+      <span class="telemetry-val" id="telePdn">Dual Rings + 14 Straps</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Package Bumps:</span>
+      <span class="telemetry-val" id="teleBumps">64 C4 Solder Bumps</span>
+    </div>
+    <div class="telemetry-item">
+      <span>Z-Spread:</span>
       <span class="telemetry-val" id="teleZSpread">2.2x Exploded</span>
     </div>
     <div class="telemetry-item">
@@ -666,18 +676,60 @@
         designRule: 'Deep N-well guard rings required around noise-sensitive analog blocks and PLL macros.'
       },
       {
+        id: 'welltaps',
+        name: 'Welltaps (Anti-Latch-up)',
+        color: '#06b6d4',
+        zLevel: 0.5,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.15 µm Active Diffusion',
+        material: 'P+/N+ Ohmic Substrate Contacts (sky130_fd_sc_hd__tapvpwrvgnd_1)',
+        sheetRes: 'Substrate R: < 100 Ω, Contact R: < 5 Ω/cut',
+        role: 'Ties substrate to VSS and N-well to VDD to prevent CMOS parasitic PNP/NPN SCR firing and latch-up.',
+        designRule: 'SkyWater Rule tap.1: Max distance between any transistor and nearest tap cell is <= 25 µm.'
+      },
+      {
+        id: 'endcaps',
+        name: 'Endcaps (Row Boundary)',
+        color: '#f59e0b',
+        zLevel: 0.55,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.15 µm Terminal Layer',
+        material: 'N-Well / P-Well Terminal Cap (sky130_fd_sc_hd__decap_3)',
+        sheetRes: 'Diffusion Termination (< 10 Ω)',
+        role: 'Terminates rows at left and right boundaries to enclose wells and prevent edge antenna DRC violations.',
+        designRule: 'Mandatory at left/right row ends. Prevents gate oxide micro-fracturing during Chemical-Mechanical Planarization (CMP).'
+      },
+      {
         id: 'stdcells',
-        name: 'Standard Cells (HD Rows)',
+        name: 'Standard Logic Cells',
         color: '#0ea5e9',
         zLevel: 0.6,
         enabled: true,
         is3d: true,
         domain: 'feol',
         thickness: '0.15 µm (Gate Oxide ~2.1 nm)',
-        material: 'Doped Poly-Si + Source/Drain Diffusion',
+        material: '150nm Doped Poly-Si Gates + Source/Drain Diffusion (INV, NAND, NOR, DFF)',
         sheetRes: 'Poly: ~5.5 Ω/sq (with Co/Ni salicide)',
-        role: 'CMOS logic gates (NAND, NOR, Inverters, D-Flip-Flops) placed in continuous horizontal cell tracks.',
-        designRule: 'Fixed row height (2.72 µm in sky130_fd_sc_hd), abutted power/ground rails, minimum channel length L=150nm.'
+        role: 'CMOS logic gates placed in continuous horizontal cell tracks sharing abutted power rails.',
+        designRule: 'Fixed row height (2.72 µm in sky130A HD library). Minimum channel length L=150nm.'
+      },
+      {
+        id: 'decaps',
+        name: 'Decoupling Capacitors (Decaps)',
+        color: '#d946ef',
+        zLevel: 0.65,
+        enabled: true,
+        is3d: true,
+        domain: 'feol',
+        thickness: '0.20 µm MOS Dielectric',
+        material: 'Thick-Oxide MOS Gate Capacitor (sky130_fd_sc_hd__decap_12)',
+        sheetRes: 'Capacitance: ~120 fF/cell, ESR: 12 Ω',
+        role: 'Provides localized charge reservoirs directly under VDD/VSS rails to clamp dynamic IR-drop during clock transitions.',
+        designRule: 'Placed in row filler sites adjacent to power straps. Suppresses high-frequency L·di/dt inductive supply bounce.'
       },
       {
         id: 'macros',
@@ -688,29 +740,29 @@
         is3d: true,
         domain: 'feol',
         thickness: 'Active + Multi-metal IP block',
-        material: 'SRAM Arrays / Register Files / PLLs',
+        material: 'High-Density SRAM Arrays / Register Files / PLLs',
         sheetRes: 'Internal multi-tier metallization',
-        role: 'High-density memory banks and specialized analog/mixed-signal blocks placed at the periphery.',
-        designRule: 'Placement halos (e.g. 10µm X/Y clearance) ensure routing space and prevent power grid short circuits.'
+        role: 'Dense memory banks and analog IPs placed at die boundaries with dedicated routing keepouts.',
+        designRule: 'Macro placement halos (10-15 µm clearance) prevent cell overlap and ensure space for dedicated power rings.'
       },
       {
-        id: 'pdn',
-        name: 'Power Grid (VDD/VSS Rails)',
+        id: 'pdn_rails',
+        name: 'M1 Cell Power Rails',
         color: '#e11d48',
         zLevel: 2.0,
         enabled: true,
         is3d: true,
-        domain: 'feol',
-        thickness: '0.36 µm',
+        domain: 'pdn',
+        thickness: '0.36 µm (360 nm)',
         material: 'Metal 1 Rails (Al / Cu liner)',
         sheetRes: '0.125 Ω/sq',
-        role: 'Standard cell horizontal power straps delivering VDD and VSS directly to transistor rails.',
-        designRule: 'Rail pitch exactly matches cell row pitch (2.72 µm) to achieve 100% continuous power delivery.'
+        role: 'Horizontal standard cell power rails delivering VDD and VSS directly into cell abutment contacts.',
+        designRule: 'Continuous horizontal rails spanning entire rows. Abutted with adjacent flipped rows.'
       },
       {
         id: 'li1',
         name: 'Local Interconnect (li1)',
-        color: '#06b6d4',
+        color: '#14b8a6',
         zLevel: 2.8,
         enabled: true,
         is3d: true,
@@ -764,9 +816,23 @@
         designRule: 'Preferred direction: Horizontal. Wider pitch and thicker cross-section reduces RC wire delay.'
       },
       {
+        id: 'vias',
+        name: 'Interconnect Vias (via1-4)',
+        color: '#fbbf24',
+        zLevel: 4.0,
+        enabled: true,
+        is3d: true,
+        domain: 'beol',
+        thickness: '0.24 - 0.42 µm height',
+        material: 'Tungsten (W) / Copper (Cu) Plugs',
+        sheetRes: 'Via resistance: ~4.5 - 9.0 Ω/cut',
+        role: 'Vertical conductive pillars bridging different metallization layers across dielectric oxide.',
+        designRule: 'Double/redundant vias enforced in signoff to eliminate random open-circuit manufacturing defects.'
+      },
+      {
         id: 'met4',
-        name: 'Metal 4 Clock & PDN (met4)',
-        color: '#f59e0b',
+        name: 'Metal 4 Routing & CTS (met4)',
+        color: '#f97316',
         zLevel: 6.0,
         enabled: true,
         is3d: true,
@@ -776,6 +842,34 @@
         sheetRes: '0.047 Ω/sq',
         role: 'Clock Tree Synthesis (CTS) trunk routing and vertical power straps. High speed, minimal clock skew.',
         designRule: 'Preferred direction: Vertical. Shielded clock nets (VDD/VSS flanking) to prevent capacitive crosstalk.'
+      },
+      {
+        id: 'pdn_rings',
+        name: 'Core & Macro Power Rings',
+        color: '#ec4899',
+        zLevel: 6.2,
+        enabled: true,
+        is3d: true,
+        domain: 'pdn',
+        thickness: 'Dual Met4/Met5 Straps',
+        material: 'Met4 (Vertical) & Met5 (Horizontal) Dual Ring',
+        sheetRes: '0.028 Ω/sq (Met5) / 0.047 Ω/sq (Met4)',
+        role: 'Concentric VDD and VSS rings surrounding core perimeter and macro halos for low-impedance current feeding.',
+        designRule: 'Ring width: 4.8 µm, spacing: 2.4 µm. Ensures uniform voltage distribution from I/O pads to internal straps.'
+      },
+      {
+        id: 'pdn_straps',
+        name: 'Power Straps (Met4/Met5 Mesh)',
+        color: '#f43f5e',
+        zLevel: 6.4,
+        enabled: true,
+        is3d: true,
+        domain: 'pdn',
+        thickness: 'Orthogonal Multi-Layer Mesh',
+        material: 'Met4 Vertical & Met5 Horizontal Copper Grid',
+        sheetRes: 'Current capacity: 1.5 mA/µm',
+        role: 'Interleaved VDD and VSS straps with stacked vias dropping current down to Metal 1 cell rails.',
+        designRule: 'Creates equipotential grid across the die. Reduces static and dynamic IR-drop to < 2% VDD.'
       },
       {
         id: 'met5',
@@ -792,46 +886,46 @@
         designRule: 'Massive current carrying capability. Minimizes static/dynamic IR drop and electromigration (EM).'
       },
       {
-        id: 'vias',
-        name: 'Interconnect Vias (via1-4)',
-        color: '#fbbf24',
-        zLevel: 4.0,
-        enabled: true,
-        is3d: true,
-        domain: 'beol',
-        thickness: '0.24 - 0.42 µm height',
-        material: 'Tungsten (W) / Copper (Cu) Plugs',
-        sheetRes: 'Via resistance: ~4.5 - 9.0 Ω/cut',
-        role: 'Vertical conductive pillars bridging different metallization layers across dielectric oxide.',
-        designRule: 'Double/redundant vias enforced in signoff to eliminate random open-circuit manufacturing defects.'
-      },
-      {
-        id: 'pins',
-        name: 'IO Pads & Terminals',
+        id: 'pads',
+        name: 'Peripheral I/O Bond Pads',
         color: '#38bdf8',
         zLevel: 7.2,
         enabled: true,
         is3d: true,
-        domain: 'beol',
+        domain: 'package',
         thickness: 'Passivation Window Over met5',
-        material: 'Top Metal + Gold/Copper Wire Bond',
-        sheetRes: 'Negligible (< 0.01 Ω)',
-        role: 'Peripheral chip interfaces for external packaging (QFN, BGA, wire bonding, or flip-chip solder bumps).',
-        designRule: 'ESD (Electrostatic Discharge) diodes and clamping circuits mandatory at every input/output pad.'
+        material: 'Top Metal + Under-Pad ESD Clamping Diodes (sky130_fd_io)',
+        sheetRes: 'Pad R: < 0.02 Ω, 2 kV HBM ESD Protection',
+        role: 'Peripheral chip interfaces for external packaging (wire bonding, leadframe, or testing probes).',
+        designRule: 'Minimum bond pitch: 75 µm. ESD protection diodes and clamp circuits mandatory at every I/O pad.'
       },
       {
-        id: 'flightlines',
-        name: 'Flightline Topology',
-        color: '#e0e7ff',
-        zLevel: 4.5,
-        enabled: false,
-        is3d: false,
-        domain: 'beol',
-        thickness: 'N/A',
-        material: 'Logical Connectivity (Unrouted Nets)',
-        sheetRes: 'N/A',
-        role: 'Visualizes high-fanout global flightline vectors between placed cells to assess wire congestion before detailed routing.',
-        designRule: 'HPWL (Half-Perimeter Wire Length) metric minimization.'
+        id: 'wirebonds',
+        name: '3D Wirebonds & Wireload',
+        color: '#eab308',
+        zLevel: 8.2,
+        enabled: true,
+        is3d: true,
+        domain: 'package',
+        thickness: '25 µm Diameter Wire',
+        material: '99.99% Pure Gold (Au) Parabolic Wire Loops',
+        sheetRes: 'Wire R: ~0.18 Ω, Loop Inductance L ≈ 1.2 nH',
+        role: 'Connects peripheral die bond pads to package leadframe fingers. Visualizes wireload delay modeling.',
+        designRule: 'Wireload delay equation: tau = Rwire * Cwire = rho*(L/A)*(Carea + 2*Cfringe). High inductance limits high-speed switching.'
+      },
+      {
+        id: 'bumps',
+        name: 'C4 Flip-Chip Power Bumps',
+        color: '#94a3b8',
+        zLevel: 8.8,
+        enabled: true,
+        is3d: true,
+        domain: 'package',
+        thickness: '80 µm Solder Ball Height',
+        material: 'Lead-Free Solder (Sn-Ag-Cu / SAC305) on Ti/Ni/Au UBM Pad',
+        sheetRes: 'Parasitic Inductance: L < 0.05 nH (30x lower than wirebonds!)',
+        role: 'Area-array solder micro-bumps for modern flip-chip BGA packaging delivering power directly to core.',
+        designRule: 'Bump pitch: 130-150 µm. Eliminates peripheral bond pad bottleneck, virtually eradicating ground bounce.'
       }
     ];
 
@@ -839,71 +933,71 @@
     const FAB_STEPS = [
       {
         step: 1,
-        title: "Bulk Silicon Substrate & Wells (FEOL)",
+        title: "Bulk Silicon Substrate & Well Implantation (FEOL)",
         domain: "FEOL",
         layers: ['substrate'],
-        desc: "P-type monocrystalline silicon wafer (500-775 µm thick). Shallow trench isolation (STI) etched with thermal oxide liner to isolate standard cells. Ion-implanted N-Wells and P-Wells form the active silicon foundation.",
-        physics: "Substrate bulk resistivity: 10-20 Ω·cm. Active diffusion areas defined via photolithography."
+        desc: "P-type monocrystalline silicon bulk wafer (500-775 µm). Shallow Trench Isolation (STI) etched with thermal oxide liner. High-energy ion implantation forms active N-Wells and P-Wells.",
+        physics: "Substrate bulk resistivity: 10-20 Ω·cm. Active diffusion areas patterned via 193nm DUV photolithography."
       },
       {
         step: 2,
-        title: "Transistor Active Gates & Standard Cells (FEOL)",
+        title: "Welltaps & Endcap Boundary Cells (FEOL DRC & Latch-up)",
         domain: "FEOL",
-        layers: ['substrate', 'stdcells'],
-        desc: "Poly-silicon gate deposition over 2.1 nm SiO2 gate oxide. Self-aligned source/drain ion implants create millions of NMOS and PMOS transistors grouped into logic gates (NAND, NOR, Inverters).",
-        physics: "Channel length L=150nm. Standard cells are arranged in abutted horizontal rows sharing VDD and VSS."
+        layers: ['substrate', 'welltaps', 'endcaps'],
+        desc: "Welltaps inserted every 25 µm along row sites to ground the substrate and tie N-wells to VDD. Endcaps terminate cell rows to enclose wells and prevent edge CMP damage.",
+        physics: "Prevents CMOS SCR parasitic transistor turn-on (Rsub < 100 Ω). Enforces SkyWater DRC rule tap.1."
       },
       {
         step: 3,
-        title: "Hard Macros & Placement Halos (Floorplanning)",
+        title: "Transistor Active Gates, StdCells & Decaps (FEOL)",
         domain: "FEOL",
-        layers: ['substrate', 'stdcells', 'macros'],
-        desc: "Pre-designed IP blocks (SRAM memory, register files, PLLs) positioned at die corners with dedicated routing halos to prevent congestion and supply noise.",
-        physics: "Macro halos provide 10 µm clearance for power rings and prevent standard cells from blocking memory I/O access."
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps'],
+        desc: "Poly-silicon gate deposition (L=150nm) over 2.1 nm gate oxide. Self-aligned source/drain implants create CMOS logic gates (INV, NAND, NOR, DFF). Decap capacitors act as local charge reservoirs.",
+        physics: "Fixed row height: 2.72 µm. Decap MOS capacitors (Cox ~ 8.4 fF/µm²) suppress dynamic L·di/dt voltage droop."
       },
       {
         step: 4,
-        title: "Local Interconnect li1 (Middle-of-Line / MOL)",
-        domain: "MOL",
-        layers: ['substrate', 'stdcells', 'macros', 'li1'],
-        desc: "Damascene Titanium Nitride (TiN) local interconnect. Forms dense intra-cell connections between poly gates and diffusion without consuming Metal 1 tracks.",
-        physics: "Sheet resistance: 12.8 Ω/sq. Restricted to short runs (<15 µm) to avoid high RC delay."
+        title: "Hard IP Macros, Halos & Dedicated Macro Rings (Floorplanning)",
+        domain: "FEOL",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros'],
+        desc: "Pre-designed IP blocks (SRAM memory, register files, PLLs) placed at die periphery with 10-15 µm routing halos and dedicated perimeter power rings.",
+        physics: "Macro halos prevent standard cell overlap and provide isolated routing corridors for memory address/data buses."
       },
       {
         step: 5,
-        title: "Metal 1 Intracell Routing & Rails (BEOL)",
-        domain: "BEOL",
-        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1'],
-        desc: "First copper metallization layer. Connects standard cell pins (A, B, Y) and forms horizontal VDD/VSS cell supply rails.",
-        physics: "Thickness: 360 nm. Preferred routing direction: Horizontal. Primary interface between transistors and interconnect stack."
+        title: "Local Interconnect li1 & Metal 1 Cell Supply Rails (MOL / BEOL)",
+        domain: "MOL",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1'],
+        desc: "Titanium Nitride (TiN) local interconnect forms dense intra-cell connections without consuming Metal 1 tracks. Metal 1 creates continuous horizontal VDD and VSS rails.",
+        physics: "li1 sheet resistance: 12.8 Ω/sq (restricted to short jogs <15 µm). Metal 1 thickness: 360 nm (0.125 Ω/sq)."
       },
       {
         step: 6,
-        title: "Metal 2 & 3 Signal Routing Highways (BEOL)",
+        title: "Multi-Tier Manhattan Routing Highways & Vias (met1–met4)",
         domain: "BEOL",
-        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'vias'],
-        desc: "Orthogonal Manhattan routing grid (met2 vertical, met3 horizontal). Tungsten/copper vias connect crossing wires across dielectric layers.",
-        physics: "Met3 is 840 nm thick (0.047 Ω/sq), allowing long-distance signals to travel with 60% lower wire resistance."
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'vias'],
+        desc: "Orthogonal Manhattan routing grid (met2 vertical, met3 horizontal 840nm thick, met4 CTS clock tree). Tungsten/copper vias connect wires across dielectric oxide.",
+        physics: "Interconnect delay governed by Elmore model: tau = Rwire * Cwire + sum(Rvia * Cload). Redundant double vias enforced in signoff."
       },
       {
         step: 7,
-        title: "Metal 4 Clock Distribution Tree & Trunk PDN (BEOL)",
-        domain: "BEOL",
-        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'met4', 'vias'],
-        desc: "Dedicated high-speed layer for CTS (Clock Tree Synthesis). Symmetrical H-tree buffers distribute the master clock with sub-50ps skew.",
-        physics: "Vertical routing direction. Clock trunks are flanked by grounded VSS shield lines to eliminate capacitive crosstalk."
+        title: "Global Power Distribution Network: Core Rings & Straps (PDN Mesh)",
+        domain: "PDN",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps'],
+        desc: "Low-impedance concentric dual-rail power rings (VDD/VSS) surround core and macros. Thick vertical (met4) and horizontal (met5) straps form an equipotential mesh.",
+        physics: "Ultra-thick 1.26 µm met5 (0.028 Ω/sq) minimizes static IR-drop (<2% VDD) and satisfies electromigration current limits."
       },
       {
         step: 8,
-        title: "Global Top Metal met5 Grid & I/O Pads (BEOL Signoff)",
-        domain: "BEOL",
-        layers: ['substrate', 'stdcells', 'macros', 'li1', 'pdn', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pins'],
-        desc: "Ultra-thick 1.26 µm top metal grid delivering power (VDD/VSS mesh) across the whole chip. Peripheral bond pads connect to external IC package.",
-        physics: "Lowest sheet resistance (0.028 Ω/sq). Prevents IR drop voltage droop and prevents electromigration under peak switching currents."
+        title: "I/O Bond Pads, Wirebonds, Wireload & C4 Solder Bumps (Packaging)",
+        domain: "Package",
+        layers: ['substrate', 'welltaps', 'endcaps', 'stdcells', 'decaps', 'macros', 'li1', 'pdn_rails', 'met1', 'met2', 'met3', 'met4', 'met5', 'vias', 'pdn_rings', 'pdn_straps', 'pads', 'wirebonds', 'bumps'],
+        desc: "Peripheral I/O bond pads with ESD diodes and 3D parabolic gold wirebonds. Area-array C4 flip-chip solder micro-bumps feed power directly into core mesh.",
+        physics: "C4 flip-chip bumps slash loop inductance from 1.2 nH (wirebonds) to <0.05 nH, virtually eliminating ground bounce during simultaneous switching."
       }
     ];
 
-    // ── Dataset Presets & Generators ─────────────────────────────
+    // ── Dataset Presets & Physical Design Generator ───────────────
     function generateDesignRoutes(w, h, count, metalLayers = 5) {
       const routes = [];
       for (let i = 0; i < count; i++) {
@@ -917,6 +1011,220 @@
         routes.push({ layer: `met${layer}`, x1, y1, x2, y2 });
       }
       return routes;
+    }
+
+    function generatePhysicalDesign(name, w, h, userMacros = [], cellsCount = 11126) {
+      const cm = Math.round(w * 0.05); // core margin
+      const rowCount = Math.max(16, Math.min(32, Math.round(h / 20)));
+      const rowH = (h - 2 * cm) / rowCount;
+      const strapCount = Math.max(4, Math.min(10, Math.round(w / 60)));
+      const strapStep = (w - 2 * cm) / strapCount;
+
+      // 1. Macros
+      let macros = userMacros;
+      if (!macros || macros.length === 0) {
+        if (w > 300) {
+          macros = [
+            { name: 'sram_icache_2kb', type: 'sky130_sram_2kbyte_1rw1r_32x512_8', x: cm + 20, y: cm + 20, w: Math.min(150, w * 0.28), h: Math.min(120, h * 0.24), halo: 12 },
+            { name: 'rf_32x32_regfile', type: 'sky130_regfile_32x32_2r1w', x: w - cm - Math.min(140, w * 0.25) - 20, y: cm + 20, w: Math.min(140, w * 0.25), h: Math.min(100, h * 0.2), halo: 10 }
+          ];
+        } else {
+          macros = [
+            { name: 'boot_rom_512b', type: 'sky130_rom_512b', x: cm + 12, y: cm + 12, w: Math.min(60, w * 0.35), h: Math.min(50, h * 0.3), halo: 8 }
+          ];
+        }
+      }
+
+      // 2. Endcaps (left & right of each row)
+      const endcaps = [];
+      for (let r = 0; r < rowCount; r++) {
+        const y = cm + r * rowH;
+        endcaps.push({ id: `endcap_L_${r}`, x: cm, y, w: 3.5, h: rowH * 0.85, side: 'left', row: r });
+        endcaps.push({ id: `endcap_R_${r}`, x: w - cm - 3.5, y, w: 3.5, h: rowH * 0.85, side: 'right', row: r });
+      }
+
+      // 3. Welltaps (spaced every ~25 um along rows)
+      const welltaps = [];
+      const tapPitch = 26.0;
+      for (let r = 0; r < rowCount; r++) {
+        const y = cm + r * rowH;
+        const rowWidth = (w - 2 * cm - 8);
+        const tapsInRow = Math.floor(rowWidth / tapPitch);
+        for (let t = 1; t <= tapsInRow; t++) {
+          const tx = cm + 4 + t * tapPitch;
+          const inMacro = macros.some(m => tx >= (m.x - m.halo) && tx <= (m.x + m.w + m.halo) && y >= (m.y - m.halo) && y <= (m.y + m.h + m.halo));
+          if (!inMacro) {
+            welltaps.push({ id: `tap_${r}_${t}`, x: tx, y: y + rowH * 0.15, w: 2.6, h: rowH * 0.7, row: r });
+          }
+        }
+      }
+
+      // 4. Decaps (near power straps along rows)
+      const decaps = [];
+      for (let r = 0; r < rowCount; r++) {
+        const y = cm + r * rowH;
+        for (let s = 1; s < strapCount; s++) {
+          const sx = cm + s * strapStep;
+          const dx = sx + 4.5;
+          const inMacro = macros.some(m => dx >= (m.x - m.halo) && dx <= (m.x + m.w + m.halo) && y >= (m.y - m.halo) && y <= (m.y + m.h + m.halo));
+          if (!inMacro && dx < (w - cm - 10)) {
+            decaps.push({ id: `decap_${r}_${s}`, x: dx, y: y + rowH * 0.12, w: 4.8, h: rowH * 0.76, row: r, capFf: 120 });
+          }
+        }
+      }
+
+      // 5. Standard Cells (clusters along rows)
+      const stdcells = [];
+      const cellTypes = ['INV_X2', 'NAND2_X1', 'NOR2_X1', 'DFCNQ_X2', 'AOI22_X1', 'MUX2_X1', 'BUF_X4'];
+      const cellColors = ['#0ea5e9', '#3b82f6', '#6366f1', '#10b981', '#8b5cf6', '#06b6d4', '#38bdf8'];
+      for (let r = 0; r < rowCount; r++) {
+        const y = cm + r * rowH;
+        let cx = cm + 12;
+        while (cx < (w - cm - 15)) {
+          const cIdx = Math.floor(Math.random() * cellTypes.length);
+          const cw = 4.0 + (cIdx % 3) * 2.8;
+          const inMacro = macros.some(m => cx >= (m.x - m.halo) && (cx + cw) <= (m.x + m.w + m.halo) && y >= (m.y - m.halo) && y <= (m.y + m.h + m.halo));
+          if (!inMacro) {
+            stdcells.push({
+              id: `cell_${r}_${Math.round(cx)}`,
+              type: cellTypes[cIdx],
+              color: cellColors[cIdx],
+              x: cx, y: y + rowH * 0.1, w: cw, h: rowH * 0.8,
+              row: r
+            });
+          }
+          cx += cw + 1.2 + (Math.random() * 6);
+        }
+      }
+
+      // 6. Power Rings (Core & Macros)
+      const rings = [];
+      rings.push({ type: 'core_vdd', x: cm - 8, y: cm - 8, w: w - 2 * cm + 16, h: h - 2 * cm + 16, width: 4.2, color: '#ef4444', label: 'VDD Ring (1.8V)' });
+      rings.push({ type: 'core_vss', x: cm - 2, y: cm - 2, w: w - 2 * cm + 4, h: h - 2 * cm + 4, width: 4.2, color: '#0284c7', label: 'VSS Ring (0V)' });
+
+      macros.forEach(m => {
+        rings.push({
+          type: 'macro_vdd',
+          x: m.x - m.halo + 2,
+          y: m.y - m.halo + 2,
+          w: m.w + 2 * m.halo - 4,
+          h: m.h + 2 * m.halo - 4,
+          width: 2.6,
+          color: '#f43f5e',
+          label: `VDD Ring (${m.name})`
+        });
+      });
+
+      // 7. Power Straps (Vertical met4 & Horizontal met5)
+      const straps = [];
+      for (let s = 1; s < strapCount; s++) {
+        const sx = cm + s * strapStep;
+        const isVdd = (s % 2 === 1);
+        straps.push({
+          type: isVdd ? 'strap_vdd_vert' : 'strap_vss_vert',
+          x1: sx, y1: cm - 8, x2: sx, y2: h - cm + 8,
+          layer: 'met4',
+          width: 3.2,
+          color: isVdd ? '#ef4444' : '#0284c7',
+          net: isVdd ? 'VDD' : 'VSS'
+        });
+      }
+      const hStrapCount = Math.max(3, Math.min(8, Math.round(h / 70)));
+      const hStrapStep = (h - 2 * cm) / hStrapCount;
+      for (let s = 1; s < hStrapCount; s++) {
+        const sy = cm + s * hStrapStep;
+        const isVdd = (s % 2 === 1);
+        straps.push({
+          type: isVdd ? 'strap_vdd_horiz' : 'strap_vss_horiz',
+          x1: cm - 8, y1: sy, x2: w - cm + 8, y2: sy,
+          layer: 'met5',
+          width: 4.4,
+          color: isVdd ? '#f43f5e' : '#0ea5e9',
+          net: isVdd ? 'VDD' : 'VSS'
+        });
+      }
+
+      // 8. I/O Bond Pads (Perimeter)
+      const pads = [];
+      const padSize = Math.max(22, Math.min(44, Math.round(w * 0.07)));
+      const padStep = padSize * 1.5;
+      const horizPads = Math.floor((w - 2 * padSize) / padStep);
+      for (let p = 0; p <= horizPads; p++) {
+        const px = padSize + p * padStep;
+        pads.push({ id: `pad_top_${p}`, x: px, y: 4, w: padSize, h: padSize * 0.8, side: 'top' });
+        pads.push({ id: `pad_bot_${p}`, x: px, y: h - 4 - padSize * 0.8, w: padSize, h: padSize * 0.8, side: 'bottom' });
+      }
+      const vertPads = Math.floor((h - 2 * padSize) / padStep);
+      for (let p = 1; p < vertPads; p++) {
+        const py = padSize + p * padStep;
+        pads.push({ id: `pad_left_${p}`, x: 4, y: py, w: padSize * 0.8, h: padSize, side: 'left' });
+        pads.push({ id: `pad_right_${p}`, x: w - 4 - padSize * 0.8, y: py, w: padSize * 0.8, h: padSize, side: 'right' });
+      }
+
+      // 9. 3D Wirebonds
+      const wirebonds = pads.map(pad => {
+        let leadX = pad.x + pad.w / 2;
+        let leadY = pad.y + pad.h / 2;
+        const overhang = Math.max(30, Math.round(w * 0.12));
+        if (pad.side === 'top') leadY = -overhang;
+        else if (pad.side === 'bottom') leadY = h + overhang;
+        else if (pad.side === 'left') leadX = -overhang;
+        else if (pad.side === 'right') leadX = w + overhang;
+        return {
+          padId: pad.id,
+          startX: pad.x + pad.w / 2, startY: pad.y + pad.h / 2,
+          leadX, leadY,
+          peakZ: 10.0,
+          material: 'Gold (Au 25µm)',
+          inductanceNh: 1.2
+        };
+      });
+
+      // 10. C4 Flip-Chip Solder Bumps (Area Array Grid)
+      const bumps = [];
+      const bumpCols = Math.max(4, Math.min(10, Math.round(w / 70)));
+      const bumpRows = Math.max(4, Math.min(10, Math.round(h / 70)));
+      const bumpStepX = (w - 2 * cm - 40) / (bumpCols - 1);
+      const bumpStepY = (h - 2 * cm - 40) / (bumpRows - 1);
+      for (let r = 0; r < bumpRows; r++) {
+        for (let c = 0; c < bumpCols; c++) {
+          const bx = cm + 20 + c * bumpStepX;
+          const by = cm + 20 + r * bumpStepY;
+          const isPower = ((r + c) % 2 === 0);
+          bumps.push({
+            id: `bump_${r}_${c}`,
+            x: bx, y: by,
+            radius: Math.max(5, Math.min(11, Math.round(w * 0.016))),
+            type: isPower ? 'VDD' : 'VSS',
+            color: isPower ? '#ef4444' : '#0284c7',
+            inductanceNh: 0.045
+          });
+        }
+      }
+
+      return {
+        name,
+        width: w,
+        height: h,
+        coreMargin: cm,
+        cellsCount,
+        cellArea: Math.round(w * h * 0.44),
+        rowCount,
+        rowH,
+        macros,
+        endcaps,
+        welltaps,
+        decaps,
+        stdcells,
+        rings,
+        straps,
+        pads,
+        wirebonds,
+        bumps,
+        metalLayers: 5,
+        viasCount: Math.round(cellsCount * 9.2),
+        routes: generateDesignRoutes(w, h, Math.min(650, Math.max(200, Math.round(cellsCount * 0.05))), 5)
+      };
     }
 
     function generate100Macros(w, h) {
@@ -946,98 +1254,30 @@
       const c = cellsCount || 5000;
       const w = widthUm || Math.round(Math.sqrt(c * 27.5));
       const h = heightUm || w;
-      return {
-        name: `Active: ${name}`,
-        width: w,
-        height: h,
-        coreMargin: Math.round(w * 0.04),
-        cellsCount: c,
-        cellArea: Math.round(w * h * 0.44),
-        macros: macros,
-        metalLayers: 5,
-        viasCount: Math.round(c * 9.1),
-        routes: generateDesignRoutes(w, h, Math.min(650, Math.max(160, Math.round(c * 0.06))), 5)
-      };
+      return generatePhysicalDesign(`Active: ${name}`, w, h, macros, c);
     }
 
     const DATASETS = {
-      ibex: {
-        name: "lowRISC Ibex RV32IMC",
-        width: 553.84,
-        height: 552.16,
-        coreMargin: 20,
-        cellsCount: 11126,
-        cellArea: 127585,
-        macros: [],
-        metalLayers: 5,
-        viasCount: 101580,
-        routes: generateDesignRoutes(553.84, 552.16, 450, 5)
-      },
-      picorv32: {
-        name: "PicoRV32 RISC-V CPU",
-        width: 380.0,
-        height: 380.0,
-        coreMargin: 15,
-        cellsCount: 2840,
-        cellArea: 42600,
-        macros: [],
-        metalLayers: 5,
-        viasCount: 28400,
-        routes: generateDesignRoutes(380.0, 380.0, 320, 5)
-      },
-      aes: {
-        name: "AES-128 Cryptographic Engine",
-        width: 720.0,
-        height: 720.0,
-        coreMargin: 25,
-        cellsCount: 18500,
-        cellArea: 245000,
-        macros: [
-          { name: "sbox_lut_0", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 45, y: 45, w: 140, h: 110, halo: 15 },
-          { name: "sbox_lut_1", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 535, y: 45, w: 140, h: 110, halo: 15 },
-          { name: "sbox_lut_2", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 45, y: 565, w: 140, h: 110, halo: 15 },
-          { name: "sbox_lut_3", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 535, y: 565, w: 140, h: 110, halo: 15 }
-        ],
-        metalLayers: 5,
-        viasCount: 165000,
-        routes: generateDesignRoutes(720.0, 720.0, 600, 5)
-      },
-      soc100: {
-        name: "100-Macro Multi-Core SoC",
-        width: 2600.0,
-        height: 2600.0,
-        coreMargin: 40,
-        cellsCount: 65000,
-        cellArea: 1150000,
-        macros: generate100Macros(2600.0, 2600.0),
-        metalLayers: 5,
-        viasCount: 380000,
-        routes: generateDesignRoutes(2600.0, 2600.0, 750, 5)
-      },
-      spm: {
-        name: "Serial Parallel Multiplier",
-        width: 165.0,
-        height: 165.0,
-        coreMargin: 10,
-        cellsCount: 780,
-        cellArea: 9800,
-        macros: [],
-        metalLayers: 4,
-        viasCount: 8200,
-        routes: generateDesignRoutes(165.0, 165.0, 180, 4)
-      },
-      gcd: {
-        name: "GCD Coprocessor",
-        width: 125.0,
-        height: 125.0,
-        coreMargin: 8,
-        cellsCount: 420,
-        cellArea: 5400,
-        macros: [],
-        metalLayers: 4,
-        viasCount: 4500,
-        routes: generateDesignRoutes(125.0, 125.0, 140, 4)
-      }
+      ibex: generatePhysicalDesign("lowRISC Ibex RV32IMC", 553.84, 552.16, [
+        { name: "sram_icache_2kb", type: "sky130_sram_2kbyte_1rw1r_32x512_8", x: 45, y: 45, w: 140, h: 110, halo: 12 },
+        { name: "rf_32x32_regfile", type: "sky130_regfile_32x32_2r1w", x: 370, y: 45, w: 135, h: 95, halo: 10 }
+      ], 11126),
+      picorv32: generatePhysicalDesign("PicoRV32 RISC-V CPU", 380.0, 380.0, [
+        { name: "boot_rom_512b", type: "sky130_rom_512b", x: 30, y: 30, w: 85, h: 70, halo: 8 }
+      ], 2840),
+      aes: generatePhysicalDesign("AES-128 Cryptographic Engine", 720.0, 720.0, [
+        { name: "sbox_lut_0", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 45, y: 45, w: 140, h: 110, halo: 15 },
+        { name: "sbox_lut_1", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 535, y: 45, w: 140, h: 110, halo: 15 },
+        { name: "sbox_lut_2", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 45, y: 565, w: 140, h: 110, halo: 15 },
+        { name: "sbox_lut_3", type: "sky130_sram_1kbyte_1rw1r_32x256_8", x: 535, y: 565, w: 140, h: 110, halo: 15 }
+      ], 18500),
+      soc100: generatePhysicalDesign("100-Macro Multi-Core SoC", 2600.0, 2600.0, generate100Macros(2600.0, 2600.0), 65000),
+      spm: generatePhysicalDesign("Serial Parallel Multiplier", 165.0, 165.0, [
+        { name: "mult_lut_128b", type: "sky130_sram_128b", x: 18, y: 18, w: 45, h: 35, halo: 6 }
+      ], 780),
+      gcd: generatePhysicalDesign("GCD Coprocessor", 125.0, 125.0, [
+        { name: "gcd_stack_ram", type: "sky130_sram_64b", x: 15, y: 15, w: 35, h: 30, halo: 5 }
+      ], 420)
     };
 
     // ── Application State ──────────────────────────────────────────
@@ -1138,17 +1378,49 @@
         });
       }
 
-      // 2. Standard Cell Rows Layer
+      // 2. Standard Cell Rows (FEOL Tracks & Active Cells)
       if (isLayerActive('stdcells')) {
         primitives.push({
-          type: 'stdcells',
-          depth: is3DMode ? 0.05 : 1,
+          type: 'stdcells_rows',
+          depth: is3DMode ? 0.04 : 1,
           draw: () => drawStandardCellRows(w, h)
+        });
+        primitives.push({
+          type: 'stdcells',
+          depth: is3DMode ? 0.08 : 1.2,
+          draw: () => drawStandardCellBlocks(w, h)
         });
       }
 
-      // 3. Hard Macros & Halos
-      if (isLayerActive('macros') && currentDesign.macros.length > 0) {
+      // 3. Welltaps (Anti-Latch-up Ohmic Taps)
+      if (isLayerActive('welltaps')) {
+        primitives.push({
+          type: 'welltaps',
+          depth: is3DMode ? 0.06 : 1.1,
+          draw: () => drawWelltaps(w, h)
+        });
+      }
+
+      // 4. Endcaps (Row Boundary Terminal Cells)
+      if (isLayerActive('endcaps')) {
+        primitives.push({
+          type: 'endcaps',
+          depth: is3DMode ? 0.07 : 1.15,
+          draw: () => drawEndcaps(w, h)
+        });
+      }
+
+      // 5. Decoupling Capacitors (Decaps)
+      if (isLayerActive('decaps')) {
+        primitives.push({
+          type: 'decaps',
+          depth: is3DMode ? 0.09 : 1.25,
+          draw: () => drawDecaps(w, h)
+        });
+      }
+
+      // 6. Hard Macros & Halos
+      if (isLayerActive('macros') && currentDesign.macros && currentDesign.macros.length > 0) {
         primitives.push({
           type: 'macros',
           depth: is3DMode ? 0.15 : 2,
@@ -1156,41 +1428,77 @@
         });
       }
 
-      // 4. Power Grid / PDN Straps
-      if (isLayerActive('pdn')) {
+      // 7. Metal 1 Standard Cell Power Rails
+      if (isLayerActive('pdn_rails')) {
         primitives.push({
-          type: 'pdn',
-          depth: is3DMode ? 0.25 : 3,
-          draw: () => drawPDN(w, h)
+          type: 'pdn_rails',
+          depth: is3DMode ? 0.22 : 2.5,
+          draw: () => drawPDNRails(w, h)
         });
       }
 
-      // 5. Metal Layers (li1, met1..met5)
+      // 8. Metal Routing Layers (li1, met1..met5)
       ['li1', 'met1', 'met2', 'met3', 'met4', 'met5'].forEach((layerId, idx) => {
         if (isLayerActive(layerId)) {
           const lCfg = LAYER_CONFIG.find(l => l.id === layerId);
           primitives.push({
             type: layerId,
-            depth: is3DMode ? (idx * 0.1 + 0.3) : (4 + idx),
+            depth: is3DMode ? (idx * 0.07 + 0.3) : (3 + idx),
             draw: () => drawMetalLayer(layerId, lCfg.color, lCfg.zLevel, w, h)
           });
         }
       });
 
-      // 6. IO Pins & Perimeter
-      if (isLayerActive('pins')) {
+      // 9. Core & Macro Power Rings
+      if (isLayerActive('pdn_rings')) {
         primitives.push({
-          type: 'pins',
-          depth: is3DMode ? 0.8 : 10,
-          draw: () => drawIOPins(w, h)
+          type: 'pdn_rings',
+          depth: is3DMode ? 0.72 : 7.2,
+          draw: () => drawPDNRings(w, h)
         });
       }
 
-      // 7. Educational 3D Signal RC Path Animation
+      // 10. PDN Power Straps (Met4 Vertical & Met5 Horizontal Mesh)
+      if (isLayerActive('pdn_straps')) {
+        primitives.push({
+          type: 'pdn_straps',
+          depth: is3DMode ? 0.74 : 7.4,
+          draw: () => drawPDNStraps(w, h)
+        });
+      }
+
+      // 11. Peripheral I/O Bond Pads
+      if (isLayerActive('pads')) {
+        primitives.push({
+          type: 'pads',
+          depth: is3DMode ? 0.82 : 8.5,
+          draw: () => drawIOPads(w, h)
+        });
+      }
+
+      // 12. 3D Wirebond Loops & Wireload Modeling
+      if (isLayerActive('wirebonds')) {
+        primitives.push({
+          type: 'wirebonds',
+          depth: is3DMode ? 0.90 : 9.5,
+          draw: () => drawWirebonds(w, h)
+        });
+      }
+
+      // 13. C4 Flip-Chip Power Micro-Bumps
+      if (isLayerActive('bumps')) {
+        primitives.push({
+          type: 'bumps',
+          depth: is3DMode ? 0.95 : 10.5,
+          draw: () => drawPowerBumps(w, h)
+        });
+      }
+
+      // 14. Educational 3D Signal RC Path Animation
       if (signalPathActive) {
         primitives.push({
           type: 'signal_path',
-          depth: is3DMode ? 0.95 : 12,
+          depth: is3DMode ? 0.99 : 12,
           draw: () => drawSignalPath(w, h, now)
         });
       }
@@ -1360,15 +1668,15 @@
 
     function drawStandardCellRows(w, h) {
       const dw = currentDesign.width;
-      const dh = currentDesign.height;
       const cm = currentDesign.coreMargin;
-      const rowCount = 28;
-      const rowH = (dh - 2 * cm) / rowCount;
+      const rowCount = currentDesign.rowCount || 28;
+      const rowH = currentDesign.rowH || 18;
       const z = 0.5;
 
-      ctx.strokeStyle = 'rgba(14, 165, 233, 0.18)';
+      ctx.save();
+      ctx.strokeStyle = 'rgba(14, 165, 233, 0.16)';
       ctx.lineWidth = 1;
-      for (let i = 0; i < rowCount; i++) {
+      for (let i = 0; i <= rowCount; i++) {
         const y = cm + i * rowH;
         const pA = project3D(cm, y, z, w, h);
         const pB = project3D(dw - cm, y, z, w, h);
@@ -1376,18 +1684,142 @@
         ctx.moveTo(pA.x, pA.y); ctx.lineTo(pB.x, pB.y);
         ctx.stroke();
       }
+      ctx.restore();
+    }
+
+    function drawStandardCellBlocks(w, h) {
+      if (!currentDesign.stdcells) return;
+      const z = 0.6;
+      ctx.save();
+      currentDesign.stdcells.forEach(c => {
+        const p0 = project3D(c.x, c.y, z, w, h);
+        const p1 = project3D(c.x + c.w, c.y, z, w, h);
+        const p2 = project3D(c.x + c.w, c.y + c.h, z, w, h);
+        const p3 = project3D(c.x, c.y + c.h, z, w, h);
+
+        ctx.fillStyle = c.color;
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 0.6;
+        ctx.stroke();
+
+        if (camera.zoom > 0.8) {
+          const pinX = (p0.x + p1.x) / 2;
+          const pinY = (p0.y + p2.y) / 2;
+          ctx.fillStyle = '#f8fafc';
+          ctx.beginPath();
+          ctx.arc(pinX, pinY, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+      ctx.restore();
+    }
+
+    function drawEndcaps(w, h) {
+      if (!currentDesign.endcaps) return;
+      const z = 0.55;
+      ctx.save();
+      currentDesign.endcaps.forEach(cap => {
+        const p0 = project3D(cap.x, cap.y, z, w, h);
+        const p1 = project3D(cap.x + cap.w, cap.y, z, w, h);
+        const p2 = project3D(cap.x + cap.w, cap.y + cap.h, z, w, h);
+        const p3 = project3D(cap.x, cap.y + cap.h, z, w, h);
+
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawWelltaps(w, h) {
+      if (!currentDesign.welltaps) return;
+      const z = 0.5;
+      ctx.save();
+      currentDesign.welltaps.forEach(tap => {
+        const p0 = project3D(tap.x, tap.y, z, w, h);
+        const p1 = project3D(tap.x + tap.w, tap.y, z, w, h);
+        const p2 = project3D(tap.x + tap.w, tap.y + tap.h, z, w, h);
+        const p3 = project3D(tap.x, tap.y + tap.h, z, w, h);
+
+        ctx.fillStyle = '#06b6d4';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        const cx = (p0.x + p2.x) / 2;
+        const cy = (p0.y + p2.y) / 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 2, cy); ctx.lineTo(cx + 2, cy);
+        ctx.moveTo(cx, cy - 2); ctx.lineTo(cx, cy + 2);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawDecaps(w, h) {
+      if (!currentDesign.decaps) return;
+      const z = 0.65;
+      ctx.save();
+      currentDesign.decaps.forEach(dec => {
+        const p0 = project3D(dec.x, dec.y, z, w, h);
+        const p1 = project3D(dec.x + dec.w, dec.y, z, w, h);
+        const p2 = project3D(dec.x + dec.w, dec.y + dec.h, z, w, h);
+        const p3 = project3D(dec.x, dec.y + dec.h, z, w, h);
+
+        ctx.fillStyle = 'rgba(217, 70, 239, 0.85)';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#f0abfc';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const cx = (p0.x + p2.x) / 2;
+        const cy = (p0.y + p2.y) / 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(cx - 1.5, cy - 3); ctx.lineTo(cx - 1.5, cy + 3);
+        ctx.moveTo(cx + 1.5, cy - 3); ctx.lineTo(cx + 1.5, cy + 3);
+        ctx.stroke();
+      });
+      ctx.restore();
     }
 
     function drawMacros(w, h) {
+      if (!currentDesign.macros) return;
+      ctx.save();
       currentDesign.macros.forEach(m => {
         const z0 = 1.0;
         const zTop = is3DMode ? 1.8 : 1.0;
 
+        // Macro placement halo clearance
         const hp0 = project3D(m.x - m.halo, m.y - m.halo, z0, w, h);
         const hp1 = project3D(m.x + m.w + m.halo, m.y - m.halo, z0, w, h);
         const hp2 = project3D(m.x + m.w + m.halo, m.y + m.h + m.halo, z0, w, h);
         const hp3 = project3D(m.x - m.halo, m.y + m.h + m.halo, z0, w, h);
-        ctx.strokeStyle = 'rgba(245, 158, 11, 0.35)';
+        ctx.strokeStyle = 'rgba(245, 158, 11, 0.45)';
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(hp0.x, hp0.y); ctx.lineTo(hp1.x, hp1.y); ctx.lineTo(hp2.x, hp2.y); ctx.lineTo(hp3.x, hp3.y);
@@ -1424,34 +1856,75 @@
         ctx.closePath(); ctx.fill();
         ctx.strokeStyle = '#a5b4fc'; ctx.lineWidth = 1.2; ctx.stroke();
 
-        if (camera.zoom >= 0.85) {
+        if (camera.zoom >= 0.75) {
           ctx.fillStyle = '#ffffff';
-          ctx.font = '9px JetBrains Mono, monospace';
+          ctx.font = 'bold 9px JetBrains Mono, monospace';
           ctx.textAlign = 'center';
           ctx.fillText(m.name, (t0.x + t2.x) / 2, (t0.y + t2.y) / 2 + 3);
         }
       });
+      ctx.restore();
     }
 
-    function drawPDN(w, h) {
+    function drawPDNRails(w, h) {
       const dw = currentDesign.width;
-      const dh = currentDesign.height;
       const cm = currentDesign.coreMargin;
+      const rowCount = currentDesign.rowCount || 28;
+      const rowH = currentDesign.rowH || 18;
       const z = 2.0;
 
-      ctx.strokeStyle = 'rgba(225, 29, 72, 0.45)';
-      ctx.lineWidth = is3DMode ? 2.5 : 2;
-
-      const strapCount = 8;
-      const step = (dw - 2 * cm) / strapCount;
-      for (let i = 1; i < strapCount; i++) {
-        const x = cm + i * step;
-        const p1 = project3D(x, cm, z, w, h);
-        const p2 = project3D(x, dh - cm, z, w, h);
+      ctx.save();
+      for (let r = 0; r <= rowCount; r++) {
+        const y = cm + r * rowH;
+        const isVdd = (r % 2 === 0);
+        ctx.strokeStyle = isVdd ? 'rgba(239, 68, 68, 0.45)' : 'rgba(2, 132, 199, 0.45)';
+        ctx.lineWidth = 1.2;
+        const p1 = project3D(cm, y, z, w, h);
+        const p2 = project3D(dw - cm, y, z, w, h);
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
         ctx.stroke();
       }
+      ctx.restore();
+    }
+
+    function drawPDNRings(w, h) {
+      if (!currentDesign.rings) return;
+      const z = 6.2;
+      ctx.save();
+      currentDesign.rings.forEach(ring => {
+        const p0 = project3D(ring.x, ring.y, z, w, h);
+        const p1 = project3D(ring.x + ring.w, ring.y, z, w, h);
+        const p2 = project3D(ring.x + ring.w, ring.y + ring.h, z, w, h);
+        const p3 = project3D(ring.x, ring.y + ring.h, z, w, h);
+
+        ctx.strokeStyle = ring.color;
+        ctx.lineWidth = is3DMode ? ring.width : (ring.width * 0.8);
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawPDNStraps(w, h) {
+      if (!currentDesign.straps) return;
+      const zVert = 6.0;  // met4 vertical
+      const zHoriz = 6.4; // met5 horizontal
+      ctx.save();
+      currentDesign.straps.forEach(s => {
+        const z = (s.layer === 'met4') ? zVert : zHoriz;
+        const p1 = project3D(s.x1, s.y1, z, w, h);
+        const p2 = project3D(s.x2, s.y2, z, w, h);
+
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = is3DMode ? s.width : (s.width * 0.8);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+      ctx.restore();
     }
 
     function drawMetalLayer(layerId, color, zLevel, w, h) {
@@ -1479,27 +1952,119 @@
       });
     }
 
-    function drawIOPins(w, h) {
-      const dw = currentDesign.width;
-      const dh = currentDesign.height;
-      const z = 7.0;
-      const pinCountPerSide = 24;
+    function drawIOPads(w, h) {
+      if (!currentDesign.pads) return;
+      const z = 7.2;
+      ctx.save();
+      currentDesign.pads.forEach(pad => {
+        const p0 = project3D(pad.x, pad.y, z, w, h);
+        const p1 = project3D(pad.x + pad.w, pad.y, z, w, h);
+        const p2 = project3D(pad.x + pad.w, pad.y + pad.h, z, w, h);
+        const p3 = project3D(pad.x, pad.y + pad.h, z, w, h);
 
-      ctx.fillStyle = '#38bdf8';
-      for (let i = 0; i <= pinCountPerSide; i++) {
-        const x = (dw / pinCountPerSide) * i;
-        const pN = project3D(x, dh, z, w, h);
-        const pS = project3D(x, 0, z, w, h);
-        ctx.fillRect(pN.x - 2, pN.y - 2, 4, 4);
-        ctx.fillRect(pS.x - 2, pS.y - 2, 4, 4);
-      }
-      for (let i = 0; i <= pinCountPerSide; i++) {
-        const y = (dh / pinCountPerSide) * i;
-        const pE = project3D(dw, y, z, w, h);
-        const pW = project3D(0, y, z, w, h);
-        ctx.fillRect(pE.x - 2, pE.y - 2, 4, 4);
-        ctx.fillRect(pW.x - 2, pW.y - 2, 4, 4);
-      }
+        ctx.fillStyle = '#eab308';
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        const inPadW = pad.w * 0.6;
+        const inPadH = pad.h * 0.6;
+        const inX = pad.x + (pad.w - inPadW) / 2;
+        const inY = pad.y + (pad.h - inPadH) / 2;
+        const ip0 = project3D(inX, inY, z + 0.05, w, h);
+        const ip1 = project3D(inX + inPadW, inY, z + 0.05, w, h);
+        const ip2 = project3D(inX + inPadW, inY + inPadH, z + 0.05, w, h);
+        const ip3 = project3D(inX, inY + inPadH, z + 0.05, w, h);
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.moveTo(ip0.x, ip0.y); ctx.lineTo(ip1.x, ip1.y); ctx.lineTo(ip2.x, ip2.y); ctx.lineTo(ip3.x, ip3.y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    function drawWirebonds(w, h) {
+      if (!currentDesign.wirebonds) return;
+      const zPad = 7.2;
+      const zArch = 10.0;
+      const zLead = 0.0;
+
+      ctx.save();
+      currentDesign.wirebonds.forEach(wb => {
+        const pStart = project3D(wb.startX, wb.startY, zPad, w, h);
+        const pMid = project3D((wb.startX + wb.leadX) / 2, (wb.startY + wb.leadY) / 2, zArch, w, h);
+        const pEnd = project3D(wb.leadX, wb.leadY, zLead, w, h);
+
+        ctx.lineWidth = is3DMode ? 2.2 : 1.8;
+        ctx.strokeStyle = '#fbbf24';
+        ctx.shadowColor = '#f59e0b';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.moveTo(pStart.x, pStart.y);
+        ctx.quadraticCurveTo(pMid.x, pMid.y, pEnd.x, pEnd.y);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.beginPath();
+        ctx.arc(pEnd.x, pEnd.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+    }
+
+    function drawPowerBumps(w, h) {
+      if (!currentDesign.bumps) return;
+      const zUBM = 7.6;
+      const zBall = 8.6;
+
+      ctx.save();
+      currentDesign.bumps.forEach(b => {
+        const pUbm = project3D(b.x, b.y, zUBM, w, h);
+        const pBall = project3D(b.x, b.y, zBall, w, h);
+        const rScreen = Math.max(3, b.radius * 0.45 * camera.zoom);
+
+        ctx.fillStyle = '#475569';
+        ctx.beginPath();
+        ctx.arc(pUbm.x, pUbm.y, rScreen * 1.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        const grad = ctx.createRadialGradient(
+          pBall.x - rScreen * 0.35, pBall.y - rScreen * 0.35, rScreen * 0.1,
+          pBall.x, pBall.y, rScreen
+        );
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(0.3, b.color === '#ef4444' ? '#fca5a5' : '#93c5fd');
+        grad.addColorStop(0.7, b.color);
+        grad.addColorStop(1, '#0f172a');
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(pBall.x, pBall.y, rScreen, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        if (camera.zoom > 1.2) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 8px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText(b.type, pBall.x, pBall.y + 3);
+        }
+      });
+      ctx.restore();
     }
 
     // ── Mouse & Camera Interactions ────────────────────────────────
@@ -1573,32 +2138,137 @@
     }
 
     function updateHover(mx, my) {
-      let found = null;
-      currentDesign.macros.forEach(m => {
-        const p = project3D(m.x + m.w / 2, m.y + m.h / 2, 1.4, container.clientWidth, container.clientHeight);
-        const dist = Math.hypot(p.x - mx, p.y - my);
-        if (dist < (m.w * 0.25 * camera.zoom)) {
-          found = m;
-        }
-      });
+      const w = container.clientWidth;
+      const h = container.clientHeight;
 
-      if (found) {
-        hoveredObject = found.name;
-        document.getElementById('inspTitle').textContent = `Macro: ${found.name}`;
-        document.getElementById('inspObj').textContent = `${found.type} (${found.w.toFixed(0)} × ${found.h.toFixed(0)} µm)`;
-        document.getElementById('inspCoords').textContent = `X: ${found.x.toFixed(1)} µm, Y: ${found.y.toFixed(1)} µm`;
-        document.getElementById('inspMaterial').textContent = 'SRAM Bitcell Core / Sense Amplifiers';
-        document.getElementById('inspRes').textContent = 'VDD / VSS Macro Power Ring Mesh';
-        document.getElementById('inspRule').textContent = `Macro Halo: ${found.halo} µm keepout buffer around IP block`;
-      } else {
-        hoveredObject = null;
-        document.getElementById('inspTitle').textContent = 'Silicon Substrate Overview';
-        document.getElementById('inspObj').textContent = `${currentDesign.name} (${currentDesign.cellsCount.toLocaleString()} cells)`;
-        document.getElementById('inspCoords').textContent = `Die Size: ${currentDesign.width} × ${currentDesign.height} µm`;
-        document.getElementById('inspMaterial').textContent = 'P-type Monocrystalline Silicon (<100>)';
-        document.getElementById('inspRes').textContent = '10-20 Ω·cm bulk resistivity';
-        document.getElementById('inspRule').textContent = is3DMode ? `3D Exploded Elevation (Z-Spread: ${camera.zSpread.toFixed(1)}x)` : 'Planar 2D View';
+      // 1. Check C4 Solder Bumps
+      if (isLayerActive('bumps') && currentDesign.bumps) {
+        for (const b of currentDesign.bumps) {
+          const p = project3D(b.x, b.y, 8.6, w, h);
+          const rScreen = Math.max(5, b.radius * 0.5 * camera.zoom);
+          if (Math.hypot(p.x - mx, p.y - my) < rScreen) {
+            hoveredObject = b.id;
+            document.getElementById('inspTitle').textContent = `C4 Solder Bump (${b.type})`;
+            document.getElementById('inspObj').textContent = `Area-Array Micro-Bump (Flip-Chip BGA)`;
+            document.getElementById('inspCoords').textContent = `X: ${b.x.toFixed(1)} µm, Y: ${b.y.toFixed(1)} µm (Z: 8.6 µm)`;
+            document.getElementById('inspMaterial').textContent = 'Lead-Free Solder (SAC305: Sn96.5/Ag3.0/Cu0.5) over UBM';
+            document.getElementById('inspRes').textContent = `Parasitic Inductance L < 0.05 nH (30x lower than wirebond!)`;
+            document.getElementById('inspRule').textContent = 'Bump pitch: 130-150 µm. Feeds power directly into core mesh, bypassing peripheral bottleneck.';
+            return;
+          }
+        }
       }
+
+      // 2. Check I/O Bond Pads & Wirebonds
+      if ((isLayerActive('pads') || isLayerActive('wirebonds')) && currentDesign.pads) {
+        for (const pad of currentDesign.pads) {
+          const p = project3D(pad.x + pad.w / 2, pad.y + pad.h / 2, 7.2, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (pad.w * 0.6 * camera.zoom)) {
+            hoveredObject = pad.id;
+            document.getElementById('inspTitle').textContent = `I/O Bond Pad (${pad.id})`;
+            document.getElementById('inspObj').textContent = `sky130_fd_io Terminal (Wirebond Pad)`;
+            document.getElementById('inspCoords').textContent = `X: ${pad.x.toFixed(1)} µm, Y: ${pad.y.toFixed(1)} µm (${pad.side.toUpperCase()})`;
+            document.getElementById('inspMaterial').textContent = 'Top Metal (met5) Passivation Cutout + Under-Pad ESD Clamp Diodes';
+            document.getElementById('inspRes').textContent = 'Pad R: < 0.02 Ω, 2 kV Human Body Model (HBM) ESD Rating';
+            document.getElementById('inspRule').textContent = 'Wireload: tau = Rwire*Cwire. High wirebond inductance (L~1.2nH) causes SSO ground bounce.';
+            return;
+          }
+        }
+      }
+
+      // 3. Check Hard Macros
+      if (isLayerActive('macros') && currentDesign.macros) {
+        for (const m of currentDesign.macros) {
+          const p = project3D(m.x + m.w / 2, m.y + m.h / 2, 1.4, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (m.w * 0.3 * camera.zoom)) {
+            hoveredObject = m.name;
+            document.getElementById('inspTitle').textContent = `Macro: ${m.name}`;
+            document.getElementById('inspObj').textContent = `${m.type} (${m.w.toFixed(0)} × ${m.h.toFixed(0)} µm)`;
+            document.getElementById('inspCoords').textContent = `X: ${m.x.toFixed(1)} µm, Y: ${m.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = 'High-Density SRAM Array / Sense Amps / Dedicated Power Ring';
+            document.getElementById('inspRes').textContent = 'Multi-layer internal Cu mesh (VDD/VSS rails)';
+            document.getElementById('inspRule').textContent = `Macro Halo: ${m.halo} µm keepout margin to prevent cell overlap and wire congestion.`;
+            return;
+          }
+        }
+      }
+
+      // 4. Check Endcaps
+      if (isLayerActive('endcaps') && currentDesign.endcaps) {
+        for (const cap of currentDesign.endcaps) {
+          const p = project3D(cap.x + cap.w / 2, cap.y + cap.h / 2, 0.55, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (10 * camera.zoom)) {
+            hoveredObject = cap.id;
+            document.getElementById('inspTitle').textContent = `Endcap Boundary Cell (sky130_fd_sc_hd__decap_3)`;
+            document.getElementById('inspObj').textContent = `Row Boundary Enclosure Cell (${cap.side.toUpperCase()})`;
+            document.getElementById('inspCoords').textContent = `Row: ${cap.row}, X: ${cap.x.toFixed(1)} µm, Y: ${cap.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = 'Active Diffusion + N-Well / P-Well Terminal Cap';
+            document.getElementById('inspRes').textContent = 'Well Termination R: < 10 Ω';
+            document.getElementById('inspRule').textContent = 'Closes well boundaries, prevents antenna DRC violations, and prevents edge CMP gate oxide fracturing.';
+            return;
+          }
+        }
+      }
+
+      // 5. Check Welltaps
+      if (isLayerActive('welltaps') && currentDesign.welltaps) {
+        for (const tap of currentDesign.welltaps) {
+          const p = project3D(tap.x + tap.w / 2, tap.y + tap.h / 2, 0.5, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (8 * camera.zoom)) {
+            hoveredObject = tap.id;
+            document.getElementById('inspTitle').textContent = `Welltap Cell (sky130_fd_sc_hd__tapvpwrvgnd_1)`;
+            document.getElementById('inspObj').textContent = `Anti-Latch-up Ohmic Substrate Tap`;
+            document.getElementById('inspCoords').textContent = `Row: ${tap.row}, X: ${tap.x.toFixed(1)} µm, Y: ${tap.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = 'Heavy P+ (Substrate) & N+ (N-Well) Ohmic Diffusion Contacts';
+            document.getElementById('inspRes').textContent = 'Substrate R: < 100 Ω, Contact R: < 5 Ω/cut';
+            document.getElementById('inspRule').textContent = 'SkyWater Rule tap.1: Max distance to tap <= 25 µm to clamp substrate potential and prevent SCR latch-up.';
+            return;
+          }
+        }
+      }
+
+      // 6. Check Decaps
+      if (isLayerActive('decaps') && currentDesign.decaps) {
+        for (const dec of currentDesign.decaps) {
+          const p = project3D(dec.x + dec.w / 2, dec.y + dec.h / 2, 0.65, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (9 * camera.zoom)) {
+            hoveredObject = dec.id;
+            document.getElementById('inspTitle').textContent = `Decoupling Capacitor (sky130_fd_sc_hd__decap_12)`;
+            document.getElementById('inspObj').textContent = `Dynamic IR-Drop Decap Filler`;
+            document.getElementById('inspCoords').textContent = `Row: ${dec.row}, X: ${dec.x.toFixed(1)} µm, Y: ${dec.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = 'Thick-Oxide MOS Gate Capacitor (Cox ~ 8.4 fF/µm²)';
+            document.getElementById('inspRes').textContent = `Capacitance: ~${dec.capFf || 120} fF, ESR: 12 Ω`;
+            document.getElementById('inspRule').textContent = 'Supplies instantaneous charge during clock transitions, suppressing dynamic L·di/dt voltage droop.';
+            return;
+          }
+        }
+      }
+
+      // 7. Check Standard Cells
+      if (isLayerActive('stdcells') && currentDesign.stdcells) {
+        for (const c of currentDesign.stdcells) {
+          const p = project3D(c.x + c.w / 2, c.y + c.h / 2, 0.6, w, h);
+          if (Math.hypot(p.x - mx, p.y - my) < (8 * camera.zoom)) {
+            hoveredObject = c.id;
+            document.getElementById('inspTitle').textContent = `StdCell: ${c.type} (${c.id})`;
+            document.getElementById('inspObj').textContent = `CMOS Logic Gate (sky130_fd_sc_hd)`;
+            document.getElementById('inspCoords').textContent = `Row: ${c.row}, X: ${c.x.toFixed(1)} µm, Y: ${c.y.toFixed(1)} µm`;
+            document.getElementById('inspMaterial').textContent = '150nm Doped Poly Gates + Source/Drain Diffusion (Abutted VDD/VSS)';
+            document.getElementById('inspRes').textContent = 'Salicided Poly: ~5.5 Ω/sq, Diffusion: ~8.0 Ω/sq';
+            document.getElementById('inspRule').textContent = 'Standard cell height: 2.72 µm. Abutted rails eliminate routing congestion for power.';
+            return;
+          }
+        }
+      }
+
+      // Default: Substrate Overview
+      hoveredObject = null;
+      document.getElementById('inspTitle').textContent = 'Silicon Substrate Overview';
+      document.getElementById('inspObj').textContent = `${currentDesign.name} (${currentDesign.cellsCount.toLocaleString()} cells)`;
+      document.getElementById('inspCoords').textContent = `Die Size: ${currentDesign.width} × ${currentDesign.height} µm`;
+      document.getElementById('inspMaterial').textContent = 'P-type Monocrystalline Silicon (<100>)';
+      document.getElementById('inspRes').textContent = '10-20 Ω·cm bulk resistivity';
+      document.getElementById('inspRule').textContent = is3DMode ? `3D Exploded Elevation (Z-Spread: ${camera.zSpread.toFixed(1)}x)` : 'Planar 2D View';
     }
 
     function updateCheckboxes() {
@@ -1745,8 +2415,24 @@
       if (!DATASETS[key]) return;
       currentDesign = DATASETS[key];
       document.getElementById('teleDieArea').textContent = `${currentDesign.width} × ${currentDesign.height} µm`;
-      document.getElementById('teleCells').textContent = `${currentDesign.cellsCount.toLocaleString()} StdCells`;
-      document.getElementById('teleMacros').textContent = `${currentDesign.macros.length} Macros`;
+      document.getElementById('teleCells').textContent = `${(currentDesign.cellsCount || 0).toLocaleString()} StdCells`;
+      document.getElementById('teleMacros').textContent = `${currentDesign.macros ? currentDesign.macros.length : 0} Macros`;
+
+      const numCaps = currentDesign.endcaps ? currentDesign.endcaps.length : 0;
+      const numTaps = currentDesign.welltaps ? currentDesign.welltaps.length : 0;
+      const numDecaps = currentDesign.decaps ? currentDesign.decaps.length : 0;
+      const teleTapsEl = document.getElementById('teleTaps');
+      if (teleTapsEl) teleTapsEl.textContent = `${numCaps} Caps · ${numTaps} Taps · ${numDecaps} Decaps`;
+
+      const numRings = currentDesign.rings ? currentDesign.rings.length : 0;
+      const numStraps = currentDesign.straps ? currentDesign.straps.length : 0;
+      const telePdnEl = document.getElementById('telePdn');
+      if (telePdnEl) telePdnEl.textContent = `${numRings} Rings · ${numStraps} Straps`;
+
+      const numBumps = currentDesign.bumps ? currentDesign.bumps.length : 0;
+      const teleBumpsEl = document.getElementById('teleBumps');
+      if (teleBumpsEl) teleBumpsEl.textContent = `${numBumps} C4 Solder Bumps`;
+
       camera.zoom = 1.0;
       camera.panX = 0;
       camera.panY = 0;
@@ -1754,25 +2440,44 @@
 
     // ── Educational Domain Filter Controller ──────────────────────
     function setDomainFilter(mode) {
-      document.querySelectorAll('#filterAllBtn, #filterFeolBtn, #filterBeolBtn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#filterAllBtn, #filterFeolBtn, #filterBeolBtn, #filterPdnBtn, #filterPkgBtn').forEach(b => b.classList.remove('active'));
       if (mode === 'all') {
-        document.getElementById('filterAllBtn').classList.add('active');
+        const btn = document.getElementById('filterAllBtn');
+        if (btn) btn.classList.add('active');
         LAYER_CONFIG.forEach(l => l.enabled = true);
         setFabStep(8);
       } else if (mode === 'feol') {
-        document.getElementById('filterFeolBtn').classList.add('active');
+        const btn = document.getElementById('filterFeolBtn');
+        if (btn) btn.classList.add('active');
         LAYER_CONFIG.forEach(l => {
-          l.enabled = (l.domain === 'feol' || l.id === 'substrate' || l.id === 'stdcells' || l.id === 'macros');
+          l.enabled = (l.domain === 'feol');
         });
         updateCheckboxes();
         showLayerPhysics('stdcells');
       } else if (mode === 'beol') {
-        document.getElementById('filterBeolBtn').classList.add('active');
+        const btn = document.getElementById('filterBeolBtn');
+        if (btn) btn.classList.add('active');
         LAYER_CONFIG.forEach(l => {
-          l.enabled = (l.domain === 'beol' || l.id === 'pdn' || l.id === 'vias' || l.id === 'pins');
+          l.enabled = (l.domain === 'beol' || l.id === 'substrate');
         });
         updateCheckboxes();
         showLayerPhysics('met1');
+      } else if (mode === 'pdn') {
+        const btn = document.getElementById('filterPdnBtn');
+        if (btn) btn.classList.add('active');
+        LAYER_CONFIG.forEach(l => {
+          l.enabled = (l.domain === 'pdn' || l.id === 'substrate' || l.id === 'decaps');
+        });
+        updateCheckboxes();
+        showLayerPhysics('pdn_rings');
+      } else if (mode === 'package') {
+        const btn = document.getElementById('filterPkgBtn');
+        if (btn) btn.classList.add('active');
+        LAYER_CONFIG.forEach(l => {
+          l.enabled = (l.domain === 'package' || l.id === 'substrate' || l.id === 'met5');
+        });
+        updateCheckboxes();
+        showLayerPhysics('bumps');
       }
     }
 
@@ -1784,6 +2489,12 @@
 
     const filterBeolBtn = document.getElementById('filterBeolBtn');
     if (filterBeolBtn) filterBeolBtn.onclick = () => setDomainFilter('beol');
+
+    const filterPdnBtn = document.getElementById('filterPdnBtn');
+    if (filterPdnBtn) filterPdnBtn.onclick = () => setDomainFilter('pdn');
+
+    const filterPkgBtn = document.getElementById('filterPkgBtn');
+    if (filterPkgBtn) filterPkgBtn.onclick = () => setDomainFilter('package');
 
     const filterSignalBtn = document.getElementById('filterSignalBtn');
     if (filterSignalBtn) {
@@ -2018,18 +2729,7 @@
       }
 
       const finalCells = totalCells || 11500;
-      return {
-        name: fileName,
-        width: Math.round(width * 100) / 100,
-        height: Math.round(height * 100) / 100,
-        coreMargin: Math.round(width * 0.04),
-        cellsCount: finalCells,
-        cellArea: Math.round(width * height * 0.44),
-        macros,
-        metalLayers: 5,
-        viasCount: Math.round(finalCells * 9.2),
-        routes: generateDesignRoutes(width, height, 500, 5)
-      };
+      return generatePhysicalDesign(fileName, Math.round(width * 100) / 100, Math.round(height * 100) / 100, macros, finalCells);
     }
 
     // ── Live URL Parameter Detection & Parent Studio Sync ────────────
@@ -2052,6 +2752,8 @@
         document.getElementById('presetSelect').insertBefore(opt, document.getElementById('presetSelect').firstChild);
         loadPreset(paramDesign);
       }
+    } else {
+      loadPreset('ibex');
     }
 
     // Parent frame message listener for live DEF/ODB synchronization
