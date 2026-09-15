@@ -2,7 +2,7 @@
  * Client-safe OpenROAD PDK catalog (no Node fs).
  *
  * Cloud Max OpenLane: sky130, sky130B, gf180mcu (when PDK installed on worker)
- * ORFS Max (needs OPENROAD_FLOW_ROOT): asap7, nangate45
+ * ORFS Max (needs OPENROAD_FLOW_ROOT): asap7, nangate45, ihp-sg13g2
  * Scripts-only: generic (and any PDK for Pro export packs)
  */
 
@@ -10,6 +10,7 @@ export type OpenroadPdkId =
   | "sky130"
   | "sky130B"
   | "gf180mcu"
+  | "ihp-sg13g2"
   | "asap7"
   | "nangate45"
   | "generic";
@@ -119,6 +120,22 @@ const NANGATE_CELLS: PdkCellMasters = {
   fastLib: "NangateOpenCellLibrary_fast.lib",
 };
 
+const IHP_SG13G2_CELLS: PdkCellMasters = {
+  tap: "sg13g2_tapcell",
+  endcap: "sg13g2_decap_4",
+  buf: "sg13g2_buf_4",
+  bufHold: "sg13g2_dlygate4sd1_1",
+  clkbufRoot: "sg13g2_buf_16",
+  clkbufList: "sg13g2_buf_16 sg13g2_buf_8 sg13g2_buf_4",
+  diode: "sg13g2_antennanp",
+  fillGlob: "sg13g2_fill_*",
+  libertyFile: "sg13g2_stdcell_typ_1p20V_25C.lib",
+  pvtLibDir: "libs.ref/sg13g2_stdcell/lib",
+  slowLib: "sg13g2_stdcell_slow_1p08V_125C.lib",
+  typLib: "sg13g2_stdcell_typ_1p20V_25C.lib",
+  fastLib: "sg13g2_stdcell_fast_1p32V_m40C.lib",
+};
+
 const GENERIC_CELLS: PdkCellMasters = {
   tap: "YOUR_TAP_CELL",
   endcap: "YOUR_ENDCAP_CELL",
@@ -206,6 +223,32 @@ export const OPENROAD_PDKS: OpenroadPdkDef[] = [
       "gf180mcuD/libs.ref/gf180mcu_fd_sc_mcu7t5v0/techlef/gf180mcu_fd_sc_mcu7t5v0__nom.tlef",
     installHint: "pip install volare && volare enable --pdk gf180mcu",
     cells: GF180_CELLS,
+  },
+  {
+    id: "ihp-sg13g2",
+    label: "IHP 130nm SG13G2 (BiCMOS OpenPDK)",
+    short: "ihp-sg13g2",
+    description:
+      "IHP OpenPDK sg13g2 — ORFS platform preferred; OpenLane when ihp-sg13g2 is installed under PDK_ROOT",
+    runner: "orfs",
+    cloudLabel: "Cloud ORFS",
+    openlanePdk: "ihp-sg13g2",
+    openlanePdkAlts: ["ihp-sg13g2"],
+    orfsPlatform: "ihp-sg13g2",
+    openlaneDefaults: {
+      RT_MAX_LAYER: "Metal5",
+      PL_TARGET_DENSITY: 0.55,
+      FP_PDN_MULTILAYER: true,
+      FP_PDN_CORE_RING: true,
+      FP_PDN_ENABLE_RAILS: true,
+    },
+    liberty:
+      "ihp-sg13g2/libs.ref/sg13g2_stdcell/lib/sg13g2_stdcell_typ_1p20V_25C.lib",
+    techLef:
+      "ihp-sg13g2/libs.ref/sg13g2_stdcell/techlef/sg13g2_tech.tlef",
+    installHint:
+      "Clone OpenROAD-flow-scripts with platforms/ihp-sg13g2 (set OPENROAD_FLOW_ROOT), or install IHP-Open-PDK under PDK_ROOT",
+    cells: IHP_SG13G2_CELLS,
   },
   {
     id: "asap7",

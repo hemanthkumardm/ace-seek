@@ -13,6 +13,7 @@ export type EngineRow = {
 };
 
 const AUTOMACRO_KEY = "ace_seek_automacro_enabled";
+const FORGE_LEC_KEY = "ace_seek_forge_lec";
 
 export function loadAutomacroEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -23,6 +24,15 @@ export function loadAutomacroEnabled(): boolean {
 
 export function saveAutomacroEnabled(on: boolean) {
   localStorage.setItem(AUTOMACRO_KEY, on ? "1" : "0");
+}
+
+export function loadForgeLecEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(FORGE_LEC_KEY) === "1";
+}
+
+export function saveForgeLecEnabled(on: boolean) {
+  localStorage.setItem(FORGE_LEC_KEY, on ? "1" : "0");
 }
 
 function statusBadge(status: string) {
@@ -47,9 +57,11 @@ export function OpenroadEnginesPanel({ automacroReport, apiKey }: Props) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [automacroOn, setAutomacroOn] = useState(true);
+  const [forgeLecOn, setForgeLecOn] = useState(false);
 
   useEffect(() => {
     setAutomacroOn(loadAutomacroEnabled());
+    setForgeLecOn(loadForgeLecEnabled());
   }, []);
 
   const refresh = useCallback(async () => {
@@ -83,6 +95,11 @@ export function OpenroadEnginesPanel({ automacroReport, apiKey }: Props) {
   const toggleAutomacro = (on: boolean) => {
     setAutomacroOn(on);
     saveAutomacroEnabled(on);
+  };
+
+  const toggleForgeLec = (on: boolean) => {
+    setForgeLecOn(on);
+    saveForgeLecEnabled(on);
   };
 
   return (
@@ -121,7 +138,9 @@ export function OpenroadEnginesPanel({ automacroReport, apiKey }: Props) {
             </p>
             <p className="text-[10px] font-bold text-[var(--neu-text-muted)]">
               When ON, OpenLane floorplan runs Ace-AutoMacro if hard macros are detected.
-              Flightline/RUDY lives inside this engine — not a separate Studio product.
+              Halo X/Y µm are set on the <strong>Floorplan</strong> stage (
+              <code className="text-sky-700">ACE_AUTOMACRO_HALO_*</code>). Flightline/RUDY lives
+              inside this engine — not a separate Studio product.
             </p>
           </div>
           <label className="flex items-center gap-2 text-[11px] font-black cursor-pointer">
@@ -144,6 +163,31 @@ export function OpenroadEnginesPanel({ automacroReport, apiKey }: Props) {
             design with SRAM/macros to generate <code className="text-sky-700">ace_automacro.log</code>.
           </p>
         )}
+      </div>
+
+      {/* AceForge optional EQY step */}
+      <div className="neu-inset p-3 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-black uppercase text-[var(--neu-text)]">
+              AceForge LEC (EQY)
+            </p>
+            <p className="text-[10px] font-bold text-[var(--neu-text-muted)]">
+              When ON, AceForge Classic/Chip may run an EQY step if{" "}
+              <code className="text-sky-700">eqy</code> is in the worker image (
+              <code className="text-sky-700">ACE_FORGE_LEC=1</code>). Default off — fail-closed.
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-[11px] font-black cursor-pointer">
+            <input
+              type="checkbox"
+              className="rounded border-slate-300"
+              checked={forgeLecOn}
+              onChange={(e) => toggleForgeLec(e.target.checked)}
+            />
+            {forgeLecOn ? "Enabled" : "Disabled"}
+          </label>
+        </div>
       </div>
 
       {err && (

@@ -106,6 +106,11 @@ export type OpenroadSpawnMeta = {
   enqueuedAt: string;
   /** "1" = run Ace-AutoMacro on floorplan when macros exist; "0" = skip */
   aceAutomacro: "0" | "1";
+  /** Ace-AutoMacro keepout halo (µm) */
+  aceAutomacroHaloX?: string;
+  aceAutomacroHaloY?: string;
+  /** "1" = run EQY LEC step on AceForge when eqy is available */
+  aceForgeLec?: "0" | "1";
   /** AceForge backend: legacy_ol | ace_forge */
   flowBackend: "legacy_ol" | "ace_forge";
   /** classic | chip when flowBackend=ace_forge */
@@ -1002,11 +1007,27 @@ export function startOpenroadDockerJob(
     ...pdkDefaults,
     ...(openlaneConfig || {}),
   };
-  // ACE_AUTOMACRO is Studio/env control — not an OpenLane config.json key
+  // ACE_* Studio/env controls — not OpenLane config.json keys
   const rawAm = mergedConfig.ACE_AUTOMACRO;
   delete mergedConfig.ACE_AUTOMACRO;
   const aceAutomacro: "0" | "1" =
     rawAm === 0 || rawAm === false || rawAm === "0" ? "0" : "1";
+  const haloXRaw = mergedConfig.ACE_AUTOMACRO_HALO_X;
+  const haloYRaw = mergedConfig.ACE_AUTOMACRO_HALO_Y;
+  delete mergedConfig.ACE_AUTOMACRO_HALO_X;
+  delete mergedConfig.ACE_AUTOMACRO_HALO_Y;
+  const aceAutomacroHaloX =
+    haloXRaw != null && String(haloXRaw).trim() !== ""
+      ? String(haloXRaw)
+      : "10";
+  const aceAutomacroHaloY =
+    haloYRaw != null && String(haloYRaw).trim() !== ""
+      ? String(haloYRaw)
+      : "10";
+  const rawLec = mergedConfig.ACE_FORGE_LEC;
+  delete mergedConfig.ACE_FORGE_LEC;
+  const aceForgeLec: "0" | "1" =
+    rawLec === 1 || rawLec === true || rawLec === "1" ? "1" : "0";
   const rawProfile = String(mergedConfig.ACE_FLOW_PROFILE || "legacy_pnr");
   delete mergedConfig.ACE_FLOW_PROFILE;
   const flowBackend: "legacy_ol" | "ace_forge" =
@@ -1056,6 +1077,9 @@ export function startOpenroadDockerJob(
     ckptSlug,
     enqueuedAt,
     aceAutomacro,
+    aceAutomacroHaloX,
+    aceAutomacroHaloY,
+    aceForgeLec,
     flowBackend,
     forgeProfile,
     forceFresh,
@@ -1152,6 +1176,9 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     ACE_OPENLANE_OVERWRITE: meta.forceFresh ?? meta.overwrite ?? "0",
     ACE_RESUME_STRICT: meta.resumeStrict ?? "1",
     ACE_AUTOMACRO: meta.aceAutomacro ?? "1",
+    ACE_AUTOMACRO_HALO_X: meta.aceAutomacroHaloX ?? "10",
+    ACE_AUTOMACRO_HALO_Y: meta.aceAutomacroHaloY ?? "10",
+    ACE_FORGE_LEC: meta.aceForgeLec ?? "0",
     ACE_FORGE_PROFILE: meta.forgeProfile ?? "classic",
     OPENROAD_SSH_HOST: process.env.OPENROAD_SSH_HOST || "",
     OPENROAD_SSH_USER: process.env.OPENROAD_SSH_USER || "root",

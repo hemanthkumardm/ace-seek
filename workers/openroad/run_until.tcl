@@ -472,7 +472,16 @@ proc ace_run_macro_placement {} {
     set log_file "$::env(RUN_DIR)/logs/floorplan/ace_automacro.log"
     file mkdir [file dirname $log_file]
 
-    set cmd "PYTHONPATH=/openlane/designs python3 -m ace_macro_placer.cli --def-in $cur_def --def-out $out_def --halo-x 10.0 --halo-y 10.0"
+    set halo_x 10.0
+    set halo_y 10.0
+    if { [info exists ::env(ACE_AUTOMACRO_HALO_X)] && $::env(ACE_AUTOMACRO_HALO_X) ne "" } {
+        set halo_x $::env(ACE_AUTOMACRO_HALO_X)
+    }
+    if { [info exists ::env(ACE_AUTOMACRO_HALO_Y)] && $::env(ACE_AUTOMACRO_HALO_Y) ne "" } {
+        set halo_y $::env(ACE_AUTOMACRO_HALO_Y)
+    }
+    puts "ACE-Seek: Ace-AutoMacro halos X=$halo_x Y=$halo_y"
+    set cmd "PYTHONPATH=/openlane/designs python3 -m ace_macro_placer.cli --def-in $cur_def --def-out $out_def --halo-x $halo_x --halo-y $halo_y"
     if { [catch { exec bash -c "$cmd > $log_file 2>&1" } merr] } {
         puts "ACE-Seek: Ace-AutoMacro notice: skipped (see $log_file)"
         return 0

@@ -1341,9 +1341,25 @@ export default function OpenroadPnRStudioPage() {
       pdk: project.pdk,
     });
     openlaneConfig.DESIGN_NAME = project.topModule || "top";
-    openlaneConfig.ACE_AUTOMACRO = loadAutomacroEnabled() ? 1 : 0;
+    // Floorplan stage ACE_AUTOMACRO select overrides Engines toggle when set
+    const stageAm = String(
+      resolveField("floorplan", "ACE_AUTOMACRO", stageInputs) ?? ""
+    ).trim();
+    openlaneConfig.ACE_AUTOMACRO =
+      stageAm === "0" || stageAm === "1"
+        ? Number(stageAm)
+        : loadAutomacroEnabled()
+          ? 1
+          : 0;
     openlaneConfig.ACE_FLOW_PROFILE = project.flowProfile || "legacy_pnr";
     openlaneConfig.ACE_FORCE_FRESH = fresh ? 1 : 0;
+    // Opt-in AceForge EQY step (requires eqy in image)
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("ace_seek_forge_lec") === "1"
+    ) {
+      openlaneConfig.ACE_FORGE_LEC = 1;
+    }
     openlaneConfig.LINT_TOP =
       resolveField("lint", "LINT_TOP", stageInputs) || project.topModule;
     openlaneConfig.SIM_TB_TOP = resolveField(

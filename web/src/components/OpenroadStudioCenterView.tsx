@@ -19,11 +19,13 @@ import {
   ShieldCheck,
   CheckCircle2,
   Code2,
+  Loader2,
 } from "lucide-react";
 import { OpenroadIoPlanner } from "@/components/OpenroadIoPlanner";
 import { DigitalWaveform } from "@/components/OpenroadCharts";
 import { OpenroadVncModal } from "@/components/openroad/openroad-vnc-modal";
 import { OpenroadTimingInspector } from "@/components/openroad/OpenroadTimingInspector";
+import { OpenroadPnrCoach } from "@/components/OpenroadPnrCoach";
 import type { OpenroadProjectState } from "@/lib/openroad-project-hub";
 import type { OpenroadJobResult } from "@/lib/openroad-run-engine";
 import type { StageInputValues } from "@/lib/openroad-stage-config";
@@ -760,12 +762,44 @@ function ReportViewPanel({
 }) {
   const [activeReportTab, setActiveReportTab] = useState<"log" | "timing" | "lec">("log");
   const [lecMode, setLecMode] = useState<"rtl_vs_synth" | "synth_vs_layout">("rtl_vs_synth");
+  const [eqyBusy, setEqyBusy] = useState(false);
+  const [eqyNote, setEqyNote] = useState<string | null>(null);
+  const [eqyStatus, setEqyStatus] = useState<string>("Not run");
+  const [eqyEquivalent, setEqyEquivalent] = useState<boolean | null>(null);
+  const [eqyLog, setEqyLog] = useState<string>("");
 
   const designName = project?.designName || "top";
-  // LEC is export-pack / local EQY only — Studio does not invent proved counts.
+  // LEC is fail-closed — Studio never invents proved counts.
   void cellCount;
   const pdkDef = getPdkDef(project?.pdk || "sky130");
   const libertyPreview = pdkDef.cells.libertyFile;
+
+  const runEqy = async () => {
+    setEqyBusy(true);
+    setEqyNote(null);
+    try {
+      const res = await fetch("/api/openroad/eqy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ project, mode: lecMode }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      const job = data.job;
+      setEqyStatus(job?.status || "unknown");
+      setEqyEquivalent(
+        typeof job?.equivalent === "boolean" ? job.equivalent : null
+      );
+      setEqyLog(job?.logTail || job?.message || "");
+      setEqyNote(job?.message || data.message || "EQY finished");
+    } catch (e) {
+      setEqyStatus("failed");
+      setEqyEquivalent(false);
+      setEqyNote(e instanceof Error ? e.message : "EQY request failed");
+    } finally {
+      setEqyBusy(false);
+    }
+  };
 
   return (
     <div className="neu-panel p-4 space-y-3 h-full flex flex-col">
@@ -829,6 +863,18 @@ function ReportViewPanel({
                 GDS-II Streamout artifact available in Artifacts tab (Tapeout ready)
               </p>
             )}
+          <OpenroadPnrCoach
+            logLines={stageLogLines}
+            metrics={{
+              status: job?.status,
+              wnsNs: (job?.metrics as { wnsNs?: number } | undefined)?.wnsNs,
+              tnsNs: (job?.metrics as { tnsNs?: number } | undefined)?.tnsNs,
+              areaUm2: (job?.metrics as { areaUm2?: number } | undefined)?.areaUm2,
+              powerMw: (job?.metrics as { powerMw?: number } | undefined)?.powerMw,
+              utilizationPct: (job?.metrics as { utilizationPct?: number } | undefined)
+                ?.utilizationPct,
+            }}
+          />
           <pre className="neu-inset p-3 text-[10px] font-mono max-h-[500px] overflow-auto whitespace-pre-wrap text-slate-300 bg-black/50 rounded-xl">
             {stageLogLines.slice(-120).join("\n") ||
               "No stage log yet — run OpenLane flow through signoff."}
@@ -855,43 +901,55 @@ function ReportViewPanel({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-sm font-black uppercase text-white tracking-wide">
-                    Formal LEC — EQY script preview
+                    Formal LEC — EQY
                   </h3>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    NOT RUN IN STUDIO
+                    FAIL-CLOSED
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 font-medium max-w-xl">
-                  Ace-Seek Studio does not invent formal proofs. Export the OpenROAD pack and run{" "}
+                  Studio runs EQY only when <span className="font-mono text-cyan-300">eqy</span> is
+                  on the worker PATH. Otherwise export the pack and run{" "}
                   <span className="font-mono text-cyan-300">make lec-synth</span> /{" "}
-                  <span className="font-mono text-cyan-300">make lec-pnr</span> locally with YosysHQ EQY.
-                  Cloud tapeout signoff remains OpenLane DRC/LVS/GDS — not EQY.
+                  <span className="font-mono text-cyan-300">make lec-pnr</span> locally. Never invents
+                  EQUIVALENT. Cloud tapeout signoff remains OpenLane DRC/LVS/GDS.
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/60 border border-white/10 text-xs">
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-1.5 p-1 rounded-xl bg-black/60 border border-white/10 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setLecMode("rtl_vs_synth")}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                    lecMode === "rtl_vs_synth"
+                      ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  RTL ⟷ Synthesized Gates
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLecMode("synth_vs_layout")}
+                  className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                    lecMode === "synth_vs_layout"
+                      ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Pre-Layout ⟷ Post-Route PnR
+                </button>
+              </div>
               <button
                 type="button"
-                onClick={() => setLecMode("rtl_vs_synth")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  lecMode === "rtl_vs_synth"
-                    ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-white"
-                }`}
+                disabled={eqyBusy}
+                onClick={() => void runEqy()}
+                className="neu-btn neu-btn-primary !text-[10px] font-black disabled:opacity-50 flex items-center gap-1"
               >
-                RTL ⟷ Synthesized Gates
-              </button>
-              <button
-                type="button"
-                onClick={() => setLecMode("synth_vs_layout")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  lecMode === "synth_vs_layout"
-                    ? "bg-cyan-500 text-slate-950 font-black shadow-sm"
-                    : "text-slate-400 hover:text-white"
-                }`}
-              >
-                Pre-Layout ⟷ Post-Route PnR
+                {eqyBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3" />}
+                Run EQY (Max)
               </button>
             </div>
           </div>
@@ -899,8 +957,24 @@ function ReportViewPanel({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
               <p className="text-[9px] font-black uppercase text-slate-400">Studio status</p>
-              <p className="text-lg font-mono font-black text-amber-300 mt-1">Not run</p>
-              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">No synthetic prove counts</p>
+              <p
+                className={`text-lg font-mono font-black mt-1 ${
+                  eqyEquivalent === true
+                    ? "text-emerald-300"
+                    : eqyStatus === "unavailable" || eqyStatus === "Not run"
+                      ? "text-amber-300"
+                      : "text-rose-300"
+                }`}
+              >
+                {eqyStatus}
+              </p>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                {eqyEquivalent === true
+                  ? "equivalent=true (tool proof)"
+                  : eqyEquivalent === false
+                    ? "equivalent=false (fail-closed)"
+                    : "No synthetic prove counts"}
+              </p>
             </div>
             <div className="neu-inset p-3 rounded-xl bg-black/40 border border-white/5">
               <p className="text-[9px] font-black uppercase text-slate-400">Local command</p>
@@ -915,6 +989,16 @@ function ReportViewPanel({
               <p className="text-[10px] text-slate-400 font-semibold mt-0.5">DRC / LVS / GDS jobs</p>
             </div>
           </div>
+          {eqyNote && (
+            <p className="text-[10px] font-bold text-amber-200 bg-amber-950/40 border border-amber-500/30 rounded-lg px-2 py-1.5">
+              {eqyNote}
+            </p>
+          )}
+          {eqyLog && (
+            <pre className="neu-inset p-3 text-[10px] font-mono max-h-40 overflow-auto whitespace-pre-wrap text-slate-300 bg-black/50 rounded-xl">
+              {eqyLog}
+            </pre>
+          )}
 
           <div className="p-4 rounded-xl bg-black/60 border border-white/10 space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">

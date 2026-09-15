@@ -59,6 +59,9 @@ if [[ "${ACE_FLOW_MOCK:-0}" == "1" ]]; then MOCK_ARGS=(--allow-mock); fi
 run_host() {
   PYTHONPATH="${REPO_ROOT}:${PYTHONPATH:-}" \
   ACE_AUTOMACRO="${ACE_AUTOMACRO:-1}" \
+  ACE_AUTOMACRO_HALO_X="${ACE_AUTOMACRO_HALO_X:-10}" \
+  ACE_AUTOMACRO_HALO_Y="${ACE_AUTOMACRO_HALO_Y:-10}" \
+  ACE_FORGE_LEC="${ACE_FORGE_LEC:-0}" \
   ACE_FLOW_MOCK="${ACE_FLOW_MOCK:-0}" \
   python3 -m workers.engines.forge.driver \
     --work-dir "$FORGE" \
@@ -77,6 +80,9 @@ run_docker() {
     -e PDK_ROOT="/pdk" \
     -e PDK="$PDK" \
     -e ACE_AUTOMACRO="${ACE_AUTOMACRO:-1}" \
+    -e ACE_AUTOMACRO_HALO_X="${ACE_AUTOMACRO_HALO_X:-10}" \
+    -e ACE_AUTOMACRO_HALO_Y="${ACE_AUTOMACRO_HALO_Y:-10}" \
+    -e ACE_FORGE_LEC="${ACE_FORGE_LEC:-0}" \
     -e ACE_FLOW_MOCK="${ACE_FLOW_MOCK:-0}" \
     -e ACE_FORGE_PROFILE="$PROFILE" \
     -e PYTHONPATH="/ace" \

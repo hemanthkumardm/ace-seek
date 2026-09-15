@@ -207,7 +207,7 @@ export function resolveRunnerPdk(projectPdk: string): {
       orfsRoot,
       orfsPlatform: null,
       error:
-        "PDK 'generic' is for Pro script packs only — pick sky130/sky130B/gf180mcu for Max OpenLane, or asap7/nangate45 with ORFS.",
+        "PDK 'generic' is for Pro script packs only — pick sky130/sky130B/gf180mcu for Max OpenLane, or asap7/nangate45/ihp-sg13g2 with ORFS.",
       warnings,
     };
   }

@@ -301,6 +301,38 @@ export const STAGE_CONFIG_SCHEMAS: StageConfigSchema[] = [
         min: 0,
         max: 50,
       },
+      // Ace-AutoMacro (floorplan hook when hard macros exist)
+      {
+        key: "ACE_AUTOMACRO",
+        label: "Ace-AutoMacro enable",
+        type: "select",
+        defaultValue: "1",
+        options: [
+          { value: "1", label: "On (place hard macros)" },
+          { value: "0", label: "Off (standard floorplan)" },
+        ],
+        help: "Also toggled in Engines panel. Runs only when hard macros are detected.",
+      },
+      {
+        key: "ACE_AUTOMACRO_HALO_X",
+        label: "AutoMacro halo X (µm)",
+        type: "number",
+        defaultValue: 10,
+        placeholder: "10",
+        min: 0,
+        max: 100,
+        help: "Keepout halo around macros after Ace-AutoMacro placement",
+      },
+      {
+        key: "ACE_AUTOMACRO_HALO_Y",
+        label: "AutoMacro halo Y (µm)",
+        type: "number",
+        defaultValue: 10,
+        placeholder: "10",
+        min: 0,
+        max: 100,
+        help: "Vertical keepout halo for Ace-AutoMacro",
+      },
     ],
   },
   {

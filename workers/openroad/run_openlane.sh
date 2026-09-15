@@ -103,6 +103,8 @@ run_local_docker() {
     -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE:-0}" \
     -e ACE_RESUME_STRICT="${ACE_RESUME_STRICT:-1}" \
     -e ACE_AUTOMACRO="${ACE_AUTOMACRO:-1}" \
+    -e ACE_AUTOMACRO_HALO_X="${ACE_AUTOMACRO_HALO_X:-10}" \
+    -e ACE_AUTOMACRO_HALO_Y="${ACE_AUTOMACRO_HALO_Y:-10}" \
     -v "${PDK_ROOT}:/pdk:ro" \
     -v "${PDK_ROOT}:/root/.volare:ro" \
     -v "${JOB_DIR}/designs:/openlane/designs" \
