@@ -687,10 +687,10 @@ make logs
 \`\`\`
 `;
 
-  const librelaneConfig = JSON.stringify(
+  const aceFlowConfig = JSON.stringify(
     {
       DESIGN_NAME: top,
-      VERILOG_FILES: [`dir::rtl/${top}.v`],
+      VERILOG_FILES: [`rtl/${top}.v`],
       CLOCK_PORT: "clk",
       CLOCK_PERIOD: 15.0,
       DESIGN_IS_CORE: true,
@@ -702,70 +702,74 @@ make logs
       RUN_CVC: true,
       PNR_TOOL: "openroad",
       STA_TOOL: "opensta",
+      OPTIMIZATION_ENGINES: {
+        ace_macro_placer: true,
+        ace_timing_eco: true,
+      },
     },
     null,
     2
   );
 
-  const librelanePy = `#!/usr/bin/env python3
+  const aceFlowPy = `#!/usr/bin/env python3
 """
-Ace-Seek OpenROAD Studio — LibreLane (OpenLane 2) Step Automation Flow.
-Executes hermetic steps with explicit state tracking, reproducible checkpoints,
-and multi-corner STA signoff.
+Ace-Seek OpenROAD Studio — AceFlow Step-Based Physical Design Pipeline.
+Modular, hermetic step execution with explicit immutable checkpoints,
+multi-corner STA signoff, and native Ace-Seek algorithmic acceleration.
 """
 
 import os
 import sys
 
+# Try importing AceFlow orchestrator
 try:
-    from librelane.flows import Flow
-    from librelane.steps import (
-        Yosys,
-        OpenROAD,
-        Magic,
-        KLayout,
-        Misc,
+    from workers.engines.flow import AceFlow, DesignState
+    from workers.engines.flow.steps import (
+        YosysSynthesisStep,
+        OpenROADStep,
+        AceMacroStep,
+        AceTimingEcoStep,
     )
 except ImportError:
-    print("[NOTE] LibreLane Python package not installed in the active environment.")
-    print("To install: pip install librelane  OR run via nix-shell")
+    # Standalone execution mode when run outside backend worker tree
+    AceFlow = None
 
-class AceSeekLibreLaneFlow(Flow):
-    """Hermetic step-by-step physical design flow with explicit state checkpoints."""
-    Steps = [
-        Yosys.Synthesis,
-        OpenROAD.Floorplan,
-        OpenROAD.IOPlacement,
-        OpenROAD.GlobalPlacement,
-        OpenROAD.DetailedPlacement,
-        OpenROAD.CTS,
-        OpenROAD.ResizerTimingPostCTS,
-        OpenROAD.GlobalRouting,
-        OpenROAD.DetailedRouting,
-        OpenROAD.ResizerTimingPostRouting,
-        OpenROAD.FillInsertion,
-        Magic.StreamOut,
-        Magic.DRC,
-        Magic.SpiceExtraction,
-        KLayout.StreamOut,
-        KLayout.XOR,
-        Misc.ReportManufacturability,
-    ]
+def run_ace_flow(config_file: str = "flow_config.json"):
+    print(f"[Ace-Seek] Starting AceFlow step automation pipeline with {config_file}...")
+    
+    if AceFlow is not None:
+        steps = [
+            YosysSynthesisStep(step_id="01_synthesis"),
+            OpenROADStep("floorplan", ["source scripts/02_floorplan.tcl"], step_id="02_floorplan"),
+            AceMacroStep(halo_x=10.0, halo_y=10.0, step_id="03_ace_macro"),
+            OpenROADStep("placement", ["source scripts/03_placement.tcl"], step_id="04_placement"),
+            OpenROADStep("cts", ["source scripts/04_cts.tcl"], step_id="05_cts"),
+            AceTimingEcoStep(target_slack_ns=0.0, step_id="06_timing_eco"),
+            OpenROADStep("routing", ["source scripts/05_routing.tcl"], step_id="07_routing"),
+            OpenROADStep("signoff", ["source scripts/06_signoff.tcl"], step_id="08_signoff"),
+        ]
+        init_state = DesignState(
+            design_name="${top}",
+            rtl_files=("rtl/${top}.v",),
+            sdc_file="constraints.sdc"
+        )
+        flow = AceFlow(name="${top}_ace_flow", steps=steps, work_dir="run")
+        final_state = flow.run(init_state)
+        print(f"[Ace-Seek] Flow completed with status: {final_state.status}")
+        print(f"[Ace-Seek] Final Metrics: {final_state.metrics}")
+    else:
+        print("[INFO] Executing stages via native Makefile orchestrator...")
+        os.system("make clean && make all")
 
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
-    cfg_file = os.path.join(cur_dir, "config.json")
-    print(f"[Ace-Seek] Starting LibreLane automation pipeline for {cfg_file}...")
-    if "Flow" in globals():
-        flow = AceSeekLibreLaneFlow(cfg_file)
-        flow.start()
-    else:
-        print("[INFO] Run with: python3 -m librelane config.json")
+    cfg = os.path.join(cur_dir, "flow_config.json")
+    run_ace_flow(cfg)
 `;
 
   const files: ExportPackFile[] = [
-    { filename: "config.json", content: librelaneConfig },
-    { filename: "librelane_flow.py", content: librelanePy },
+    { filename: "flow_config.json", content: aceFlowConfig },
+    { filename: "ace_flow.py", content: aceFlowPy },
     { filename: "constraints.sdc", content: sdc },
     { filename: "corners.tcl", content: corners },
     { filename: `rtl/${top}.v`, content: rtl },
