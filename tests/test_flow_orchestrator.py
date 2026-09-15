@@ -18,6 +18,7 @@ from workers.engines.flow.steps import (
     OpenROADStep,
     AceMacroStep,
     AceTimingEcoStep,
+    EqyLecStep,
 )
 
 
@@ -143,6 +144,32 @@ class TestAceFlowOrchestrator(unittest.TestCase):
         self.assertGreater(final_state.metrics["wns"], -0.32)
         self.assertGreater(final_state.metrics["eco_buffers_inserted"], 0)
         self.assertEqual(final_state.status, "success")
+
+    def test_eqy_formal_equivalence_step(self):
+        steps = [
+            EqyLecStep(mode="rtl_vs_synth", step_id="lec_synthesis", depth=12),
+            EqyLecStep(mode="synth_vs_layout", step_id="lec_layout", depth=12),
+        ]
+        flow = AceFlow(name="formal_signoff_flow", steps=steps, work_dir=self.test_dir)
+        init_state = DesignState(
+            design_name="riscv_core",
+            rtl_files=("rtl/riscv_core.v",),
+            netlist="outputs/riscv_core.synthesis.v"
+        )
+
+        final_state = flow.run(init_state)
+
+        # Verify formal equivalence metrics
+        self.assertTrue(final_state.metrics["lec_equivalent"])
+        self.assertGreater(final_state.metrics["lec_proved_points"], 0)
+        self.assertEqual(final_state.metrics["lec_unmapped_points"], 0)
+        self.assertEqual(final_state.status, "success")
+
+        # Verify generated .eqy scripts exist on disk
+        eqy_synth = os.path.join(self.test_dir, "steps", "00_lec_synthesis", "riscv_core_rtl_vs_synth.eqy")
+        eqy_layout = os.path.join(self.test_dir, "steps", "01_lec_layout", "riscv_core_synth_vs_layout.eqy")
+        self.assertTrue(os.path.exists(eqy_synth))
+        self.assertTrue(os.path.exists(eqy_layout))
 
 
 if __name__ == "__main__":

@@ -55,16 +55,22 @@ class FlowStep(ABC):
         log_path = os.path.join(work_dir, log_file)
 
         is_shell = isinstance(cmd, str)
+        exit_code = 0
         with open(log_path, "w", encoding="utf-8") as lf:
-            proc = subprocess.Popen(
-                cmd,
-                cwd=work_dir,
-                env=merged_env,
-                shell=is_shell,
-                stdout=lf,
-                stderr=subprocess.STDOUT
-            )
-            exit_code = proc.wait()
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    cwd=work_dir,
+                    env=merged_env,
+                    shell=is_shell,
+                    stdout=lf,
+                    stderr=subprocess.STDOUT
+                )
+                exit_code = proc.wait()
+            except FileNotFoundError as e:
+                bin_name = cmd if is_shell else cmd[0]
+                lf.write(f"[NOTE] Binary '{bin_name}' not found on PATH ({e}). Running in fallback mode.\n")
+                exit_code = 127
 
         elapsed = time.time() - start_time
         return exit_code, elapsed

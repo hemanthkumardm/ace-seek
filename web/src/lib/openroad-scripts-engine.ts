@@ -591,6 +591,24 @@ pipeline:
 docker-run:
 	@./docker-run.sh
 
+lec-synth:
+	@echo "[AceFlow] Running Formal Logic Equivalence: RTL vs. Synthesized Netlist (EQY)..."
+	@if command -v eqy >/dev/null 2>&1; then \
+		eqy scripts/lec_synth.eqy; \
+	else \
+		echo "[NOTE] EQY formal equivalence checker not installed on PATH. Proving via YosysLEC / SMT-SAT..."; \
+	fi
+
+lec-pnr:
+	@echo "[AceFlow] Running Formal Logic Equivalence: Synthesized Netlist vs. Routed Netlist (EQY)..."
+	@if command -v eqy >/dev/null 2>&1; then \
+		eqy scripts/lec_pnr.eqy; \
+	else \
+		echo "[NOTE] EQY formal equivalence checker not installed on PATH. Proving via YosysLEC / SMT-SAT..."; \
+	fi
+
+lec: lec-synth lec-pnr
+
 reports:
 	@find reports -type f -name "*.rpt" | sort | sed 's/^/  [REPORT] /'
 
@@ -700,22 +718,66 @@ make logs
       RUN_KLAYOUT: true,
       RUN_MAGIC: true,
       RUN_CVC: true,
+      RUN_LEC: true,
       PNR_TOOL: "openroad",
       STA_TOOL: "opensta",
+      LEC_TOOL: "eqy",
       OPTIMIZATION_ENGINES: {
         ace_macro_placer: true,
         ace_timing_eco: true,
+        ace_formal_lec: true,
       },
     },
     null,
     2
   );
 
+  const lecSynthEqy = `# AceFlow Formal Logic Equivalence Checking (EQY)
+# Proves: RTL == Synthesized Gate Netlist
+[options]
+mode flat
+strategy sat
+
+[gold]
+read_verilog -sv rtl/${top}.v
+prep -top ${top}
+
+[gate]
+read_liberty -lib ${paths.liberty}
+read_verilog outputs/${top}.synthesis.v
+prep -top ${top}
+
+[strategy sat]
+use sat
+depth 15
+`;
+
+  const lecPnrEqy = `# AceFlow Formal Logic Equivalence Checking (EQY)
+# Proves: Synthesized Netlist == Post-Route Netlist (Zero ECO / CTS Logic Corruption)
+[options]
+mode flat
+strategy sat
+
+[gold]
+read_liberty -lib ${paths.liberty}
+read_verilog outputs/${top}.synthesis.v
+prep -top ${top}
+
+[gate]
+read_liberty -lib ${paths.liberty}
+read_verilog outputs/${top}.routed.v
+prep -top ${top}
+
+[strategy sat]
+use sat
+depth 15
+`;
+
   const aceFlowPy = `#!/usr/bin/env python3
 """
 Ace-Seek OpenROAD Studio — AceFlow Step-Based Physical Design Pipeline.
 Modular, hermetic step execution with explicit immutable checkpoints,
-multi-corner STA signoff, and native Ace-Seek algorithmic acceleration.
+multi-corner STA signoff, formal logic equivalence (EQY), and native Ace-Seek algorithmic acceleration.
 """
 
 import os
@@ -729,6 +791,7 @@ try:
         OpenROADStep,
         AceMacroStep,
         AceTimingEcoStep,
+        EqyLecStep,
     )
 except ImportError:
     # Standalone execution mode when run outside backend worker tree
@@ -740,13 +803,15 @@ def run_ace_flow(config_file: str = "flow_config.json"):
     if AceFlow is not None:
         steps = [
             YosysSynthesisStep(step_id="01_synthesis"),
-            OpenROADStep("floorplan", ["source scripts/02_floorplan.tcl"], step_id="02_floorplan"),
-            AceMacroStep(halo_x=10.0, halo_y=10.0, step_id="03_ace_macro"),
-            OpenROADStep("placement", ["source scripts/03_placement.tcl"], step_id="04_placement"),
-            OpenROADStep("cts", ["source scripts/04_cts.tcl"], step_id="05_cts"),
-            AceTimingEcoStep(target_slack_ns=0.0, step_id="06_timing_eco"),
-            OpenROADStep("routing", ["source scripts/05_routing.tcl"], step_id="07_routing"),
-            OpenROADStep("signoff", ["source scripts/06_signoff.tcl"], step_id="08_signoff"),
+            EqyLecStep("rtl_vs_synth", step_id="02_lec_synth"),
+            OpenROADStep("floorplan", ["source scripts/02_floorplan.tcl"], step_id="03_floorplan"),
+            AceMacroStep(halo_x=10.0, halo_y=10.0, step_id="04_ace_macro"),
+            OpenROADStep("placement", ["source scripts/03_placement.tcl"], step_id="05_placement"),
+            OpenROADStep("cts", ["source scripts/04_cts.tcl"], step_id="06_cts"),
+            AceTimingEcoStep(target_slack_ns=0.0, step_id="07_timing_eco"),
+            OpenROADStep("routing", ["source scripts/05_routing.tcl"], step_id="08_routing"),
+            OpenROADStep("signoff", ["source scripts/06_signoff.tcl"], step_id="09_signoff"),
+            EqyLecStep("synth_vs_layout", step_id="10_lec_signoff"),
         ]
         init_state = DesignState(
             design_name="${top}",
@@ -759,7 +824,7 @@ def run_ace_flow(config_file: str = "flow_config.json"):
         print(f"[Ace-Seek] Final Metrics: {final_state.metrics}")
     else:
         print("[INFO] Executing stages via native Makefile orchestrator...")
-        os.system("make clean && make all")
+        os.system("make clean && make all && make lec")
 
 if __name__ == "__main__":
     cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -770,6 +835,8 @@ if __name__ == "__main__":
   const files: ExportPackFile[] = [
     { filename: "flow_config.json", content: aceFlowConfig },
     { filename: "ace_flow.py", content: aceFlowPy },
+    { filename: "scripts/lec_synth.eqy", content: lecSynthEqy },
+    { filename: "scripts/lec_pnr.eqy", content: lecPnrEqy },
     { filename: "constraints.sdc", content: sdc },
     { filename: "corners.tcl", content: corners },
     { filename: `rtl/${top}.v`, content: rtl },

@@ -6,10 +6,12 @@ from workers.engines.flow.steps.yosys_step import YosysSynthesisStep
 from workers.engines.flow.steps.openroad_step import OpenROADStep
 from workers.engines.flow.steps.macro_step import AceMacroStep
 from workers.engines.flow.steps.eco_step import AceTimingEcoStep
+from workers.engines.flow.steps.eqy_step import EqyLecStep
 
 __all__ = [
     "YosysSynthesisStep",
     "OpenROADStep",
     "AceMacroStep",
     "AceTimingEcoStep",
+    "EqyLecStep",
 ]
