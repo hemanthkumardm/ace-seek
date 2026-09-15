@@ -33,6 +33,12 @@ run_with_timeout() {
   else "$@"; fi
 }
 
+# Explicit fresh only — never silent wipe of forge_run
+if [[ "${ACE_OPENLANE_OVERWRITE:-0}" == "1" ]]; then
+  log "FRESH_PREP: wiping forge_run (ACE_OPENLANE_OVERWRITE=1)"
+  rm -rf "$JOB_DIR/forge_run"
+fi
+
 bash "${WORKER_DIR}/prepare_ace_forge.sh" "$JOB_DIR" "$TOP" "$PROFILE"
 
 FORGE="$JOB_DIR/forge_run"

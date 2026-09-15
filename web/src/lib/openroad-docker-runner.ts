@@ -110,6 +110,10 @@ export type OpenroadSpawnMeta = {
   flowBackend: "legacy_ol" | "ace_forge";
   /** classic | chip when flowBackend=ace_forge */
   forgeProfile: "classic" | "chip";
+  /** Explicit fresh wipe of ace_run (Studio Fresh rebuild) */
+  forceFresh: "0" | "1";
+  /** Fail if resume broken instead of silent wipe */
+  resumeStrict: "0" | "1";
 };
 
 const jobs = new Map<string, DockerJobRecord>();
@@ -971,6 +975,14 @@ export function startOpenroadDockerJob(
       : "legacy_ol";
   const forgeProfile: "classic" | "chip" =
     rawProfile === "ace_forge_chip" ? "chip" : "classic";
+  // Never silent wipe: overwrite only when Studio sends ACE_FORCE_FRESH=1
+  const rawFresh = mergedConfig.ACE_FORCE_FRESH;
+  delete mergedConfig.ACE_FORCE_FRESH;
+  const forceFresh: "0" | "1" =
+    rawFresh === 1 || rawFresh === true || rawFresh === "1" ? "1" : "0";
+  const overwrite: "0" | "1" = forceFresh;
+  const resumeStrict: "0" | "1" =
+    process.env.ACE_RESUME_STRICT === "0" ? "0" : "1";
   fs.writeFileSync(
     path.join(jobDir, "user_openlane_config.json"),
     JSON.stringify(mergedConfig, null, 2),
@@ -981,11 +993,6 @@ export function startOpenroadDockerJob(
     resolved.openlanePdk ||
     resolved.orfsPlatform ||
     resolved.pdkId;
-
-  const overwrite: "0" | "1" =
-    until === "synthesis" || until === "all" || untilStage === "synthesis"
-      ? "1"
-      : "0";
   const ckptSlug = safeDesignSlug(designName, top);
   const enqueuedAt = new Date().toISOString();
 
@@ -1011,6 +1018,8 @@ export function startOpenroadDockerJob(
     aceAutomacro,
     flowBackend,
     forgeProfile,
+    forceFresh,
+    resumeStrict,
   };
   writeSpawnMeta(jobDir, spawnMeta);
 
@@ -1100,7 +1109,8 @@ function spawnOpenroadWorker(rec: DockerJobRecord, meta: OpenroadSpawnMeta): voi
     OPENLANE_TIMEOUT: process.env.OPENLANE_TIMEOUT || "3600",
     OPENLANE_TAG: "ace_run",
     ACE_OPENLANE_UNTIL: meta.until,
-    ACE_OPENLANE_OVERWRITE: meta.overwrite,
+    ACE_OPENLANE_OVERWRITE: meta.forceFresh ?? meta.overwrite ?? "0",
+    ACE_RESUME_STRICT: meta.resumeStrict ?? "1",
     ACE_AUTOMACRO: meta.aceAutomacro ?? "1",
     ACE_FORGE_PROFILE: meta.forgeProfile ?? "classic",
     OPENROAD_SSH_HOST: process.env.OPENROAD_SSH_HOST || "",

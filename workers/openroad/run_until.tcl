@@ -93,19 +93,23 @@ if { [info exists ::env(OPENLANE_TAG)] && $::env(OPENLANE_TAG) ne "" } {
     set tag $::env(OPENLANE_TAG)
 }
 
+# Resume policy (never silent wipe):
+#   ACE_OPENLANE_OVERWRITE=1  → explicit Fresh rebuild (Studio confirmed)
+#   otherwise                 → resume existing ace_run; create only if missing
+#   ACE_RESUME_STRICT=0       → allow fallback wipe if resume broken (legacy; default 1)
 set overwrite 0
 if { [info exists ::env(ACE_OPENLANE_OVERWRITE)] && $::env(ACE_OPENLANE_OVERWRITE) eq "1" } {
     set overwrite 1
 }
-# Fresh synth / full flow always wipe
-if { $until eq "synthesis" || $until eq "all" } {
-    set overwrite 1
+set resume_strict 1
+if { [info exists ::env(ACE_RESUME_STRICT)] && $::env(ACE_RESUME_STRICT) eq "0" } {
+    set resume_strict 0
 }
 
 set run_dir [file normalize "$design_dir/runs/$tag"]
 set resumed 0
 
-puts "ACE-Seek OpenLane stage runner: until=$until overwrite=$overwrite design=$design_dir tag=$tag"
+puts "ACE-Seek stage runner: until=$until overwrite=$overwrite resume_strict=$resume_strict design=$design_dir tag=$tag"
 
 proc ace_run_step {name body} {
     puts "ACE-Seek: === step $name ==="
@@ -196,28 +200,38 @@ if { ![file exists "$design_dir/constraints.sdc"] } {
     }
 }
 
-if { $overwrite || ![file isdirectory $run_dir] } {
-    puts "ACE-Seek: prep (fresh/overwrite) → $run_dir"
+if { $overwrite } {
+    puts "ACE-Seek: FRESH_PREP (explicit overwrite) → $run_dir"
+    prep -design $design_dir -tag $tag -overwrite
+} elseif { ![file isdirectory $run_dir] } {
+    puts "ACE-Seek: FRESH_PREP (no prior run) → $run_dir"
     prep -design $design_dir -tag $tag -overwrite
 } else {
-    # Tag already exists — OpenLane prep without -overwrite always errors.
-    # Load saved env from previous stage-limited run and continue.
+    # Tag already exists — must resume. Never silently wipe unless strict=0.
     if { ![file exists "$run_dir/config.tcl"] } {
-        puts "ACE-Seek: existing run missing config.tcl — falling back to overwrite prep"
+        set msg "RESUME_REQUIRED_FAILED: $run_dir exists but config.tcl missing. Use Studio Fresh rebuild."
+        puts "ACE-Seek: $msg"
+        if { $resume_strict } {
+            error $msg
+        }
+        puts "ACE-Seek: ACE_RESUME_STRICT=0 — fallback overwrite prep"
         prep -design $design_dir -tag $tag -overwrite
     } else {
-        puts "ACE-Seek: resume existing run (no wipe): $run_dir"
+        puts "ACE-Seek: RESUME_OK (no wipe): $run_dir"
         set ::env(DESIGN_DIR) [file normalize $design_dir]
         set ::env(RUN_DIR) $run_dir
-        # config.tcl is pure "set ::env(...)" from last save_state
         if { [catch { source "$run_dir/config.tcl" } serr] } {
-            puts "ACE-Seek: source config.tcl failed: $serr — overwrite prep"
+            set msg "RESUME_REQUIRED_FAILED: source config.tcl error: $serr. Use Studio Fresh rebuild."
+            puts "ACE-Seek: $msg"
+            if { $resume_strict } {
+                error $msg
+            }
+            puts "ACE-Seek: ACE_RESUME_STRICT=0 — fallback overwrite prep"
             prep -design $design_dir -tag $tag -overwrite
         } else {
             set resumed 1
             puts "ACE-Seek: resumed CURRENT_INDEX=$::env(CURRENT_INDEX) CURRENT_DEF=$::env(CURRENT_DEF)"
             puts "ACE-Seek: CURRENT_NETLIST=$::env(CURRENT_NETLIST)"
-            # Ensure design dir / PDK still correct after host remount
             set ::env(DESIGN_DIR) [file normalize $design_dir]
             set ::env(RUN_DIR) $run_dir
         }

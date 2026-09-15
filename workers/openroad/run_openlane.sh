@@ -100,7 +100,8 @@ run_local_docker() {
     -e DESIGN_SLUG="${DESIGN_SLUG}" \
     -e OPENLANE_TAG="${OPENLANE_TAG}" \
     -e ACE_OPENLANE_UNTIL="${ACE_OPENLANE_UNTIL}" \
-    -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE}" \
+    -e ACE_OPENLANE_OVERWRITE="${ACE_OPENLANE_OVERWRITE:-0}" \
+    -e ACE_RESUME_STRICT="${ACE_RESUME_STRICT:-1}" \
     -e ACE_AUTOMACRO="${ACE_AUTOMACRO:-1}" \
     -v "${PDK_ROOT}:/pdk:ro" \
     -v "${PDK_ROOT}:/root/.volare:ro" \
@@ -324,7 +325,8 @@ fi
 STOPPED_OK=$(echo "$THIS_LOG" | grep -cE "ACE-Seek: stopped after" || true)
 STEP_OK=$(echo "$THIS_LOG" | grep -cE "ACE-Seek: === step .* OK ===" || true)
 FLOW_COMPLETE=$(echo "$THIS_LOG" | grep -cE "ACE-Seek: flow complete" || true)
-RESUME_NOTE=$(echo "$THIS_LOG" | grep -c "ACE-Seek: resume existing run" || true)
+RESUME_NOTE=$(echo "$THIS_LOG" | grep -cE "ACE-Seek: RESUME_OK|ACE-Seek: resume existing run" || true)
+RESUME_FAIL=$(echo "$THIS_LOG" | grep -c "RESUME_REQUIRED_FAILED" || true)
 
 # Map until → required OK step (for stage-limited success)
 need_step=""
@@ -359,8 +361,14 @@ if [[ "$ACE_OPENLANE_UNTIL" == "placement" ]]; then
   fi
 fi
 
+if [[ "$RESUME_FAIL" -gt 0 ]]; then
+  write_status failed "Resume required but failed (RESUME_REQUIRED_FAILED). Use Studio Fresh rebuild… to wipe ace_run."
+  log "FAILED resume-strict until=$ACE_OPENLANE_UNTIL"
+  exit 1
+fi
+
 if [[ "$PREP_EXISTS_ERR" -gt 0 && "$RESUME_NOTE" -eq 0 ]]; then
-  write_status failed "OpenLane prep failed: run tag already exists and resume did not load (until=$ACE_OPENLANE_UNTIL). See run.log"
+  write_status failed "Prep failed: run tag exists and resume did not load (until=$ACE_OPENLANE_UNTIL). Use Fresh rebuild…"
   log "FAILED prep-exists until=$ACE_OPENLANE_UNTIL rc=$rc"
   exit 1
 fi

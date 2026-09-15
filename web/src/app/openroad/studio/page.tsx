@@ -167,6 +167,7 @@ export default function OpenroadPnRStudioPage() {
   const [cloudProjectId, setCloudProjectId] = useState<string | null>(null);
   const [lastAssertions, setLastAssertions] = useState<StageAssertion[]>([]);
   const [lastCheckpoint, setLastCheckpoint] = useState<string | null>(null);
+  const [checkpointStage, setCheckpointStage] = useState<string | null>(null);
   /** Elapsed seconds while a stage request is in flight */
   const [runElapsedSec, setRunElapsedSec] = useState(0);
   const [runHint, setRunHint] = useState("");
@@ -196,12 +197,18 @@ export default function OpenroadPnRStudioPage() {
     })
       .then((r) => r.json())
       .then((d) => {
-        if (d?.exists && d.path) setLastCheckpoint(String(d.path));
+        if (d?.exists && d.path) {
+          setLastCheckpoint(String(d.path));
+          setCheckpointStage(d.stage ? String(d.stage) : null);
+        } else {
+          setLastCheckpoint(null);
+          setCheckpointStage(null);
+        }
       })
       .catch(() => {
         /* */
       });
-  }, [project?.designName, project?.topModule]);
+  }, [project?.designName, project?.topModule, completed]);
 
   /** Load project + flow config → stage inputs; hydrate from Supabase when available */
   useEffect(() => {
@@ -1259,7 +1266,10 @@ export default function OpenroadPnRStudioPage() {
   };
 
   /** Run one stage in order only (re-run allowed on the open stage tab) */
-  const onRunStage = async (stage: FlowStageId) => {
+  const onRunStage = async (
+    stage: FlowStageId,
+    opts?: { forceFresh?: boolean }
+  ) => {
     if (!project) return;
     // Allow re-run: treat completed stages after this as not required for gate
     const priorsOnly = completed.filter((id) => {
@@ -1314,10 +1324,15 @@ export default function OpenroadPnRStudioPage() {
     setBottomTab("log");
     setLogFilter("stage");
     setRunElapsedSec(0);
-    setRunHint(`Starting ${stage}…`);
+    const fresh = Boolean(opts?.forceFresh);
+    setRunHint(
+      fresh
+        ? `Fresh rebuild ${stage} (wipes ace_run)…`
+        : `Continue ${stage} (resume ace_run if present — no silent wipe)…`
+    );
     setLog(
       (prev) =>
-        `${prev}\n--- ${stage} ---\n[Ace-Seek] Starting ${stage}… please wait.\n`
+        `${prev}\n--- ${stage} ---\n[Ace-Seek] ${fresh ? "FRESH_PREP" : "RESUME_PREFERRED"} ${stage}…\n`
     );
     stopPoll();
 
@@ -1327,6 +1342,7 @@ export default function OpenroadPnRStudioPage() {
     openlaneConfig.DESIGN_NAME = project.topModule || "top";
     openlaneConfig.ACE_AUTOMACRO = loadAutomacroEnabled() ? 1 : 0;
     openlaneConfig.ACE_FLOW_PROFILE = project.flowProfile || "legacy_pnr";
+    openlaneConfig.ACE_FORCE_FRESH = fresh ? 1 : 0;
     openlaneConfig.LINT_TOP =
       resolveField("lint", "LINT_TOP", stageInputs) || project.topModule;
     openlaneConfig.SIM_TB_TOP = resolveField(
@@ -1579,7 +1595,16 @@ export default function OpenroadPnRStudioPage() {
       setErr("All stages completed");
       return;
     }
-    void onRunStage(nextStage);
+    // Continue — never silent wipe
+    void onRunStage(nextStage, { forceFresh: false });
+  };
+
+  const onFreshRebuildSelected = () => {
+    const ok = window.confirm(
+      `Fresh rebuild of "${stageMeta.label}"?\n\nThis WIPES the container ace_run for this design and rebuilds from RTL through this stage. Later stage results will be invalidated.\n\nPrefer Continue/Resume when possible.`
+    );
+    if (!ok) return;
+    void onRunStage(selectedStage, { forceFresh: true });
   };
 
   const stageSchema = STAGE_CONFIG_SCHEMAS.find((s) => s.id === selectedStage);
@@ -1884,23 +1909,30 @@ export default function OpenroadPnRStudioPage() {
           <button
             type="button"
             disabled={running || !canReRunSelected}
-            onClick={() => void onRunStage(selectedStage)}
+            onClick={() => void onRunStage(selectedStage, { forceFresh: false })}
             className="neu-btn !text-[11px] !py-2 !px-3 font-black disabled:opacity-50"
             title={
               canReRunSelected
-                ? completed.includes(selectedStage)
-                  ? `Re-run ${selectedStage} (invalidates later stages)`
-                  : `Run ${selectedStage}`
+                ? `Continue ${selectedStage} — resumes ace_run if present (no silent wipe)`
                 : canRunSelected.reason || "Stage locked"
             }
           >
             {completed.includes(selectedStage)
-              ? `Re-run ${stageMeta.short}`
+              ? `Continue ${stageMeta.short}`
               : selectedStage === "lint"
                 ? "Run lint"
                 : selectedStage === "simulation"
                   ? "Run sim"
-                  : `Run ${stageMeta.short}`}
+                  : `Continue ${stageMeta.short}`}
+          </button>
+          <button
+            type="button"
+            disabled={running || !canReRunSelected}
+            onClick={() => onFreshRebuildSelected()}
+            className="neu-btn !text-[10px] !py-2 !px-2 font-black text-amber-800 disabled:opacity-50"
+            title="Wipe ace_run and rebuild from RTL through this stage (explicit only)"
+          >
+            Fresh rebuild…
           </button>
           {job?.jobId && (
             <button
@@ -1951,6 +1983,22 @@ export default function OpenroadPnRStudioPage() {
         </div>
       </div>
 
+      {(lastCheckpoint || checkpointStage) && (
+        <div className="shrink-0 mx-4 mt-2 neu-inset px-3 py-2 text-[11px] font-bold text-sky-900 bg-sky-50 border border-sky-200 flex flex-wrap items-center gap-2">
+          <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+          <span>
+            Checkpoint{checkpointStage ? ` @ ${checkpointStage}` : ""} —{" "}
+            <strong>Continue</strong> resumes the job dir (no silent wipe). Use{" "}
+            <strong>Fresh rebuild…</strong> only when you intend to wipe{" "}
+            <code className="text-sky-800">ace_run</code>.
+          </span>
+          {lastCheckpoint && (
+            <span className="text-[9px] font-mono text-sky-700/80 truncate max-w-full">
+              {lastCheckpoint}
+            </span>
+          )}
+        </div>
+      )}
       {err && (
         <div className="shrink-0 mx-4 mt-2 neu-inset px-3 py-2 text-[11px] font-bold text-rose-700 flex items-center gap-2">
           <AlertTriangle className="w-3.5 h-3.5" /> {err}

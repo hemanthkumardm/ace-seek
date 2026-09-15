@@ -33,5 +33,9 @@ export async function GET(req: NextRequest) {
     path: info.path,
     stage: info.stage,
     ownerId: info.ownerId,
+    resumePolicy: "strict",
+    hint: info.exists
+      ? "Continue/Resume keeps ace_run. Fresh rebuild wipes it (explicit only)."
+      : "No checkpoint yet — first Continue will create a fresh ace_run.",
   });
 }
