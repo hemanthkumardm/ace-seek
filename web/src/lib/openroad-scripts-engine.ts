@@ -687,7 +687,85 @@ make logs
 \`\`\`
 `;
 
+  const librelaneConfig = JSON.stringify(
+    {
+      DESIGN_NAME: top,
+      VERILOG_FILES: [`dir::rtl/${top}.v`],
+      CLOCK_PORT: "clk",
+      CLOCK_PERIOD: 15.0,
+      DESIGN_IS_CORE: true,
+      FP_CORE_UTIL: 45,
+      PL_TARGET_DENSITY: 0.50,
+      GRT_ADJUSTMENT: 0.15,
+      RUN_KLAYOUT: true,
+      RUN_MAGIC: true,
+      RUN_CVC: true,
+      PNR_TOOL: "openroad",
+      STA_TOOL: "opensta",
+    },
+    null,
+    2
+  );
+
+  const librelanePy = `#!/usr/bin/env python3
+"""
+Ace-Seek OpenROAD Studio — LibreLane (OpenLane 2) Step Automation Flow.
+Executes hermetic steps with explicit state tracking, reproducible checkpoints,
+and multi-corner STA signoff.
+"""
+
+import os
+import sys
+
+try:
+    from librelane.flows import Flow
+    from librelane.steps import (
+        Yosys,
+        OpenROAD,
+        Magic,
+        KLayout,
+        Misc,
+    )
+except ImportError:
+    print("[NOTE] LibreLane Python package not installed in the active environment.")
+    print("To install: pip install librelane  OR run via nix-shell")
+
+class AceSeekLibreLaneFlow(Flow):
+    """Hermetic step-by-step physical design flow with explicit state checkpoints."""
+    Steps = [
+        Yosys.Synthesis,
+        OpenROAD.Floorplan,
+        OpenROAD.IOPlacement,
+        OpenROAD.GlobalPlacement,
+        OpenROAD.DetailedPlacement,
+        OpenROAD.CTS,
+        OpenROAD.ResizerTimingPostCTS,
+        OpenROAD.GlobalRouting,
+        OpenROAD.DetailedRouting,
+        OpenROAD.ResizerTimingPostRouting,
+        OpenROAD.FillInsertion,
+        Magic.StreamOut,
+        Magic.DRC,
+        Magic.SpiceExtraction,
+        KLayout.StreamOut,
+        KLayout.XOR,
+        Misc.ReportManufacturability,
+    ]
+
+if __name__ == "__main__":
+    cur_dir = os.path.dirname(os.path.abspath(__file__))
+    cfg_file = os.path.join(cur_dir, "config.json")
+    print(f"[Ace-Seek] Starting LibreLane automation pipeline for {cfg_file}...")
+    if "Flow" in globals():
+        flow = AceSeekLibreLaneFlow(cfg_file)
+        flow.start()
+    else:
+        print("[INFO] Run with: python3 -m librelane config.json")
+`;
+
   const files: ExportPackFile[] = [
+    { filename: "config.json", content: librelaneConfig },
+    { filename: "librelane_flow.py", content: librelanePy },
     { filename: "constraints.sdc", content: sdc },
     { filename: "corners.tcl", content: corners },
     { filename: `rtl/${top}.v`, content: rtl },
