@@ -326,6 +326,7 @@ export function OpenroadStudioCenterView({
         apiKeyResolved={apiKeyResolved}
         setErr={setErr}
         setRunHint={setRunHint}
+        cellCount={cellCount}
       />
     );
   }
@@ -338,6 +339,7 @@ export function OpenroadStudioCenterView({
       stageLogLines={stageLogLines}
       selectedArtifacts={selectedArtifacts}
       project={project}
+      cellCount={cellCount}
     />
   );
 }
@@ -355,6 +357,7 @@ function ChipViewPanel({
   apiKeyResolved,
   setErr,
   setRunHint,
+  cellCount,
 }: {
   stageMeta: Pick<FlowStageDef, "id" | "label" | "short" | "description">;
   project: OpenroadProjectState;
@@ -365,8 +368,9 @@ function ChipViewPanel({
   apiKeyResolved: () => string;
   setErr: (msg: string) => void;
   setRunHint: (msg: string) => void;
+  cellCount?: number | null;
 }) {
-  const [activeTab, setActiveTab] = useState<"die3d" | "timing" | "vnc" | "reports">("die3d");
+  const [activeTab, setActiveTab] = useState<"vnc" | "timing" | "reports">("vnc");
   const [vncModalOpen, setVncModalOpen] = useState(false);
   const [vncUrl, setVncUrl] = useState("");
   const [vncOdbLabel, setVncOdbLabel] = useState("top.odb");
@@ -505,7 +509,7 @@ function ChipViewPanel({
             </span>
           </div>
           <p className="text-[11px] font-bold text-[var(--neu-text-muted)] mt-0.5 max-w-2xl">
-            {stageMeta.description} · Interactive 3D silicon perspective, layer visibility matrix, & timing closure.
+            {stageMeta.description} · Real OpenDB database layout, OpenSTA timing closure, and signoff reports.
           </p>
         </div>
 
@@ -513,15 +517,15 @@ function ChipViewPanel({
         <div className="flex items-center gap-1 p-1 rounded-xl bg-[#060a14] border border-white/10 shadow-inner">
           <button
             type="button"
-            onClick={() => setActiveTab("die3d")}
+            onClick={() => setActiveTab("vnc")}
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-              activeTab === "die3d"
+              activeTab === "vnc"
                 ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
                 : "text-slate-300 hover:text-white hover:bg-white/5"
             }`}
           >
-            <Box className="w-3.5 h-3.5" />
-            3D Die & Metal Stack
+            <Monitor className="w-3.5 h-3.5" />
+            OpenROAD GUI (VNC)
           </button>
           <button
             type="button"
@@ -534,18 +538,6 @@ function ChipViewPanel({
           >
             <Zap className="w-3.5 h-3.5" />
             Timing & Slack Inspector
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("vnc")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-              activeTab === "vnc"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
-                : "text-slate-300 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            OpenROAD GUI (VNC)
           </button>
           <button
             type="button"
@@ -562,63 +554,9 @@ function ChipViewPanel({
         </div>
       </div>
 
-      {/* Tab 1: 3D Die & Silicon Stacking Viewer */}
-      {activeTab === "die3d" && (
-        <div className="flex-1 flex flex-col min-h-0 space-y-2">
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-[#070e1c] border border-cyan-500/30 text-xs">
-            <div className="flex items-center gap-2 font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-cyan-300 font-bold">
-                Silicon Interconnect Stack: li1, met1, met2, met3, met4, met5 + Vias
-              </span>
-              <span className="text-[10px] text-slate-400 hidden sm:inline">
-                (SkyWater 130nm PDK)
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <a
-                href="/die_viewer_3d.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-cyan-400 hover:text-cyan-200 text-xs font-bold inline-flex items-center gap-1 underline"
-              >
-                Fullscreen 3D Viewer ↗
-              </a>
-            </div>
-          </div>
-
-          <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden border border-cyan-500/40 bg-[#020617] relative shadow-2xl">
-            <iframe
-              src="/die_viewer_3d.html"
-              className="w-full h-full border-0"
-              title="Interactive 3D Die & Metal Stack Viewer"
-            />
-          </div>
-
-          <div className="neu-inset px-3 py-2 text-[10px] font-bold text-slate-400 flex flex-wrap items-center justify-between gap-2">
-            <span>
-              💡 <strong>3D Controls:</strong> Left-drag to orbit · Right-drag to pan · Scroll to zoom · Use <strong>Z-Spread Slider</strong> to explode metal interconnect layers · Check/uncheck layers or click <strong>Solo</strong> to isolate routing.
-            </span>
-            <span className="text-cyan-400 font-mono">
-              Supports live Drag & Drop of any custom .def / .odb file
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Timing & Slack Inspector */}
-      {activeTab === "timing" && (
-        <div className="flex-1 min-h-[620px] overflow-y-auto">
-          <OpenroadTimingInspector
-            artifacts={selectedArtifacts}
-            designName={project?.designName || "Ibex RV32 RISC-V"}
-          />
-        </div>
-      )}
-
-      {/* Tab 3: OpenROAD Native GUI (VNC) */}
+      {/* Tab 1: OpenROAD Native GUI (VNC) */}
       {activeTab === "vnc" && (
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 flex-1 overflow-auto">
           <div className="flex flex-wrap gap-2 items-center">
             <button
               type="button"
@@ -650,10 +588,10 @@ function ChipViewPanel({
 
           <div className="neu-inset p-4 text-[11px] font-bold text-[var(--neu-text-muted)] space-y-2 rounded-xl">
             <p className="text-white font-black uppercase text-xs">
-              Direct Desktop X11 Streaming
+              Direct Desktop X11 Streaming on Real OpenDB (ODB)
             </p>
             <p>
-              Streams the native OpenROAD GUI binary with full access to the real ODB database, DRC marker browser, congestion heatmaps, and timing report visualizer.
+              Streams the native OpenROAD GUI binary with direct hardware-accelerated access to the real ODB database, exact cell locations, pin coordinates, clock trees, DRC marker browser, and congestion heatmaps.
             </p>
             <p>
               Needs a display for the GUI window (
@@ -673,6 +611,16 @@ function ChipViewPanel({
               </code>
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Tab 2: Timing & Slack Inspector */}
+      {activeTab === "timing" && (
+        <div className="flex-1 min-h-[620px] overflow-y-auto">
+          <OpenroadTimingInspector
+            artifacts={selectedArtifacts}
+            designName={project?.designName || "Ibex RV32 RISC-V"}
+          />
         </div>
       )}
 
@@ -798,14 +746,16 @@ function ReportViewPanel({
   stageLogLines,
   selectedArtifacts,
   project,
+  cellCount,
 }: {
   stageMeta: Pick<FlowStageDef, "id" | "label" | "short" | "description">;
   job: OpenroadJobResult | null;
   stageLogLines: string[];
   selectedArtifacts: StageArtifact[];
   project: OpenroadProjectState;
+  cellCount?: number | null;
 }) {
-  const [activeReportTab, setActiveReportTab] = useState<"log" | "die3d" | "timing">("log");
+  const [activeReportTab, setActiveReportTab] = useState<"log" | "timing">("log");
 
   return (
     <div className="neu-panel p-4 space-y-3 h-full flex flex-col">
@@ -829,18 +779,6 @@ function ReportViewPanel({
           >
             <FileText className="w-3.5 h-3.5" />
             Signoff Log
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveReportTab("die3d")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-              activeReportTab === "die3d"
-                ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30"
-                : "text-slate-300 hover:text-white hover:bg-white/5"
-            }`}
-          >
-            <Box className="w-3.5 h-3.5" />
-            3D Tapeout Die Viewer
           </button>
           <button
             type="button"
@@ -873,16 +811,6 @@ function ReportViewPanel({
             {stageLogLines.slice(-120).join("\n") ||
               "No stage log yet — run OpenLane flow through signoff."}
           </pre>
-        </div>
-      )}
-
-      {activeReportTab === "die3d" && (
-        <div className="flex-1 min-h-[580px] rounded-xl overflow-hidden border border-cyan-500/40 bg-[#020617] relative">
-          <iframe
-            src="/die_viewer_3d.html"
-            className="w-full h-full border-0"
-            title="3D Tapeout Die Viewer"
-          />
         </div>
       )}
 

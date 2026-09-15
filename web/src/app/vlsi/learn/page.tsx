@@ -140,6 +140,7 @@ export default function VlsiLearnHub() {
             ["STA engineer", "/vlsi/learn/c/sta", "Static timing"],
             ["Constraints", "/vlsi/learn/c/sdc", "SDC course"],
             ["Interview prep", "/vlsi/interview-masterclass", "Interview Masterclass"],
+            ["3D Silicon Lab", "/die_viewer_3d.html", "3D Silicon Die & Fabrication Lab"],
             ["Practice studio", "/vlsi/sdc-studio", "SDC Studio"],
           ].map(([label, href, cta]) => (
             <Link
@@ -159,6 +160,32 @@ export default function VlsiLearnHub() {
           ))}
         </div>
       </header>
+
+      {/* Interactive 3D Silicon & Semiconductor Fabrication Lab */}
+      <div className="rounded-2xl p-5 border border-cyan-500/30 bg-gradient-to-r from-[#031525] via-[#051a2e] to-[#04111d] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-950 text-cyan-300 border border-cyan-500/40">
+              Interactive 3D Lab · Fabrication & BEOL
+            </span>
+            <span className="text-xs text-slate-400 font-mono">SkyWater 130nm PDK</span>
+          </div>
+          <h3 className="text-lg font-bold text-white tracking-tight">
+            3D Silicon Die & Multi-Layer Interconnect Stack Explorer
+          </h3>
+          <p className="text-xs leading-relaxed text-slate-300">
+            Visualize silicon wafer substrate physics, exploded Z-spread elevation, and Back-End-Of-Line (BEOL) metal layer stacking from <code className="text-cyan-300">li1</code> through <code className="text-amber-300">met5</code>. Inspect power distribution grids, via pillars, and macro keep-out halos with 3D orbit and cross-section cutaway.
+          </p>
+        </div>
+        <a
+          href="/die_viewer_3d.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20"
+        >
+          Launch 3D Silicon Lab ↗
+        </a>
+      </div>
 
       {/* Core Foundational Courses */}
       <div className="space-y-10">
