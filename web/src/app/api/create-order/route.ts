@@ -17,31 +17,6 @@ const PLAN_PRICES_INR: Record<string, number> = {
 
 export async function POST(req: NextRequest) {
   try {
-    if (!isClerkConfigured()) {
-      return NextResponse.json(
-        { error: "Sign in is required before checkout. Configure Clerk on the server." },
-        { status: 503 }
-      );
-    }
-
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Sign in required to purchase a plan.", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
-
-    const user = await currentUser();
-    const email =
-      user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses?.[0]?.emailAddress ||
-      "";
-    const name =
-      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-      user?.username ||
-      "";
-
     const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
@@ -55,12 +30,84 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const billable = normalizeBillablePlan(body.planId || body.plan || "pro");
-    const planKey =
-      billable === "interview_bundle" ? "interview_bundle" : billable;
+    const body = (await req.json()) as {
+      planId?: string;
+      plan?: string;
+      amount?: number;
+    };
 
-    let amountInRupees = Number(body.amount) || PLAN_PRICES_INR[planKey] || 1299;
+    const rawPlan = String(body.planId || body.plan || "pro").toLowerCase();
+    const isDonate = rawPlan === "donate" || rawPlan === "donation";
+
+    let userId = "";
+    let email = "";
+    let name = "";
+
+    if (isDonate) {
+      // Donations: sign-in optional
+      if (isClerkConfigured()) {
+        const session = await auth();
+        userId = session.userId || "";
+        if (userId) {
+          const user = await currentUser();
+          email =
+            user?.primaryEmailAddress?.emailAddress ||
+            user?.emailAddresses?.[0]?.emailAddress ||
+            "";
+          name =
+            [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+            user?.username ||
+            "";
+        }
+      }
+    } else {
+      if (!isClerkConfigured()) {
+        return NextResponse.json(
+          {
+            error:
+              "Sign in is required before checkout. Configure Clerk on the server.",
+          },
+          { status: 503 }
+        );
+      }
+
+      const { userId: uid } = await auth();
+      if (!uid) {
+        return NextResponse.json(
+          { error: "Sign in required to purchase a plan.", code: "AUTH_REQUIRED" },
+          { status: 401 }
+        );
+      }
+      userId = uid;
+      const user = await currentUser();
+      email =
+        user?.primaryEmailAddress?.emailAddress ||
+        user?.emailAddresses?.[0]?.emailAddress ||
+        "";
+      name =
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+        user?.username ||
+        "";
+    }
+
+    let planKey: string;
+    let amountInRupees: number;
+
+    if (isDonate) {
+      planKey = "donate";
+      amountInRupees = Number(body.amount);
+      if (!Number.isFinite(amountInRupees) || amountInRupees < 1) {
+        return NextResponse.json(
+          { error: "Please enter a valid donation amount (minimum ₹1)." },
+          { status: 400 }
+        );
+      }
+    } else {
+      const billable = normalizeBillablePlan(rawPlan);
+      planKey = billable === "interview_bundle" ? "interview_bundle" : billable;
+      amountInRupees = Number(body.amount) || PLAN_PRICES_INR[planKey] || 1299;
+    }
+
     const amountInPaise = Math.round(amountInRupees * 100);
 
     if (!amountInPaise || amountInPaise < 100) {
@@ -82,10 +129,11 @@ export async function POST(req: NextRequest) {
       receipt: receiptId,
       notes: {
         plan: planKey,
-        user_id: userId,
+        user_id: userId || "",
         email: email || "",
         name: name || "",
         site: "ace-seek.com",
+        kind: isDonate ? "donation" : "subscription",
       },
     });
 
@@ -104,7 +152,7 @@ export async function POST(req: NextRequest) {
       keyId,
       key_id: keyId,
       plan: planKey,
-      user_id: userId,
+      user_id: userId || null,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

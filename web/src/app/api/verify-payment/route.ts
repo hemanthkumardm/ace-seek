@@ -26,36 +26,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!isClerkConfigured()) {
-      return NextResponse.json(
-        { error: "Account system is not configured.", code: "CLERK_REQUIRED" },
-        { status: 503 }
-      );
-    }
-
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Sign in required to activate your plan.",
-          code: "AUTH_REQUIRED",
-        },
-        { status: 401 }
-      );
-    }
-
-    const user = await currentUser();
-    const email =
-      user?.primaryEmailAddress?.emailAddress ||
-      user?.emailAddresses?.[0]?.emailAddress ||
-      "";
-    const name =
-      [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-      user?.username ||
-      email ||
-      "Engineer";
-
     const body = await req.json();
     const {
       razorpay_order_id,
@@ -64,6 +34,61 @@ export async function POST(req: NextRequest) {
       plan,
       planId,
     } = body;
+
+    const rawPlanEarly = String(planId || plan || "pro").toLowerCase();
+    const isDonate =
+      rawPlanEarly === "donate" || rawPlanEarly === "donation";
+
+    let userId = "";
+    let email = "";
+    let name = "Engineer";
+
+    if (!isDonate) {
+      if (!isClerkConfigured()) {
+        return NextResponse.json(
+          { error: "Account system is not configured.", code: "CLERK_REQUIRED" },
+          { status: 503 }
+        );
+      }
+
+      const session = await auth();
+      if (!session.userId) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Sign in required to activate your plan.",
+            code: "AUTH_REQUIRED",
+          },
+          { status: 401 }
+        );
+      }
+      userId = session.userId;
+      const user = await currentUser();
+      email =
+        user?.primaryEmailAddress?.emailAddress ||
+        user?.emailAddresses?.[0]?.emailAddress ||
+        "";
+      name =
+        [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+        user?.username ||
+        email ||
+        "Engineer";
+    } else if (isClerkConfigured()) {
+      const session = await auth();
+      userId = session.userId || "";
+      if (userId) {
+        const user = await currentUser();
+        email =
+          user?.primaryEmailAddress?.emailAddress ||
+          user?.emailAddresses?.[0]?.emailAddress ||
+          "";
+        name =
+          [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+          user?.username ||
+          email ||
+          "Supporter";
+      }
+    }
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       logger.warn("payment.verify_missing_fields", { body });
@@ -98,7 +123,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const billable = normalizeBillablePlan(planId || plan || "pro");
+    const rawPlan = String(planId || plan || "pro").toLowerCase();
+    if (rawPlan === "donate" || rawPlan === "donation") {
+      // Donations: verify only — do not change SaaS plan
+      logger.trackAnalytics("donation_verified", {
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        userId: userId || "anonymous",
+        email: email || "unknown",
+      });
+      return NextResponse.json({
+        success: true,
+        kind: "donation",
+        message: "Thank you for supporting Ace-Seek.",
+        payment_id: razorpay_payment_id,
+        order_id: razorpay_order_id,
+      });
+    }
+
+    const billable = normalizeBillablePlan(rawPlan);
     const applied = await applyPlanToUser({
       userId,
       billable,

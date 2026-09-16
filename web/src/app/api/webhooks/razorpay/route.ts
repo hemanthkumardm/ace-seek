@@ -54,13 +54,30 @@ export async function POST(req: NextRequest) {
         event.payload?.payment?.entity || event.payload?.order?.entity;
       const notes = entity?.notes || {};
       const userId = String(notes.user_id || "").trim();
-      const billable = normalizeBillablePlan(notes.plan || "pro");
+      const planNote = String(notes.plan || notes.kind || "").toLowerCase();
       const paymentId = String(entity?.id || "");
       const orderId = String(
         entity?.order_id || notes.order_id || entity?.id || ""
       );
       const email = String(notes.email || entity?.email || "");
       const name = String(notes.name || "");
+
+      // Donations never change SaaS plan
+      if (
+        planNote === "donate" ||
+        planNote === "donation" ||
+        notes.kind === "donation"
+      ) {
+        logger.info("razorpay.webhook_donation", { paymentId, orderId });
+        return NextResponse.json({
+          status: "ok",
+          processed: true,
+          kind: "donation",
+          event: eventType,
+        });
+      }
+
+      const billable = normalizeBillablePlan(notes.plan || "pro");
 
       if (!userId) {
         logger.warn("razorpay.webhook_missing_user_id", {

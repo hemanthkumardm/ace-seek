@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { PORTAL_URL } from "@/lib/site";
+import { DonateButton } from "@/components/DonateModal";
 
 type Props = {
   /** Highlight active nav key */
@@ -293,6 +294,7 @@ export function SiteFooter() {
             <span>© {new Date().getFullYear()} Ace-Seek Inc. Apex SaaS Portal</span>
           </div>
           <div className="flex items-center gap-4 font-mono text-[11px]">
+            <DonateButton />
             <span className="flex items-center gap-1.5">
               <Activity className="w-3 h-3 text-[var(--led-green)]" />
               <span>v2.8.0</span>
