@@ -160,12 +160,18 @@ export function CheckoutModal({
         prefillObj.contact = user.primaryPhoneNumber.phoneNumber;
       }
 
+      // Shown on Razorpay Checkout + UPI QR / Intent payment sheet
+      const amountPaise = Number(orderData.amount) || 0;
+      const amountInr =
+        amountPaise > 0 ? `₹${(amountPaise / 100).toLocaleString("en-IN")}` : price;
+      const payDescription = `Ace-Seek ${planName} · ${amountInr} · VLSI SaaS access`;
+
       const options: RazorpayOptions = {
         key: keyId,
         amount: orderData.amount,
         currency: orderData.currency || "INR",
-        name: "Ace-Seek Technologies",
-        description: `Subscription — ${planName}`,
+        name: "Ace-Seek",
+        description: payDescription,
         order_id: orderId,
         remember_customer: false,
         prefill: prefillObj,
