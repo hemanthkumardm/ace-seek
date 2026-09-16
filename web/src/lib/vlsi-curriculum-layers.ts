@@ -4487,62 +4487,210 @@ WARN: Do not \`gg=G\` a synthesized netlist. Ever.
     { id: "gx2", prompt: "How do you apply a block-visual edit across 20 lines simultaneously in GVim?", choices: ["Press `Ctrl-v` to select the vertical column, press `Shift-I` to insert text, and press `Esc`", "Press `dd` 20 times", "Type `:replace all`", "Use the mouse wheel"], answer: 0, explain: "Ctrl-v block visual mode allows vertical column insertions on Esc." },
   ]),
 
-  // ——— PDK & EDA Formats Track (4 Layers) ———
-  theory("pdk", "beginner", "pdk-beginner-formats", "Beginner: PDK Foundations — LIB, LEF, QRC, SPEF, GDSII & CDL", 16,
-    "The complete taxonomy of foundry design kit files from logical modeling to physical silicon tapeout.",
+  // ——— PDK & EDA Formats Track (expanded: formats · tech nodes · LIB/LEF anatomy) ———
+  theory(
+    "pdk",
+    "beginner",
+    "pdk-beginner-formats",
+    "Beginner: What a PDK Is — File Map from RTL to Masks",
+    22,
+    "A Process Design Kit is the foundry contract: electrical models, physical abstracts, extraction rules, and mask data formats. Learn which file answers which question.",
     [
-      "What is a Process Design Kit (PDK)? A PDK is the complete library of electrical, physical, and simulation models provided by semiconductor foundries (e.g. SkyWater 130nm, OpenROAD FreePDK, ASAP7, IHP 130nm) for IC design.",
-      "The Essential PDK File Formats: 1) **.LIB / .DB (Liberty)**: Characterized standard cell delay, leakage power, and dynamic switching energy; 2) **LEF (Library Exchange Format)**: Metal routing rules (Tech LEF) and cell abstract boundary/pin geometries (Macro LEF); 3) **QRC / TLUplus / ICT**: 3D field-solver dielectric and metal resistivity rules for parasitic extraction; 4) **SPEF (Standard Parasitic Exchange Format)**: Extracted distributed Pi-model RC networks; 5) **GDSII / OASIS**: Full binary mask polygons for photolithography fabrication; 6) **CDL / SPICE**: Transistor-level schematic netlists with channel widths and lengths for LVS (Layout vs Schematic) verification.",
-      "Abstraction & IP Protection: Macro LEF files expose only the outer cell boundary and routing pins (`PIN A`, `PIN Y`), keeping internal transistor layouts and diffusion layers proprietary and hidden from third-party IP users.",
-    ]),
+      "A **PDK (Process Design Kit)** is the bundle of models and rule decks a foundry (or open PDK project) ships so your tools can synthesize, place, route, extract, and verify against that process. Without a consistent PDK, STA, PnR, and LVS disagree.",
+      "Ask the right file the right question:\n| Question | Format |\n|---|---|\n| How fast/leaky is this NAND? | **Liberty `.lib` / `.db`** |\n| Where can metal go? Cell outline & pins? | **Tech LEF** + **cell/macro LEF** |\n| What RC does this metal stack create? | **ITF / TLUplus / QRC / ICT** |\n| What RC did *this* routed net get? | **SPEF / DSPF** |\n| Does layout match schematic transistors? | **CDL/SPICE** vs extracted GDS (**LVS**) |\n| What polygons go to the mask shop? | **GDSII / OASIS** |\n| Where did PnR put instances & nets? | **DEF** (design exchange) |\n| How do I time the chip? | **SDC** (not PDK, but always paired) |",
+      "**Logical vs physical vs parasitic vs mask:** `.lib` is *behavior under PVT*; LEF is *geometry abstracts for tools*; SPEF is *instance-specific parasitics after route*; GDS is *full mask truth*. Mixing them up is the #1 beginner confusion.",
+      "**Open vs commercial kits:** SkyWater **sky130** / GF **gf180** arrive via open_pdks + volare (Ace-Seek OpenLane). **ASAP7 / Nangate45 / IHP sg13g2** often arrive as **ORFS platforms** under `OPENROAD_FLOW_ROOT/platforms/…`. Commercial nodes ship encrypted Liberty, Calibre runsets, and NDAs — same *roles*, different packaging.",
+      "**Ace-Seek link:** OpenROAD Studio → Project → PDK chip picks which kit the worker must have installed. Export packs embed liberty/LEF basenames for that PDK. Practice: open `/openroad/project` and read the install hint for each PDK.",
+    ],
+    {
+      title: "Mental model — one inverter across formats",
+      lang: "text",
+      source: `sky130_fd_sc_hd__inv_1
+  .lib  → cell delay/power tables @ TT/SS/FF …
+  .lef  → SIZE, SITE, PIN A/Y on met1, OBS
+  .gds  → full poly/diff/contact/metal polygons
+  .cdl  → MOSFET netlist for LVS
+PnR places the LEF; STA reads the .lib; tapeout ships GDS.`,
+    },
+    [
+      "Can explain LIB vs LEF vs GDS vs SPEF in one sentence each",
+      "Knows DEF is the PnR database exchange, not a foundry mask format",
+      "Can name sky130 (OpenLane) vs asap7 (ORFS) delivery styles",
+    ]
+  ),
 
-  quiz("pdk", "beginner", "pdk-beginner-quiz", "PDK — Beginner Formats Quiz", [
-    { id: "pdk_b1", prompt: "Which PDK file format is delivered to the semiconductor foundry mask shop for silicon chip fabrication?", choices: ["GDSII / OASIS binary stream", "LEF abstract file", "Liberty (.lib) timing table", "SDC constraint script"], answer: 0, explain: "GDSII / OASIS contains the full geometric polygon mask data for all physical layers (diffusion, polysilicon, contacts, metal 1..5)." },
-    { id: "pdk_b2", prompt: "What is the primary purpose of a Macro LEF file in ASIC physical implementation?", choices: ["To provide cell boundary dimensions, pin coordinates, and routing obstructions (OBS) without exposing internal proprietary transistor layout", "To simulate Verilog testbenches", "To specify clock periods", "To calculate dynamic IR drop"], answer: 0, explain: "Macro LEF gives P&R place-and-route tools the physical footprints and pin landing sites while protecting the IP's transistor design." },
-    { id: "pdk_b3", prompt: "CDL / SPICE netlists in a PDK are primarily used during signoff for:", choices: ["Layout Versus Schematic (LVS) verification against GDSII polygons", "Static Timing Analysis (STA)", "Logic synthesis optimization", "UPF power gating"], answer: 0, explain: "LVS compares the extracted transistor topology from GDSII against the golden CDL/SPICE netlist to prove schematic correctness." },
+  theory(
+    "pdk",
+    "beginner",
+    "pdk-beginner-tech-nodes",
+    "Beginner: Tech Nodes & How PDKs Are Packaged",
+    20,
+    "Marketing “nm” vs real PDK folders: open_pdks/volare, ORFS platforms, and what Ace-Seek expects on the worker.",
+    [
+      "**Node label ≠ one number.** Foundries market 28nm / 7nm / 3nm; designers care about contacted poly pitch, metal pitch, track height (7T/9T/12T), Vdd, and BEOL stack. The PDK encodes those choices as LEF pitches, liberty corners, and extraction decks.",
+      "COMPARE delivery models\n| Kit | Typical Ace-Seek runner | On-disk shape | Notes |\n|---|---|---|---|\n| sky130A / sky130B | OpenLane Docker | `$PDK_ROOT/sky130A/libs.ref/…` via volare | Default Max path |\n| gf180mcu | OpenLane | `$PDK_ROOT/gf180mcuD/…` | Install with volare |\n| asap7 | ORFS | `$OPENROAD_FLOW_ROOT/platforms/asap7` | Predictive 7nm-class teaching |\n| nangate45 | ORFS | `…/platforms/nangate45` | FreePDK45 educational |\n| ihp-sg13g2 | ORFS (catalog) | `…/platforms/ihp-sg13g2` | Open BiCMOS 130nm |\n| generic | Scripts only | placeholders | Pro export editing |",
+      "**volare / open_pdks:** `volare enable --pdk sky130` populates liberty, LEF, GDS, SPICE views under a versioned hash. Ace-Seek probes `PDK_ROOT` (prod: `/data/volare`). Multiple versions waste disk — keep one live hash.",
+      "**ORFS platforms:** Makefile + `config.mk` + `lib/` + `lef/` + tech files. Ace-Seek needs `OPENROAD_FLOW_ROOT=…/flow` so `platforms/asap7` resolves. Not the same as OpenLane `sky130A` tree.",
+      "**Stdcell naming tells the story:** `sky130_fd_sc_hd__nand2_1` = foundry_family_library__function_drive. Drive `_1/_2/_4` trade delay vs input cap. HD = high density track archetype.",
+    ],
+    {
+      title: "Worker probe (what Studio shows as Ready)",
+      lang: "bash",
+      source: `# On OpenROAD worker
+echo PDK_ROOT=$PDK_ROOT
+ls $PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/lib | head
+echo OPENROAD_FLOW_ROOT=$OPENROAD_FLOW_ROOT
+ls $OPENROAD_FLOW_ROOT/platforms/asap7 2>/dev/null | head
+# Studio: GET /api/openroad/pdks → availability[].available`,
+    },
+    [
+      "Maps Ace-Seek PDK ids to OpenLane vs ORFS",
+      "Understands why asap7 says Not ready without OPENROAD_FLOW_ROOT",
+      "Can navigate a sky130 liberty directory listing",
+    ]
+  ),
+
+  quiz("pdk", "beginner", "pdk-beginner-quiz", "PDK — Beginner Formats & Nodes Quiz", [
+    { id: "pdk_b1", prompt: "Which format is sent to the mask shop for fabrication?", choices: ["GDSII / OASIS", "Macro LEF only", "Liberty .lib", "SDC"], answer: 0, explain: "GDSII/OASIS carry full mask polygons. LEF/LIB are tool abstracts, not mask streams." },
+    { id: "pdk_b2", prompt: "Macro / cell LEF exists mainly to…", choices: ["Expose SIZE, pins, and OBS for PnR while hiding internal transistors", "Replace SPICE for LVS", "Store SPEF coupling", "Define SDC clocks"], answer: 0, explain: "LEF abstracts protect IP and give place-and-route legal outlines and pin ports." },
+    { id: "pdk_b3", prompt: "In Ace-Seek, asap7 “Not ready: OPENROAD_FLOW_ROOT” means…", choices: ["ORFS platforms tree is missing on the worker", "Clerk auth failed", "Docker cannot pull alpine", "SDC has no clock"], answer: 0, explain: "asap7 is an ORFS platform under $OPENROAD_FLOW_ROOT/platforms/asap7 — not a volare OpenLane PDK." },
+    { id: "pdk_b4", prompt: "DEF is best described as…", choices: ["PnR design exchange (floorplan, components, nets, routes)", "Foundry SPICE corner file", "Liberty CCS noise table", "KLayout layer properties only"], answer: 0, explain: "DEF carries the implemented design database between tools; GDS is mask geometry." },
+    { id: "pdk_b5", prompt: "CDL/SPICE in a PDK is primarily consumed by…", choices: ["LVS (layout vs schematic)", "Clock tree synthesis only", "MMMC view naming", "Razorpay webhooks"], answer: 0, explain: "LVS compares extracted devices from GDS against golden CDL/SPICE." },
   ]),
 
-  theory("pdk", "standard", "pdk-standard-lib-models", "Standard: Liberty Delay Modeling — NLDM vs CCS vs ECSM", 18,
-    "The physical evolution from 2D Thevenin lookups to sub-nanometer Composite Current Source modeling.",
+  theory(
+    "pdk",
+    "standard",
+    "pdk-standard-lib-models",
+    "Standard: Liberty (.lib) Anatomy — Cells, Pins, Timing Tables",
+    28,
+    "Read a real Liberty cell like a datasheet: library header, pin capacitance, timing arcs, and NLDM lookup indices.",
     [
-      "Non-Linear Delay Model (NLDM): Early standard cell modeling based on 2D lookup tables indexed by index_1(input_slew) and index_2(output_load_cap). NLDM models the output driver as a linear Thevenin resistance driving a lumped capacitor. While fast, NLDM fails in deep submicron (<65nm) because it cannot capture interconnect resistive shielding (where wire resistance prevents the gate from seeing the full load capacitance immediately).",
-      "Composite Current Source (CCS - Synopsys Standard): Models the output driver as a time-dependent non-linear current source I(t) driving dynamic Miller-effect receiver capacitances (C1/C2). CCS achieves <1.5 percent SPICE correlation in FinFET nodes and includes: 1) CCS Timing, 2) CCS Power (instantaneous dynamic current waveforms for L*di/dt inductive noise analysis), and 3) CCS Noise (AC/DC noise immunity).",
-      "Effective Current Source Model (ECSM - Cadence Standard): Characterizes driver current as voltage-dependent current sources and provides dynamic transition waveforms V(t) at multiple voltage thresholds (10 percent, 20 percent..90 percent) for high-accuracy signal integrity analysis.",
-    ]),
+      "A `.lib` is a **characterized electrical model**, usually one file per PVT corner (e.g. `sky130_fd_sc_hd__tt_025C_1v80.lib`). Synthesis and STA **link** cells by name to your netlist.",
+      "**Library header** sets units (`time_unit`, `voltage_unit`, `capacitive_load_unit`), default operating conditions, and wire-load templates (legacy). Always match units to the tool’s expectation.",
+      "**cell(name) { … }** blocks: `area`, `cell_leakage_power`, `pg_pin` (VPWR/VGND), and signal `pin()` entries. Sequential cells add `ff()` / `latch()` with `next_state`, `clocked_on`.",
+      "**pin(A)** fields you must recognize: `direction`, `capacitance`, `max_transition`, `fanout_load`. Output pins carry `timing()` groups: `related_pin`, `timing_sense`, `cell_rise`/`cell_fall`, `rise_transition`/`fall_transition`.",
+      "**NLDM tables:** `index_1` (input slew) × `index_2` (output load). Tools bilinearly interpolate. Wrong load units → nonsense delay. Drive strength (`_1` vs `_8`) changes both output drive and input cap.",
+      "**When NLDM is not enough:** below ~65–28nm, resistive shielding + Miller C make pure Thevenin NLDM optimistic/pessimistic. Then flows prefer **CCS** (Synopsys current waveforms) or **ECSM** (Cadence). Ace-Seek sky130 teaching still centers NLDM — know the names for interviews.",
+      "**Power groups:** `internal_power` / `leakage_power` feed vectorless and vector-based power. IR/EM signoff still needs SPEF + activity — liberty alone is not a tapeout power signoff.",
+    ],
+    {
+      title: "Annotated NLDM timing sketch (illustrative)",
+      lang: "text",
+      source: `cell (sky130_fd_sc_hd__inv_1) {
+  area : 2.764800;
+  pg_pin (VPWR) { pg_type : primary_power; }
+  pg_pin (VGND) { pg_type : primary_ground; }
+  pin (A) {
+    direction : input;
+    capacitance : 0.0023;
+  }
+  pin (Y) {
+    direction : output;
+    timing () {
+      related_pin : "A";
+      timing_sense : negative_unate;
+      cell_fall (delay_template_5x5) {
+        index_1 ("0.01, 0.05, 0.1, 0.3, 0.6"); /* input slew */
+        index_2 ("0.001, 0.01, 0.05, 0.1, 0.3"); /* load cap */
+        values ( \\
+          "0.02, 0.03, …", \\
+          … );
+      }
+    }
+  }
+}`,
+    },
+    [
+      "Can point to related_pin and unate sense on an output timing arc",
+      "Knows index_1/index_2 meaning for NLDM",
+      "Separates NLDM teaching kits vs CCS/ECSM advanced-node needs",
+    ]
+  ),
 
-  theory("pdk", "standard", "pdk-standard-lef-rules", "Standard: Technology LEF vs Macro LEF & Routing Pitch Grids", 16,
-    "Defining manufacturing design rules, routing layers, vias, and standard cell site grids.",
+  theory(
+    "pdk",
+    "standard",
+    "pdk-standard-lef-rules",
+    "Standard: Tech LEF vs Cell LEF vs Macro LEF — Field Guide",
+    26,
+    "Technology LEF defines the universe; cell LEF places stdcells; hard-macro LEF places SRAM/IP with fat OBS.",
     [
-      "Technology LEF (tech.lef): Establishes the physical design universe: metal layer names (met1..met5), routing directions (horizontal vs vertical), routing pitches, minimum width/spacing DRC rules, via definitions (VIA1_DEFAULT), and standard cell placement site definitions (SITE unithd).",
-      "Macro LEF (cells.lef): Contains the abstract physical model for every standard cell in the library: SIZE 1.380 BY 2.720, SITE unithd, PIN A (PORT LAYER met1 RECT ...), and OBS (obstruction areas where P&R routers cannot place metal wires).",
-      "Standard Cell Rows & Tracks: Cells are designed on a standardized height track (e.g. SkyWater 130nm 7-track or 9-track libraries). The cell height is an integer multiple of the horizontal metal pitch, allowing abutted cell placement without DRC spacing violations.",
-    ]),
+      "**Technology LEF (`*.tlef` / tech.lef)** owns process-wide rules: `LAYER met1` type ROUTING, `WIDTH`, `SPACING`, preferred `DIRECTION`, pitch, and `VIA` cut layers. It defines `SITE unithd` (width/height) that stdcell rows snap to. PnR cannot invent layers not in tech LEF.",
+      "**Standard-cell LEF** (often merged `sky130_fd_sc_hd.lef`): one `MACRO` per cell — `CLASS CORE`, `SIZE w BY h`, `SYMMETRY`, `SITE`, `PIN` with `PORT LAYER met1 RECT …`, and `OBS` so routers do not short over internal metal. Height must be an integer number of SITE rows (e.g. sky130 HD ≈ 2.72 µm).",
+      "**Hard-macro LEF** (SRAM, PLL, analog): larger `SIZE`, often multiple metal pin layers, dense `OBS` up through upper metals, `CLASS BLOCK`. Needs placement **halos** and dedicated PDN rings — Ace-Seek AutoMacro / floorplan halo fields exist for this class.",
+      "**Pin ports vs OBS:** PORT geometry is legal landing for routes; OBS is blockage. Missing OBS → routes through cell guts → DRC. Extra OBS → unroutable pins.",
+      "**Consistency rule:** every pin in LEF must exist in Liberty and in the Verilog model with the **same name**. `Y` vs `Z` mismatches break link/ PanR.",
+      "**DEF connection:** after floorplan/place, DEF `COMPONENTS` place MACRO masters; `PINS` are chip IOs; `NETS`/`SPECIALNETS` carry signal/power. DEF is produced/consumed by OpenROAD/OpenLane — Studio artifacts often include `.def`.",
+    ],
+    {
+      title: "Minimal MACRO LEF (stdcell)",
+      lang: "lef",
+      source: `MACRO sky130_fd_sc_hd__nand2_1
+  CLASS CORE ;
+  ORIGIN 0.000 0.000 ;
+  SIZE 1.380 BY 2.720 ;
+  SYMMETRY X Y ;
+  SITE unithd ;
+  PIN A
+    DIRECTION INPUT ;
+    USE SIGNAL ;
+    PORT
+      LAYER met1 ;
+        RECT 0.280 0.420 0.420 0.760 ;
+    END
+  END A
+  PIN Y
+    DIRECTION OUTPUT ;
+    USE SIGNAL ;
+    PORT
+      LAYER met1 ;
+        RECT 0.880 1.200 1.020 1.540 ;
+    END
+  END Y
+  PIN VPWR
+    DIRECTION INOUT ; USE POWER ;
+    PORT LAYER met1 ; RECT 0.000 2.480 1.380 2.720 ; END
+  END VPWR
+  OBS
+    LAYER met1 ;
+      RECT 0.000 0.000 1.380 0.320 ;
+  END
+END sky130_fd_sc_hd__nand2_1`,
+    },
+    [
+      "Can distinguish tech LEF vs cell LEF vs hard-macro LEF",
+      "Knows SITE ties row height to cell SIZE",
+      "Explains PORT vs OBS",
+    ]
+  ),
 
   practical(
     "pdk",
     "standard",
     "pdk-standard-practical",
-    "Standard Practical: Standard Cell LEF Pin & Boundary Parser",
-    25,
-    "Write a script or validator parsing a standard cell Macro LEF to extract cell dimensions, pin coordinates, and obstructions.",
+    "Standard Practical: Author a Legal sky130 NAND2 Macro LEF",
+    28,
+    "Write a Macro LEF fragment the PnR tool could consume: CLASS CORE, correct SIZE/SITE, pins A/B/Y + power, and OBS.",
     [
-      "Define standard cell sky130_fd_sc_hd__nand2_1 with CLASS CORE and SIZE 1.38 BY 2.72.",
-      "Define input pin A on met1 and output pin Y on met1.",
-      "Define routing obstruction OBS on met1 to protect internal polysilicon gates.",
+      "Create MACRO `sky130_fd_sc_hd__nand2_1` with CLASS CORE and SIZE 1.380 BY 2.720 on SITE unithd.",
+      "Add INPUT pins A and B and OUTPUT pin Y on LAYER met1 with RECT ports.",
+      "Add power pins VPWR/VGND (USE POWER/GROUND) and an OBS region on met1.",
     ],
     {
       language: "tcl",
-      starter: `# Macro LEF Definition: sky130_nand2.lef
-
-# TODO: Step 1 - Define MACRO sky130_fd_sc_hd__nand2_1 with SIZE 1.38 BY 2.72
-# TODO: Step 2 - Define PIN A (DIRECTION INPUT) and PIN Y (DIRECTION OUTPUT)
-# TODO: Step 3 - Define OBS layer met1`,
+      starter: `# Macro LEF: sky130_nand2.lef
+# TODO: MACRO + CLASS CORE + SIZE 1.380 BY 2.720 + SITE unithd
+# TODO: PIN A, B (INPUT), Y (OUTPUT) with met1 PORT RECTs
+# TODO: VPWR/VGND + OBS`,
       checks: [
-        { id: "mac", label: "MACRO name and CLASS CORE", kind: "regex", pattern: "MACRO\\s+sky130[\\s\\S]*CLASS\\s+CORE" },
-        { id: "sz", label: "SIZE 1.38 BY 2.72", kind: "regex", pattern: "SIZE\\s+1\\.38.*BY\\s+2\\.72" },
-        { id: "pin_a", label: "PIN A DIRECTION INPUT", kind: "regex", pattern: "PIN\\s+A[\\s\\S]*DIRECTION\\s+INPUT" },
-        { id: "pin_y", label: "PIN Y DIRECTION OUTPUT", kind: "regex", pattern: "PIN\\s+Y[\\s\\S]*DIRECTION\\s+OUTPUT" },
-        { id: "obs", label: "OBS routing obstruction", kind: "includes", pattern: "OBS" },
+        { id: "mac", label: "MACRO + CLASS CORE", kind: "regex", pattern: "MACRO\\s+sky130_fd_sc_hd__nand2_1[\\s\\S]*CLASS\\s+CORE" },
+        { id: "sz", label: "SIZE 1.380 BY 2.720", kind: "regex", pattern: "SIZE\\s+1\\.380\\s+BY\\s+2\\.720" },
+        { id: "site", label: "SITE unithd", kind: "regex", pattern: "SITE\\s+unithd" },
+        { id: "pin_a", label: "PIN A INPUT", kind: "regex", pattern: "PIN\\s+A[\\s\\S]*DIRECTION\\s+INPUT" },
+        { id: "pin_b", label: "PIN B INPUT", kind: "regex", pattern: "PIN\\s+B[\\s\\S]*DIRECTION\\s+INPUT" },
+        { id: "pin_y", label: "PIN Y OUTPUT", kind: "regex", pattern: "PIN\\s+Y[\\s\\S]*DIRECTION\\s+OUTPUT" },
+        { id: "obs", label: "OBS present", kind: "includes", pattern: "OBS" },
       ],
       solution: `MACRO sky130_fd_sc_hd__nand2_1
   CLASS CORE ;
@@ -4552,65 +4700,124 @@ WARN: Do not \`gg=G\` a synthesized netlist. Ever.
   SITE unithd ;
   PIN A
     DIRECTION INPUT ;
-    PORT
-      LAYER met1 ;
-        RECT 0.28 0.42 0.42 0.76 ;
-    END
+    PORT LAYER met1 ; RECT 0.20 0.40 0.36 0.80 ; END
   END A
+  PIN B
+    DIRECTION INPUT ;
+    PORT LAYER met1 ; RECT 0.48 0.40 0.64 0.80 ; END
+  END B
   PIN Y
     DIRECTION OUTPUT ;
-    PORT
-      LAYER met1 ;
-        RECT 0.88 1.20 1.02 1.54 ;
-    END
+    PORT LAYER met1 ; RECT 0.96 1.20 1.12 1.60 ; END
   END Y
+  PIN VPWR
+    DIRECTION INOUT ; USE POWER ;
+    PORT LAYER met1 ; RECT 0.00 2.48 1.38 2.72 ; END
+  END VPWR
+  PIN VGND
+    DIRECTION INOUT ; USE GROUND ;
+    PORT LAYER met1 ; RECT 0.00 0.00 1.38 0.24 ; END
+  END VGND
   OBS
     LAYER met1 ;
-      RECT 0.00 0.00 1.38 0.32 ;
+      RECT 0.00 0.90 1.38 1.10 ;
   END
 END sky130_fd_sc_hd__nand2_1
 `,
     }
   ),
 
-  quiz("pdk", "standard", "pdk-standard-quiz", "PDK — Standard LIB Models & LEF Views Quiz", [
-    { id: "pdk_s1", prompt: "Why does the Non-Linear Delay Model (NLDM) fail to provide accurate timing in sub-28nm FinFET nodes?", choices: ["NLDM models the output driver as a linear Thevenin resistor and cannot capture interconnect resistive shielding or non-linear Miller capacitance", "NLDM cannot store numbers greater than 10", "NLDM is unsupported in Linux", "NLDM increases chip area by 10x"], answer: 0, explain: "Resistive wire shielding in deep submicron decouples the far-end wire capacitance during the initial gate transition, which NLDM's lumped model cannot represent." },
-    { id: "pdk_s2", prompt: "Composite Current Source (CCS) models driver behavior using:", choices: ["Time-varying non-linear current source tables I(t) that match dynamic SPICE switching waveforms", "A single static resistor value", "Ideal 0ns voltage steps", "Random Monte Carlo numbers"], answer: 0, explain: "CCS models the output drive current as a time-dependent function I(t) across varying load capacitances and input transitions." },
-    { id: "pdk_s3", prompt: "Technology LEF differs from Macro LEF in that:", choices: ["Tech LEF defines global foundry layer stacks, routing pitches, and DRC rules; Macro LEF defines individual cell boundaries and pin locations", "Tech LEF contains Verilog RTL", "Macro LEF contains SPICE equations", "They are identical files"], answer: 0, explain: "Tech LEF provides process design rules for the whole chip, while Macro LEF provides abstract geometry for standard cells and macros." },
+  quiz("pdk", "standard", "pdk-standard-quiz", "PDK — Liberty & LEF Anatomy Quiz", [
+    { id: "pdk_s1", prompt: "In an NLDM cell_rise table, index_1 / index_2 are typically…", choices: ["Input slew and output capacitive load", "Voltage and temperature only", "X/Y coordinates in microns", "Clock period and uncertainty"], answer: 0, explain: "NLDM delay LUTs are almost always slew × load." },
+    { id: "pdk_s2", prompt: "Tech LEF primarily defines…", choices: ["Process layers, pitches, spacing, vias, and SITE rules for the whole chip", "One SRAM's internal bitcell GDS", "SDC create_clock statements", "SPEF *D_NET sections"], answer: 0, explain: "Technology LEF is the process/routing rule book." },
+    { id: "pdk_s3", prompt: "Hard-macro LEF differs from stdcell LEF mainly by…", choices: ["Larger SIZE, richer multi-layer pins, and heavier OBS as CLASS BLOCK", "Having no pins", "Using only poly LAYER for ports", "Replacing Liberty entirely"], answer: 0, explain: "Blocks/SRAMs need coarse abstracts and keepouts; CORE cells are row-site sized." },
+    { id: "pdk_s4", prompt: "A Liberty pin named Y but LEF pin named Z usually causes…", choices: ["Link/PnR failure or disconnected nets", "Automatic foundry rename", "Better hold slack", "Faster GDS streamout"], answer: 0, explain: "Pin names must match across .lib, .lef, and Verilog views." },
+    { id: "pdk_s5", prompt: "SITE unithd in sky130-style LEF controls…", choices: ["The placement grid / row height units cells must snap to", "The SPEF corner name", "CCS noise immunity only", "Razorpay plan tier"], answer: 0, explain: "SITE defines the legal abutment grid for CLASS CORE cells." },
   ]),
 
-  theory("pdk", "expert", "pdk-expert-parasitics", "Expert: Parasitic Extraction Files (QRC, TLUplus, ICT) & SPEF Networks", 18,
-    "Translating 3D field-solver process geometries into distributed RC parasitic networks.",
+  theory(
+    "pdk",
+    "expert",
+    "pdk-expert-parasitics",
+    "Expert: Extraction Decks → SPEF — and How STA Uses Them",
+    24,
+    "ITF/TLU/QRC describe the metal stack; SPEF is the per-design RC result; C_eff bridges wires back into Liberty lookups.",
     [
-      "Parasitic Technology Files (QRC / TLUplus / ICT / ITF): Foundries provide electromagnetic field-solver profiles containing dielectric permittivity (k), dielectric layer thickness, metal resistivity (rho), and sidewall fringing capacitance tables. Parasitic extractors (StarRC, Quantus QRC) read these files to convert routed polygons into equivalent resistor-capacitor circuits.",
-      "SPEF Distributed Pi-Model Networks: Standard Parasitic Exchange Format stores distributed parasitic elements: *CAP (lumped ground capacitance and inter-wire coupling capacitance between neighboring aggressor/victim nets) and *RES (interconnect segment resistance).",
-      "Resistive Shielding & Effective Capacitance (C_eff): When driving a long wire with high resistance R_wire, the driver only charges the near-end capacitance initially. STA engines compute an Effective Capacitance C_eff < C_total to look up gate delay accurately in Liberty models.",
-    ]),
+      "**Stack technology files** (names vary by vendor): ITF / TLUplus / QRC / ICT encode dielectric κ, thickness, resistivity, and fringing. Field solvers turn routed polygons + these rules into RC.",
+      "**SPEF** (`*D_NET`, `*CONN`, `*CAP`, `*RES`, optional coupling caps) is the portable exchange STA reads after extraction. Early PnR may use virtual extraction or TLUplus directly; signoff wants annotated SPEF.",
+      "**Coupling (`*CAP` between nets)** enables SI: aggressor–victim delta delay and noise. Ground-only SPEF understates crosstalk at advanced nodes.",
+      "**Resistive shielding / C_eff:** high R_wire means the driver initially sees less than total C. STA computes effective capacitance for Liberty table lookup — another reason NLDM+lumped C fails on long nets.",
+      "**Corners:** extraction corners (cbest/cworst, rcbest/rcworst) pair with liberty PVT in MMMC views. PDK track owns *files*; MMMC track owns *view math* — don't conflate.",
+      "**OpenROAD/OpenLane teaching path:** after route, expect SPEF or parasitics reports in job artifacts; Studio Timing tab consumes STA reports, not raw TLU.",
+    ],
+    {
+      title: "Minimal SPEF net",
+      lang: "spef",
+      source: `*D_NET net_data 0.045
+*CONN
+*I u_buf/Y O
+*I u_ff/D I
+*CAP
+1 net_data:1 0.020
+2 net_data:2 0.025
+*RES
+1 net_data:1 net_data:2 5.40
+*END`,
+    },
+    [
+      "Can narrate ITF/TLU → extraction → SPEF → STA",
+      "Knows coupling CAP enables SI",
+      "Separates extraction corners from .lib PVT corners",
+    ]
+  ),
+
+  theory(
+    "pdk",
+    "expert",
+    "pdk-expert-def-gds-cdl",
+    "Expert: DEF, Netlist, GDS & CDL — Who Owns the Truth?",
+    22,
+    "After LEF/LIB enable implementation, DEF/netlist/GDS/CDL close the loop into signoff and tapeout.",
+    [
+      "**Gate-level netlist (`.v`)** after synth/PnR: instances of liberty cell masters + connectivity. Must stay LEC-equivalent to RTL (Ace-Seek EQY path).",
+      "**DEF** sections to recognize: `DIEAREA`, `ROWS`/`TRACKS`, `COMPONENTS`, `PINS`, `SPECIALNETS` (power), `NETS`, `VIAS`. OpenROAD reads/writes DEF; Studio may show DEF artifacts per stage.",
+      "**GDSII/OASIS:** hierarchical polygon database for every mask layer. Stream-out merges stdcell/macro GDS from the PDK with your top hierarchy. This is what fab fractures into masks.",
+      "**CDL / SPICE views** in the PDK: device-level truth for LVS. Calibre/Pegasus/netgen extract devices from GDS and compare to CDL.",
+      "**DRC runsets** (Calibre SVRF, KLayout DRC, Magic): not “formats” students edit daily, but part of the PDK release — antenna, density, width/spacing. Ace-Seek 3D lab teaches antenna/CMP conceptually; signoff DRC is job artifacts on Max runs.",
+      "**Truth hierarchy:** RTL intent → netlist+SDC → DEF/LEF implementation → SPEF+liberty timing → GDS+CDL manufacturing verification.",
+    ],
+    undefined,
+    [
+      "Can list major DEF sections",
+      "Knows GDS is mask data; DEF is PnR exchange",
+      "Places LVS between GDS and CDL",
+    ]
+  ),
 
   practical(
     "pdk",
     "expert",
     "pdk-expert-practical",
-    "Expert Practical: SPEF Distributed RC Extraction Netlist",
-    25,
-    "Construct a distributed SPEF parasitic network with ground capacitance, coupling capacitance, and segment resistance.",
+    "Expert Practical: Build a SPEF Pi-Model for a Timing Arc",
+    26,
+    "Construct a legal SPEF *D_NET with driver/sink *CONN, ground *CAP, and *RES — the minimum STA can annotate.",
     [
-      "Define net *D_NET net_data 0.045 with total lumped capacitance 0.045pF.",
-      "Define connection pins *CONN for driver instance u_buf/Y and sink instance u_ff/D.",
-      "Define 2 ground capacitors (*CAP) and 1 segment resistor (*RES).",
+      "Define `*D_NET net_data 0.045` (total lumped C 0.045).",
+      "Add `*CONN` with driver `u_buf/Y` and sink `u_ff/D`.",
+      "Add at least two `*CAP` nodes and one `*RES` segment; end with `*END`.",
     ],
     {
       language: "tcl",
-      starter: `# Standard Parasitic Exchange Format: net_data.spef
-
-# TODO: Step 1 - Define *D_NET net_data with total cap 0.045
-# TODO: Step 2 - Define *CONN with driver and sink pins
-# TODO: Step 3 - Define *CAP and *RES network`,
+      starter: `# SPEF fragment
+# TODO: *D_NET net_data 0.045
+# TODO: *CONN driver + sink
+# TODO: *CAP / *RES / *END`,
       checks: [
-        { id: "dnet", label: "*D_NET net_data definition", kind: "regex", pattern: "\\*D_NET\\s+net_data\\s+0\\.045" },
-        { id: "conn", label: "*CONN section", kind: "includes", pattern: "*CONN" },
-        { id: "cap", label: "*CAP ground capacitance", kind: "includes", pattern: "*CAP" },
-        { id: "res", label: "*RES segment resistance", kind: "includes", pattern: "*RES" },
+        { id: "dnet", label: "*D_NET net_data 0.045", kind: "regex", pattern: "\\*D_NET\\s+net_data\\s+0\\.045" },
+        { id: "conn", label: "*CONN", kind: "includes", pattern: "*CONN" },
+        { id: "cap", label: "*CAP", kind: "includes", pattern: "*CAP" },
+        { id: "res", label: "*RES", kind: "includes", pattern: "*RES" },
+        { id: "end", label: "*END", kind: "includes", pattern: "*END" },
       ],
       solution: `*D_NET net_data 0.045
 *CONN
@@ -4626,77 +4833,91 @@ END sky130_fd_sc_hd__nand2_1
     }
   ),
 
-  quiz("pdk", "expert", "pdk-expert-quiz", "PDK — Expert Parasitics & CCS Noise Quiz", [
-    { id: "pdk_e1", prompt: "What is 'Resistive Shielding' in deep submicron interconnect timing?", choices: ["High wire resistance shields the gate driver from feeling the far-end wire capacitance during initial switching, reducing initial capacitive loading", "A physical metal shield grounded to VSS", "A layer of dielectric placed over copper wires", "A method to eliminate electromigration"], answer: 0, explain: "Wire resistance isolates far-end capacitance, causing the driver to switch faster initially than a lumped capacitance model predicts." },
-    { id: "pdk_e2", prompt: "SPEF files represent interconnect coupling capacitance (*CAP) primarily to enable:", choices: ["Signal Integrity (SI) crosstalk noise and glitch delta-delay analysis between aggressor and victim nets", "Power grid IR drop calculation", "DRC design rule checking", "GDSII layout formatting"], answer: 0, explain: "Coupling capacitance between adjacent parallel wires induces dynamic crosstalk delay and noise glitches on victim nets." },
-    { id: "pdk_e3", prompt: "CCS Noise models in Liberty files provide:", choices: ["DC noise margins and time-dependent AC noise immunity current tables to verify signal integrity against crosstalk glitches", "Acoustic audio noise measurements in decibels", "Fan cooling power requirements", "Clock jitter formulas"], answer: 0, explain: "CCS Noise characterizes standard cell noise immunity curves to prevent false glitch triggering." },
+  quiz("pdk", "expert", "pdk-expert-quiz", "PDK — Parasitics, DEF & Tapeout Views Quiz", [
+    { id: "pdk_e1", prompt: "Resistive shielding means…", choices: ["Wire R hides far-end C from the driver early in the transition (C_eff < C_total)", "A grounded shield track only", "Liberty has no timing arcs", "DEF cannot store COMPONENTS"], answer: 0, explain: "Distributed R delays charging of far capacitance; STA uses C_eff." },
+    { id: "pdk_e2", prompt: "Coupling capacitance in SPEF is critical for…", choices: ["Crosstalk SI delta-delay / noise analysis", "Creating clocks in SDC", "Choosing Razorpay plans", "Verilog lint only"], answer: 0, explain: "Aggressor–victim coupling needs inter-net *CAP." },
+    { id: "pdk_e3", prompt: "LVS proves…", choices: ["Extracted devices/connectivity from GDS match golden CDL/SPICE", "Setup slack > 0 at all corners", "Metal density is 100%", "All clocks are asynchronous"], answer: 0, explain: "LVS is schematic vs layout device topology." },
+    { id: "pdk_e4", prompt: "OpenROAD DEF `COMPONENTS` entries reference…", choices: ["LEF MACRO master names + placement", "Only GDS layer numbers", "Only SPEF *RES ids", "UPF retention strategies"], answer: 0, explain: "Each instance cites a MACRO defined in LEF." },
   ]),
 
-  theory("pdk", "master", "pdk-master-signoff", "Master: PDK Release Management, DRC/LVS Runsets & Foundry QA Certification", 20,
-    "Validating PDK consistency across logical, physical, extraction, and SPICE models prior to tapeout.",
+  theory(
+    "pdk",
+    "master",
+    "pdk-master-signoff",
+    "Master: PDK Integrity — Cross-View QA & Release Discipline",
+    24,
+    "Production PDKs fail when .lib, LEF, Verilog, GDS, and runsets disagree. Build a certification mindset.",
     [
-      "PDK Release QA & Consistency: A commercial PDK contains over 50 interconnected technology files. Inconsistencies between files (e.g. tech.lef having a different metal pitch than tluplus, or .lib missing pin names present in Macro LEF) cause catastrophic physical synthesis and STA discrepancies.",
-      "Foundry Runsets: 1) DRC (Design Rule Checking): Calibre / Pegasus rule decks checking geometric spacing, antenna rules, density, and latchup; 2) LVS (Layout Versus Schematic): Device extraction and electrical netlist comparison against golden CDL; 3) ERC (Electrical Rule Checking): Well tie-off, floating substrate, and cross-power domain leakage checks.",
-      "PDK Certification Checklist: 1) SPICE to .lib delay correlation (less than 2 percent error across all PVT corners), 2) LEF-to-GDSII polygon dimension identity, 3) 100 percent pin matching between CDL, LEF, and .lib, 4) DRC/LVS runset clean with zero false violations.",
-    ]),
+      "**Cross-view matrix (must be green before tapeout):**\n| Check | Views |\n|---|---|\n| Cell inventory | .lib ↔ LEF ↔ Verilog ↔ GDS cells |\n| Pin names/direction | .lib ↔ LEF ↔ Verilog |\n| Footprint | LEF SIZE ↔ GDS boundary |\n| Site/row | tech LEF SITE ↔ cell height |\n| Timing correlation | SPICE characterization ↔ .lib (target &lt;~1.5–2%) |\n| Layer map | tech LEF ↔ GDS layer numbers ↔ DRC deck |",
+      "**Release management:** foundries ship PDK versions (rev letters). Mixing revA liberty with revB tech LEF is a classic silent killer. Ace-Seek workers should pin volare hashes / ORFS SHAs like you pin `OPENLANE_IMAGE`.",
+      "**Runsets:** DRC (width/space/antenna/density), LVS, ERC (well ties, floating gates). Open kits use Magic/KLayout/netgen; commercial kits use Calibre/Pegasus — same intent.",
+      "**MMMC still applies:** each active view needs a coherent (.lib corner × RC corner × SDC mode). PDK provides the files; your MMMC script binds them.",
+      "**Ace-Seek ops tip:** `GET /api/openroad/pdks` availability is necessary but not sufficient — Ready means files exist, not that you ran lib↔lef QA.",
+    ],
+    {
+      title: "Tiny QA checklist script (conceptual)",
+      lang: "tcl",
+      source: `proc qa_pins {cell pins} {
+  # Compare pin lists from liberty vs LEF vs verilog views
+  puts "QA $cell pins: $pins"
+}
+qa_pins sky130_fd_sc_hd__nand2_1 {A B Y VPWR VGND}`,
+    },
+    [
+      "Can recite the cross-view QA matrix",
+      "Treats PDK version pins like Docker image pins",
+      "Knows Ready≠certified",
+    ]
+  ),
 
   practical(
     "pdk",
     "master",
     "pdk-master-practical",
-    "Master Practical: Automated PDK Integrity & Consistency Checker",
+    "Master Practical: PDK Pin-Consistency Checker Sketch",
     30,
-    "Implement an automated validation script comparing pin names, cell footprints, and site definitions across .lib and LEF.",
+    "Write a validator that treats missing LEF↔LIB pins as hard errors — the interview-grade PDK QA reflex.",
     [
-      "Verify cell footprint matching between Liberty `cell(sky130_fd_sc_hd__nand2_1)` and LEF `MACRO sky130_fd_sc_hd__nand2_1`.",
-      "Ensure all pins (`A`, `B`, `Y`, `VPWR`, `VGND`) exist identically in both `.lib` and `.lef`.",
-      "Check that cell height matches the standard site definition `SITE unithd`.",
+      "Accept `lef_file` and `lib_file` arguments (even if mocked lists).",
+      "Ensure cells present in both views; require pins A, B, Y, VPWR, VGND for nand2.",
+      "Print SUCCESS only when checks pass; return non-zero style messaging on failure.",
     ],
     {
       language: "tcl",
-      starter: `# PDK QA & Consistency Script: pdk_qa_validator.tcl
-
-# TODO: Step 1 - Read and parse LEF macros and .lib cells
-# TODO: Step 2 - Verify pin list consistency (A, B, Y, VPWR, VGND)
-# TODO: Step 3 - Verify site height and report QA pass/fail`,
+      starter: `# pdk_qa_validator.tcl
+# TODO: proc check_pdk_consistency {lef_file lib_file}
+# TODO: compare cell lists + required pins
+# TODO: print SUCCESS / ERROR`,
       checks: [
-        { id: "read", label: "Read LEF and Liberty", kind: "regex", pattern: "read_lef|read_lib|lef_file|lib_file" },
-        { id: "pins", label: "Pin consistency verification", kind: "regex", pattern: "pins|get_pins|pin_match" },
-        { id: "qa", label: "QA verification report", kind: "regex", pattern: "qa_report|report_pdk|check_library" },
+        { id: "proc", label: "Defines check_pdk_consistency proc", kind: "regex", pattern: "proc\\s+check_pdk_consistency" },
+        { id: "pins", label: "Mentions required pins", kind: "regex", pattern: "VPWR|VGND|required_pins|pin" },
+        { id: "qa", label: "SUCCESS or ERROR reporting", kind: "regex", pattern: "SUCCESS|ERROR" },
       ],
-      solution: `# PDK QA & Consistency Script: pdk_qa_validator.tcl
-proc check_pdk_consistency {lef_file lib_file} {
-  puts "INFO: Validating PDK consistency between $lef_file and $lib_file..."
-  
-  # 1. Load Technology and Cell Views
-  set lef_cells [list "sky130_fd_sc_hd__nand2_1" "sky130_fd_sc_hd__dfxtp_1"]
-  set lib_cells [list "sky130_fd_sc_hd__nand2_1" "sky130_fd_sc_hd__dfxtp_1"]
-  
-  # 2. Compare Cell List
+      solution: `proc check_pdk_consistency {lef_file lib_file} {
+  puts "INFO: Validating $lef_file vs $lib_file"
+  set lef_cells {sky130_fd_sc_hd__nand2_1 sky130_fd_sc_hd__inv_1}
+  set lib_cells {sky130_fd_sc_hd__nand2_1 sky130_fd_sc_hd__inv_1}
   foreach cell $lef_cells {
-    if {[lsearch -exact $lib_cells $cell] == -1} {
-      puts "ERROR: Cell $cell exists in LEF but missing from .LIB!"
+    if {[lsearch -exact $lib_cells $cell] < 0} {
+      puts "ERROR: $cell in LEF missing from LIB"
       return 1
     }
   }
-  
-  # 3. Compare Pin Consistency (A, B, Y, VPWR, VGND)
-  set required_pins [list "A" "B" "Y" "VPWR" "VGND"]
-  puts "INFO: Checking pin matching across $required_pins for all cells..."
-  
-  puts "SUCCESS: PDK integrity verification PASSED with 0 discrepancies."
+  set required_pins {A B Y VPWR VGND}
+  puts "INFO: checking pins $required_pins"
+  puts "SUCCESS: PDK integrity verification PASSED"
   return 0
 }
-
-check_pdk_consistency "sky130_fd_sc_hd.lef" "sky130_fd_sc_hd.lib"
+check_pdk_consistency sky130_fd_sc_hd.lef sky130_fd_sc_hd__tt_025C_1v80.lib
 `,
     }
   ),
 
-  quiz("pdk", "master", "pdk-master-quiz", "PDK — Master Foundry PDK Certification Exam", [
-    { id: "pdk_m1", prompt: "A pin mismatch between Macro LEF (e.g. pin named 'Z') and Liberty (pin named 'Y') will cause:", choices: ["The synthesis or P&R tool to error out or leave the pin disconnected, causing fatal chip layout failure", "Automatic renaming by the foundry", "Hold timing improvement", "The netlist to run faster"], answer: 0, explain: "Pin naming mismatches break tool abstraction, causing place-and-route engines to fail to connect signals to standard cells." },
-    { id: "pdk_m2", prompt: "How do foundries certify .lib timing model accuracy during PDK qualification?", choices: ["By running gold SPICE transistor simulations on thousands of standard cell test circuits and verifying .lib delay lookup error is <1.5%", "By measuring multimeter resistance on raw silicon", "By checking line counts in the text editor", "By manual calculation"], answer: 0, explain: "Foundries run automated SPICE characterization farms across PVT corners to correlate Liberty NLDM/CCS/ECSM delay tables against golden BSIM/BSIM-CMG SPICE models." },
-    { id: "pdk_m3", prompt: "In physical signoff verification, LVS (Layout Versus Schematic) proves:", choices: ["100% device and electrical connectivity identity between the extracted physical GDSII layout and the golden transistor CDL netlist", "That the design meets 1 GHz clock speed", "That power consumption is zero", "That the Verilog code has no syntax errors"], answer: 0, explain: "LVS extracts transistors and interconnects from layout polygons to prove the silicon matches the circuit schematic." },
+  quiz("pdk", "master", "pdk-master-quiz", "PDK — Master Integrity & Signoff Quiz", [
+    { id: "pdk_m1", prompt: "Pin name mismatch LEF↔Liberty typically…", choices: ["Breaks linking / leaves nets disconnected", "Is auto-fixed by the fab", "Only affects CSS styling", "Improves CTS"], answer: 0, explain: "Views must agree on pin names." },
+    { id: "pdk_m2", prompt: "Foundries qualify .lib accuracy mainly by…", choices: ["SPICE characterization farms vs liberty tables across PVT", "Counting lines in the .lib", "Ping latency to Vercel", "DEF COMPONENTS order"], answer: 0, explain: "Golden SPICE vs characterized liberty correlation." },
+    { id: "pdk_m3", prompt: "Pinning a volare PDK hash on the worker is analogous to…", choices: ["Pinning OPENLANE_IMAGE digest — reproducible kit revision", "Deleting all SPEF", "Disabling SDC", "Using generic PDK for Max GDS"], answer: 0, explain: "Reproducible PDK revisions prevent silent rule/model drift." },
+    { id: "pdk_m4", prompt: "`available: true` on /api/openroad/pdks means…", choices: ["Files/platform path exists — not full lib↔lef certification", "LVS already passed for all customers", "CCS noise is guaranteed", "ORFS make completed"], answer: 0, explain: "Availability probe ≠ full PDK QA." },
   ]),
 
   // ——— EDA Data Formats: XML, IP-XACT, SystemRDL & Waveforms Track (4 Layers) ———
