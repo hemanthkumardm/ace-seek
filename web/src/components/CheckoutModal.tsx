@@ -40,18 +40,6 @@ interface RazorpayOptions {
     razorpay_signature: string;
   }) => void;
   modal?: { ondismiss?: () => void };
-  /** Checkout display — keep UPI visible; Razorpay serves Intent (mWeb) / QR (desktop). */
-  config?: {
-    display?: {
-      hide?: Array<{ method: string; flows?: string[] }>;
-      blocks?: Record<
-        string,
-        { name: string; instruments: Array<{ method: string }> }
-      >;
-      sequence?: string[];
-      preferences?: { show_default_blocks?: boolean };
-    };
-  };
 }
 
 interface RazorpayInstance {
@@ -228,25 +216,8 @@ export function CheckoutModal({
           },
         },
         theme: { color: "#06b6d4" },
-        // Surface UPI explicitly. Do NOT hide collect-only unless Intent+QR are
-        // confirmed on the MID — hiding collect alone can remove the entire UPI tile.
-        // Razorpay still routes desktop→QR and mobile→Intent when those flows are live.
-        // Dashboard: Payment methods → UPI on; Payment Configuration → show UPI.
-        // https://razorpay.com/docs/payments/payment-methods/upi/upi-intent/
-        config: {
-          display: {
-            blocks: {
-              upi: {
-                name: "Pay with UPI",
-                instruments: [{ method: "upi" }],
-              },
-            },
-            sequence: ["block.upi"],
-            preferences: {
-              show_default_blocks: true, // keep Cards / Netbanking too
-            },
-          },
-        },
+        // No display.hide / custom blocks — those blanked UPI on this MID.
+        // Method list comes from Dashboard: Payment methods + Payment Configuration.
       };
 
       const rzp = new window.Razorpay(options);
