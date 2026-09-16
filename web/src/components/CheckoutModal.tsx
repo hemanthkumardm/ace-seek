@@ -40,6 +40,12 @@ interface RazorpayOptions {
     razorpay_signature: string;
   }) => void;
   modal?: { ondismiss?: () => void };
+  /** NPCI: hide deprecated UPI Collect (enter VPA). Desktop→QR, mobile→Intent. */
+  config?: {
+    display?: {
+      hide?: Array<{ method: string; flows?: string[] }>;
+    };
+  };
 }
 
 interface RazorpayInstance {
@@ -216,6 +222,13 @@ export function CheckoutModal({
           },
         },
         theme: { color: "#06b6d4" },
+        // NPCI deprecates UPI Collect (type VPA). Prefer Intent (mWeb) + QR (desktop).
+        // https://razorpay.com/docs/announcements/upi-collect-migration/standard-integration/
+        config: {
+          display: {
+            hide: [{ method: "upi", flows: ["collect"] }],
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
