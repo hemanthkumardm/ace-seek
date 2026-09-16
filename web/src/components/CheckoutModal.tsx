@@ -350,7 +350,7 @@ export function CheckoutModal({
                   Processing…
                 </>
               ) : (
-                <>Pay with Razorpay</>
+                <>Pay</>
               )}
             </button>
           </div>
