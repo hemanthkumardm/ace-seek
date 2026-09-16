@@ -14,12 +14,6 @@ import {
   Cpu,
 } from "lucide-react";
 
-declare global {
-  interface Window {
-    Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
-  }
-}
-
 interface RazorpayOptions {
   key: string;
   amount: number;
@@ -50,6 +44,14 @@ interface RazorpayInstance {
   ) => void;
 }
 
+function getRazorpayCtor(): (new (options: RazorpayOptions) => RazorpayInstance) | undefined {
+  return (
+    window as unknown as {
+      Razorpay?: new (options: RazorpayOptions) => RazorpayInstance;
+    }
+  ).Razorpay;
+}
+
 interface CheckoutModalProps {
   planId: string;
   planName: string;
@@ -60,7 +62,7 @@ interface CheckoutModalProps {
 
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (typeof window !== "undefined" && window.Razorpay) {
+    if (typeof window !== "undefined" && getRazorpayCtor()) {
       resolve(true);
       return;
     }
@@ -117,7 +119,8 @@ export function CheckoutModal({
       setErrorMessage(null);
 
       const isLoadedSdk = await loadRazorpayScript();
-      if (!isLoadedSdk || typeof window === "undefined" || !window.Razorpay) {
+      const RazorpayCtor = getRazorpayCtor();
+      if (!isLoadedSdk || typeof window === "undefined" || !RazorpayCtor) {
         setErrorMessage(
           "Razorpay SDK failed to load. Please check your network connection."
         );
@@ -226,7 +229,7 @@ export function CheckoutModal({
         // Method list comes from Dashboard: Payment methods + Payment Configuration.
       };
 
-      const rzp = new window.Razorpay(options);
+      const rzp = new RazorpayCtor(options);
       rzp.on("payment.failed", function (resp: { error?: { description?: string } }) {
         setErrorMessage(resp.error?.description || "Payment failed or was declined.");
         setLoading(false);
