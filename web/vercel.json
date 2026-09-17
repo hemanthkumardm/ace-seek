@@ -1,6 +1,11 @@
 {
   "redirects": [
     {
+      "source": "/compiler",
+      "destination": "https://www.ace-seek.com/tools/doc-compiler",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [
         {
