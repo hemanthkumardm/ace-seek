@@ -48,8 +48,13 @@ const nextConfig: NextConfig = {
       { source: "/compiler", destination: "/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf", destination: "/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf/:path*", destination: "/tools/doc-compiler/:path*", permanent: true },
-      { source: "/sdc-calculator", destination: "/tools/sdc-calculator", permanent: true },
+      // Old bookmark / GSC URL — tool never lived under /tools/sdc-calculator
+      { source: "/sdc-calculator", destination: "/vlsi/sdc-studio", permanent: true },
+      { source: "/tools/sdc-calculator", destination: "/vlsi/sdc-studio", permanent: true },
+      { source: "/tools/sdc-calculator/:path*", destination: "/vlsi/sdc-studio", permanent: true },
       { source: "/script-helper", destination: "/tools/script-helper", permanent: true },
+      // Crawlers still request /favicon.ico; site icon is SVG
+      { source: "/favicon.ico", destination: "/icon.svg", permanent: false },
       // SEO: apex → www
       {
         source: "/:path*",

@@ -2,39 +2,84 @@
   "redirects": [
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/:path*",
       "permanent": true
     },
     {
       "source": "/tools/doc-compiler",
-      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/tools/doc-compiler",
       "permanent": true
     },
     {
       "source": "/tools/diff-comparator",
-      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/tools/diff-comparator",
       "permanent": true
     },
     {
       "source": "/tools/table-builder",
-      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/tools/table-builder",
       "permanent": true
     },
     {
       "source": "/tools/format-converter",
-      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/tools/format-converter",
       "permanent": true
     },
     {
       "source": "/tools/tex-formatter",
-      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
       "destination": "https://www.ace-seek.com/tools/tex-formatter",
       "permanent": true
+    },
+    {
+      "source": "/sdc-calculator",
+      "destination": "/vlsi/sdc-studio",
+      "permanent": true
+    },
+    {
+      "source": "/tools/sdc-calculator",
+      "destination": "/vlsi/sdc-studio",
+      "permanent": true
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": "/icon.svg",
+      "permanent": false
     }
   ],
   "headers": [
