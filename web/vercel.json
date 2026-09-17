@@ -1,0 +1,87 @@
+{
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/tools/doc-compiler",
+      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/tools/doc-compiler",
+      "permanent": true
+    },
+    {
+      "source": "/tools/diff-comparator",
+      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/tools/diff-comparator",
+      "permanent": true
+    },
+    {
+      "source": "/tools/table-builder",
+      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/tools/table-builder",
+      "permanent": true
+    },
+    {
+      "source": "/tools/format-converter",
+      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/tools/format-converter",
+      "permanent": true
+    },
+    {
+      "source": "/tools/tex-formatter",
+      "has": [{ "type": "host", "value": "tools.ace-seek.com" }],
+      "destination": "https://www.ace-seek.com/tools/tex-formatter",
+      "permanent": true
+    }
+  ],
+  "headers": [
+    {
+      "source": "/tools/doc-compiler",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/doc-compiler>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/diff-comparator",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/diff-comparator>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/table-builder",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/table-builder>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/format-converter",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/format-converter>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/tex-formatter",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/tex-formatter>; rel=\"canonical\""
+        }
+      ]
+    }
+  ]
+}
