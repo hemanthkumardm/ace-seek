@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/docs", destination: "/vlsi/learn", permanent: true },
       { source: "/docs/:path*", destination: "/vlsi/learn", permanent: true },
-      { source: "/compiler", destination: "/tools/doc-compiler", permanent: true },
+      { source: "/compiler", destination: "https://www.ace-seek.com/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf", destination: "/tools/doc-compiler", permanent: true },
       { source: "/tools/md-to-pdf/:path*", destination: "/tools/doc-compiler/:path*", permanent: true },
       // Old bookmark / GSC URL — tool never lived under /tools/sdc-calculator

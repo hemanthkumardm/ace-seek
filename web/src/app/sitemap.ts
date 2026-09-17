@@ -1,8 +1,19 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL, toolsPageCanonical } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.ace-seek.com";
+  const baseUrl = SITE_URL;
   const now = new Date();
+
+  const toolSlugs = [
+    "doc-compiler",
+    "diff-comparator",
+    "format-converter",
+    "ai-sanitizer",
+    "tex-formatter",
+    "table-builder",
+    "script-helper",
+  ] as const;
 
   return [
     // Main Apex / SaaS Command Center
@@ -31,109 +42,73 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
 
-    // VLSI & ASIC Subdomain Hub & Studios
+    // VLSI & ASIC (www paths + studio entry)
     {
-      url: "https://vlsi.ace-seek.com",
+      url: `${baseUrl}/vlsi`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
-      url: "https://vlsi.ace-seek.com/sdc-studio",
+      url: `${baseUrl}/vlsi/sdc-studio`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
-      url: "https://vlsi.ace-seek.com/mmmc-studio",
+      url: `${baseUrl}/vlsi/mmmc-studio`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
-      url: "https://vlsi.ace-seek.com/power-studio",
+      url: `${baseUrl}/vlsi/power-studio`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
-      url: "https://vlsi.ace-seek.com/timing-studio",
+      url: `${baseUrl}/vlsi/timing-studio`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
-      url: "https://vlsi.ace-seek.com/learn",
+      url: `${baseUrl}/vlsi/learn`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
-      url: "https://vlsi.ace-seek.com/interview-masterclass",
+      url: `${baseUrl}/vlsi/interview-masterclass`,
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
 
-    // Cloud OpenROAD PnR Automation Host & Paths
-    {
-      url: "https://openroad.ace-seek.com",
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.95,
-    },
+    // OpenROAD
     {
       url: `${baseUrl}/openroad`,
       lastModified: now,
       changeFrequency: "daily",
-      priority: 0.9,
+      priority: 0.95,
     },
 
-    // Engineering Developer Tools Workstation Catalog
+    // Tools — www canonicals only (do NOT list /compiler or tools host duplicates)
     {
-      url: "https://tools.ace-seek.com",
+      url: `${baseUrl}/tools`,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.8,
     },
-    {
-      url: "https://tools.ace-seek.com/doc-compiler",
+    ...toolSlugs.map((slug) => ({
+      url: toolsPageCanonical(slug),
       lastModified: now,
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.75,
-    },
-    {
-      url: "https://tools.ace-seek.com/diff-comparator",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    {
-      url: "https://tools.ace-seek.com/format-converter",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    {
-      url: "https://tools.ace-seek.com/ai-sanitizer",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    {
-      url: "https://tools.ace-seek.com/tex-formatter",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    {
-      url: "https://tools.ace-seek.com/table-builder",
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
+    })),
 
-    // Legal Policies & Compliance
+    // Legal
     {
       url: `${baseUrl}/terms`,
       lastModified: now,

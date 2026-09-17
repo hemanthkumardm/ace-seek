@@ -184,7 +184,7 @@ export function generateWelcomeEmailHTML(payload: WelcomeTrialEmailPayload): str
 
     <!-- ACTION BUTTONS -->
     <div class="cta-container">
-      <a href="https://tools.ace-seek.com/tools/doc-compiler" class="btn-primary">Launch Doc Compiler &rarr;</a>
+      <a href="https://www.ace-seek.com/tools/doc-compiler" class="btn-primary">Launch Doc Compiler &rarr;</a>
       <a href="https://vlsi.ace-seek.com/vlsi/sdc-studio" class="btn-secondary">Launch VLSI Studio &rarr;</a>
     </div>
 
