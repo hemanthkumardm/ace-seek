@@ -34,6 +34,14 @@ const nextConfig: NextConfig = {
   // Avoid bundling issues with child_process paths
   serverExternalPackages: [],
   async redirects() {
+    const toolsSeo = [
+      "doc-compiler",
+      "diff-comparator",
+      "table-builder",
+      "format-converter",
+      "tex-formatter",
+    ] as const;
+
     return [
       { source: "/docs", destination: "/vlsi/learn", permanent: true },
       { source: "/docs/:path*", destination: "/vlsi/learn", permanent: true },
@@ -42,7 +50,45 @@ const nextConfig: NextConfig = {
       { source: "/tools/md-to-pdf/:path*", destination: "/tools/doc-compiler/:path*", permanent: true },
       { source: "/sdc-calculator", destination: "/tools/sdc-calculator", permanent: true },
       { source: "/script-helper", destination: "/tools/script-helper", permanent: true },
+      // SEO: apex → www
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "ace-seek.com" }],
+        destination: "https://www.ace-seek.com/:path*",
+        permanent: true,
+      },
+      // SEO: tools host duplicates → www canonical for the five GSC URLs
+      ...toolsSeo.map((slug) => ({
+        source: `/tools/${slug}`,
+        has: [{ type: "host", value: "tools.ace-seek.com" }],
+        destination: `https://www.ace-seek.com/tools/${slug}`,
+        permanent: true,
+      })),
+      ...toolsSeo.map((slug) => ({
+        source: `/tools/${slug}/`,
+        has: [{ type: "host", value: "tools.ace-seek.com" }],
+        destination: `https://www.ace-seek.com/tools/${slug}`,
+        permanent: true,
+      })),
     ];
+  },
+  async headers() {
+    const toolsSeo = [
+      "doc-compiler",
+      "diff-comparator",
+      "table-builder",
+      "format-converter",
+      "tex-formatter",
+    ] as const;
+    return toolsSeo.map((slug) => ({
+      source: `/tools/${slug}`,
+      headers: [
+        {
+          key: "Link",
+          value: `<https://www.ace-seek.com/tools/${slug}>; rel="canonical"`,
+        },
+      ],
+    }));
   },
   async rewrites() {
     const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);

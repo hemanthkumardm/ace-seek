@@ -66,7 +66,7 @@ export function toolsPageMetadata(opts: {
 }): import("next").Metadata {
   const url = toolsPageCanonical(opts.slug);
   return {
-    title: opts.title,
+    title: { absolute: opts.title },
     description: opts.description,
     alternates: { canonical: url },
     openGraph: {
@@ -76,6 +76,7 @@ export function toolsPageMetadata(opts: {
       siteName: "Ace-Seek",
       type: "website",
     },
+    robots: { index: true, follow: true },
   };
 }
 
