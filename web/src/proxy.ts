@@ -1,13 +1,36 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
-import { isApexHost, productHostSlug, HOST_TO_APP } from "@/lib/site";
+import {
+  isApexHost,
+  productHostSlug,
+  HOST_TO_APP,
+  SITE_URL,
+  toolsPageCanonical,
+} from "@/lib/site";
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
+
+/** GSC “Duplicate without user-selected canonical” — these five tools URLs */
+const TOOLS_SEO_SLUGS = new Set([
+  "doc-compiler",
+  "diff-comparator",
+  "table-builder",
+  "format-converter",
+  "tex-formatter",
+]);
 
 function isClerkConfigured(): boolean {
   const pk = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
   const sk = process.env.CLERK_SECRET_KEY?.trim();
   return Boolean(pk && sk);
+}
+
+function withToolsCanonical(res: NextResponse, pathname: string): NextResponse {
+  const m = pathname.match(/^\/tools\/([^/]+)\/?$/);
+  if (!m || !TOOLS_SEO_SLUGS.has(m[1])) return res;
+  const canonical = toolsPageCanonical(m[1]);
+  res.headers.set("Link", `<${canonical}>; rel="canonical"`);
+  return res;
 }
 
 function applyHostRouting(req: NextRequest): NextResponse {
@@ -17,6 +40,29 @@ function applyHostRouting(req: NextRequest): NextResponse {
     "";
   const { pathname, search } = req.nextUrl;
   const slug = productHostSlug(host);
+  const hostNoPort = host.split(":")[0].toLowerCase();
+
+  // 0. Apex ace-seek.com → www (SEO: one host)
+  if (
+    process.env.NODE_ENV === "production" &&
+    hostNoPort === "ace-seek.com"
+  ) {
+    return NextResponse.redirect(
+      new URL(`${pathname}${search}`, SITE_URL),
+      308
+    );
+  }
+
+  // 0b. tools.ace-seek.com/tools/<seo-slug> → www canonical (consolidate duplicates)
+  if (
+    process.env.NODE_ENV === "production" &&
+    hostNoPort === "tools.ace-seek.com"
+  ) {
+    const m = pathname.match(/^\/tools\/([^/]+)\/?$/);
+    if (m && TOOLS_SEO_SLUGS.has(m[1])) {
+      return NextResponse.redirect(new URL(toolsPageCanonical(m[1]) + search), 308);
+    }
+  }
 
   // 1. CANONICAL PRICING REDIRECT:
   // If user visits /pricing on any subdomain (tools.ace-seek.com, vlsi.ace-seek.com, doc.tools.ace-seek.com),
@@ -132,7 +178,7 @@ function applyHostRouting(req: NextRequest): NextResponse {
     }
   }
 
-  return NextResponse.next();
+  return withToolsCanonical(NextResponse.next(), pathname);
 }
 
 export default function proxy(req: NextRequest, event: any) {
@@ -146,15 +192,18 @@ export default function proxy(req: NextRequest, event: any) {
     return hostResponse;
   }
 
+  const path = req.nextUrl.pathname;
+  const stamped = withToolsCanonical(hostResponse, path);
+
   if (!isClerkConfigured()) {
-    return hostResponse;
+    return stamped;
   }
 
   const clerkHandler = clerkMiddleware(async (auth, request) => {
     if (isProtectedRoute(request)) {
       await auth.protect();
     }
-    return hostResponse;
+    return withToolsCanonical(stamped, request.nextUrl.pathname);
   });
 
   return clerkHandler(req, event);
