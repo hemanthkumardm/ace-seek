@@ -53,23 +53,25 @@ const nextConfig: NextConfig = {
       // SEO: apex → www
       {
         source: "/:path*",
-        has: [{ type: "host", value: "ace-seek.com" }],
+        has: [{ type: "host" as const, value: "ace-seek.com" }],
         destination: "https://www.ace-seek.com/:path*",
-        permanent: true,
+        permanent: true as const,
       },
       // SEO: tools host duplicates → www canonical for the five GSC URLs
-      ...toolsSeo.map((slug) => ({
-        source: `/tools/${slug}`,
-        has: [{ type: "host", value: "tools.ace-seek.com" }],
-        destination: `https://www.ace-seek.com/tools/${slug}`,
-        permanent: true,
-      })),
-      ...toolsSeo.map((slug) => ({
-        source: `/tools/${slug}/`,
-        has: [{ type: "host", value: "tools.ace-seek.com" }],
-        destination: `https://www.ace-seek.com/tools/${slug}`,
-        permanent: true,
-      })),
+      ...toolsSeo.flatMap((slug) => [
+        {
+          source: `/tools/${slug}`,
+          has: [{ type: "host" as const, value: "tools.ace-seek.com" }],
+          destination: `https://www.ace-seek.com/tools/${slug}`,
+          permanent: true as const,
+        },
+        {
+          source: `/tools/${slug}/`,
+          has: [{ type: "host" as const, value: "tools.ace-seek.com" }],
+          destination: `https://www.ace-seek.com/tools/${slug}`,
+          permanent: true as const,
+        },
+      ]),
     ];
   },
   async headers() {
