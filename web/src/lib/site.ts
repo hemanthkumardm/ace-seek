@@ -50,6 +50,35 @@ export const TOOLS_URL =
     ? "https://tools.ace-seek.com"
     : "/tools");
 
+/**
+ * SEO canonical for tools workstations.
+ * Prefer www path so Google consolidates tools.ace-seek.com + www duplicates.
+ */
+export function toolsPageCanonical(slug: string): string {
+  const clean = slug.replace(/^\/+|\/+$/g, "");
+  return `${SITE_URL}/tools/${clean}`;
+}
+
+export function toolsPageMetadata(opts: {
+  slug: string;
+  title: string;
+  description: string;
+}): import("next").Metadata {
+  const url = toolsPageCanonical(opts.slug);
+  return {
+    title: opts.title,
+    description: opts.description,
+    alternates: { canonical: url },
+    openGraph: {
+      title: opts.title,
+      description: opts.description,
+      url,
+      siteName: "Ace-Seek",
+      type: "website",
+    },
+  };
+}
+
 export const BRAND = {
   name: "Ace-Seek",
   tagline: "Automation and productivity for ASIC & engineering teams",

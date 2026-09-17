@@ -10,7 +10,7 @@ import { WorkstationAuthGuard } from "@/components/WorkstationAuthGuard";
 import { ToolsHeaderNav } from "@/components/ToolsHeaderNav";
 
 export const metadata: Metadata = {
-  title: "Engineering Developer Tools & Workstation Suite · tools.ace-seek.com",
+  title: "Engineering Developer Tools & Workstation Suite · Ace-Seek Tools",
   description:
     "Zero-token engineering developer suite: Doc Compiler (MD ↔ PDF ↔ TeX ↔ DOCX), Visual Diff Comparator, AI Output Sanitizer, LaTeX Formula Builder, and Multi-Format Converters.",
   keywords: [
@@ -22,12 +22,15 @@ export const metadata: Metadata = {
     "JSON YAML TOML CSV Converter",
     "Zero Token LLM Tooling",
   ],
+  alternates: {
+    canonical: `${SITE_URL}/tools`,
+  },
   openGraph: {
     title: "Engineering Developer Tools & Workstation Suite · Ace-Seek",
     description:
       "Compile engineering documentation, compare code diffs, clean raw LLM responses, and format TeX math equations with zero AI token cost.",
-    url: "https://tools.ace-seek.com",
-    siteName: "Ace-Seek Tools Platform",
+    url: `${SITE_URL}/tools`,
+    siteName: "Ace-Seek",
     type: "website",
   },
   twitter: {
