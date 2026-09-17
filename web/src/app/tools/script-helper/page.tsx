@@ -1,9 +1,11 @@
 import { headers } from "next/headers";
-import { productHostSlug } from "@/lib/site";
+import { productHostSlug, toolsPageMetadata } from "@/lib/site";
 
-export const metadata = {
-  title: "Script Helper",
-};
+export const metadata = toolsPageMetadata({
+  slug: "script-helper",
+  title: "Script Helper — Ace-Seek Tools",
+  description: "Script helper workstation for Ace-Seek engineering tools (coming soon).",
+});
 
 export default async function ScriptHelperPage() {
   const host = (await headers()).get("host");

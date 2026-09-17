@@ -10,13 +10,15 @@ import {
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
-/** GSC “Duplicate without user-selected canonical” — these five tools URLs */
+/** Tool workstations — consolidate tools.ace-seek.com → www.ace-seek.com/tools/* */
 const TOOLS_SEO_SLUGS = new Set([
   "doc-compiler",
   "diff-comparator",
   "table-builder",
   "format-converter",
   "tex-formatter",
+  "ai-sanitizer",
+  "script-helper",
 ]);
 
 function isClerkConfigured(): boolean {
@@ -53,14 +55,30 @@ function applyHostRouting(req: NextRequest): NextResponse {
     );
   }
 
-  // 0b. tools.ace-seek.com/tools/<seo-slug> → www canonical (consolidate duplicates)
+  // 0b. tools.ace-seek.com → www canonicals (GSC: home duplicate + short-path 404s)
   if (
     process.env.NODE_ENV === "production" &&
     hostNoPort === "tools.ace-seek.com"
   ) {
-    const m = pathname.match(/^\/tools\/([^/]+)\/?$/);
-    if (m && TOOLS_SEO_SLUGS.has(m[1])) {
-      return NextResponse.redirect(new URL(toolsPageCanonical(m[1]) + search), 308);
+    // Home → www/tools
+    if (pathname === "/" || pathname === "") {
+      return NextResponse.redirect(new URL(`${SITE_URL}/tools${search}`), 308);
+    }
+    // /doc-compiler → www/tools/doc-compiler (old sitemap / short URLs)
+    const short = pathname.match(/^\/([^/]+)\/?$/);
+    if (short && TOOLS_SEO_SLUGS.has(short[1])) {
+      return NextResponse.redirect(
+        new URL(toolsPageCanonical(short[1]) + search),
+        308
+      );
+    }
+    // /tools/doc-compiler → www/tools/doc-compiler
+    const nested = pathname.match(/^\/tools\/([^/]+)\/?$/);
+    if (nested && TOOLS_SEO_SLUGS.has(nested[1])) {
+      return NextResponse.redirect(
+        new URL(toolsPageCanonical(nested[1]) + search),
+        308
+      );
     }
   }
 

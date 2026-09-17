@@ -1,6 +1,17 @@
 {
   "redirects": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools",
+      "permanent": true
+    },
+    {
       "source": "/compiler",
       "destination": "https://www.ace-seek.com/tools/doc-compiler",
       "permanent": true
@@ -14,61 +25,6 @@
         }
       ],
       "destination": "https://www.ace-seek.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/tools/doc-compiler",
-      "has": [
-        {
-          "type": "host",
-          "value": "tools.ace-seek.com"
-        }
-      ],
-      "destination": "https://www.ace-seek.com/tools/doc-compiler",
-      "permanent": true
-    },
-    {
-      "source": "/tools/diff-comparator",
-      "has": [
-        {
-          "type": "host",
-          "value": "tools.ace-seek.com"
-        }
-      ],
-      "destination": "https://www.ace-seek.com/tools/diff-comparator",
-      "permanent": true
-    },
-    {
-      "source": "/tools/table-builder",
-      "has": [
-        {
-          "type": "host",
-          "value": "tools.ace-seek.com"
-        }
-      ],
-      "destination": "https://www.ace-seek.com/tools/table-builder",
-      "permanent": true
-    },
-    {
-      "source": "/tools/format-converter",
-      "has": [
-        {
-          "type": "host",
-          "value": "tools.ace-seek.com"
-        }
-      ],
-      "destination": "https://www.ace-seek.com/tools/format-converter",
-      "permanent": true
-    },
-    {
-      "source": "/tools/tex-formatter",
-      "has": [
-        {
-          "type": "host",
-          "value": "tools.ace-seek.com"
-        }
-      ],
-      "destination": "https://www.ace-seek.com/tools/tex-formatter",
       "permanent": true
     },
     {
@@ -94,6 +50,160 @@
     {
       "source": "/privacy-policy",
       "destination": "/privacy",
+      "permanent": true
+    },
+    {
+      "source": "/doc-compiler",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/doc-compiler",
+      "permanent": true
+    },
+    {
+      "source": "/tools/doc-compiler",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/doc-compiler",
+      "permanent": true
+    },
+    {
+      "source": "/diff-comparator",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/diff-comparator",
+      "permanent": true
+    },
+    {
+      "source": "/tools/diff-comparator",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/diff-comparator",
+      "permanent": true
+    },
+    {
+      "source": "/table-builder",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/table-builder",
+      "permanent": true
+    },
+    {
+      "source": "/tools/table-builder",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/table-builder",
+      "permanent": true
+    },
+    {
+      "source": "/format-converter",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/format-converter",
+      "permanent": true
+    },
+    {
+      "source": "/tools/format-converter",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/format-converter",
+      "permanent": true
+    },
+    {
+      "source": "/tex-formatter",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/tex-formatter",
+      "permanent": true
+    },
+    {
+      "source": "/tools/tex-formatter",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/tex-formatter",
+      "permanent": true
+    },
+    {
+      "source": "/ai-sanitizer",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/ai-sanitizer",
+      "permanent": true
+    },
+    {
+      "source": "/tools/ai-sanitizer",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/ai-sanitizer",
+      "permanent": true
+    },
+    {
+      "source": "/script-helper",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/script-helper",
+      "permanent": true
+    },
+    {
+      "source": "/tools/script-helper",
+      "has": [
+        {
+          "type": "host",
+          "value": "tools.ace-seek.com"
+        }
+      ],
+      "destination": "https://www.ace-seek.com/tools/script-helper",
       "permanent": true
     }
   ],
@@ -194,6 +304,24 @@
         {
           "key": "Link",
           "value": "<https://www.ace-seek.com/terms>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/ai-sanitizer",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/ai-sanitizer>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/tools/script-helper",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/tools/script-helper>; rel=\"canonical\""
         }
       ]
     }

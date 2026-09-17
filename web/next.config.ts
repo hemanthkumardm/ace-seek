@@ -40,6 +40,8 @@ const nextConfig: NextConfig = {
       "table-builder",
       "format-converter",
       "tex-formatter",
+      "ai-sanitizer",
+      "script-helper",
     ] as const;
 
     return [
@@ -73,8 +75,21 @@ const nextConfig: NextConfig = {
         destination: "https://www.ace-seek.com/:path*",
         permanent: true as const,
       },
-      // SEO: tools host duplicates → www canonical for the five GSC URLs
+      // SEO: tools.ace-seek.com home → www/tools
+      {
+        source: "/",
+        has: [{ type: "host" as const, value: "tools.ace-seek.com" }],
+        destination: "https://www.ace-seek.com/tools",
+        permanent: true as const,
+      },
+      // SEO: tools host short paths + /tools/* → www canonicals
       ...toolsSeo.flatMap((slug) => [
+        {
+          source: `/${slug}`,
+          has: [{ type: "host" as const, value: "tools.ace-seek.com" }],
+          destination: `https://www.ace-seek.com/tools/${slug}`,
+          permanent: true as const,
+        },
         {
           source: `/tools/${slug}`,
           has: [{ type: "host" as const, value: "tools.ace-seek.com" }],
@@ -97,6 +112,8 @@ const nextConfig: NextConfig = {
       "table-builder",
       "format-converter",
       "tex-formatter",
+      "ai-sanitizer",
+      "script-helper",
     ] as const;
     const pageCanonicals = [
       ["blog", "https://www.ace-seek.com/blog"],
