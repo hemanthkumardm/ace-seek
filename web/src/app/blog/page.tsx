@@ -3,8 +3,19 @@ import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import { BookOpen, FileText, ExternalLink, Code, Sparkles, Terminal } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Blog",
-  description: "Engineering notes on VLSI, SDC, and technical documentation pipelines.",
+  title: { absolute: "Ace-Seek Blog — VLSI, SDC & Documentation Engineering" },
+  description:
+    "Engineering notes on VLSI physical design, SDC timing constraints, and technical documentation pipelines from the Ace-Seek team.",
+  alternates: { canonical: "https://www.ace-seek.com/blog" },
+  openGraph: {
+    title: "Ace-Seek Blog — VLSI, SDC & Documentation Engineering",
+    description:
+      "Engineering notes on VLSI physical design, SDC timing constraints, and technical documentation pipelines.",
+    url: "https://www.ace-seek.com/blog",
+    siteName: "Ace-Seek",
+    type: "website",
+  },
+  robots: { index: true, follow: true },
 };
 
 const POSTS = [

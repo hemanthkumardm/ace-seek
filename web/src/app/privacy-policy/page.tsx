@@ -1,1 +1,6 @@
-export { default, metadata } from "../privacy/page";
+import { redirect } from "next/navigation";
+
+/** Legacy alias — canonical is /privacy */
+export default function PrivacyPolicyAliasPage() {
+  redirect("/privacy");
+}

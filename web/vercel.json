@@ -85,6 +85,16 @@
       "source": "/favicon.ico",
       "destination": "/icon.svg",
       "permanent": false
+    },
+    {
+      "source": "/terms-and-conditions",
+      "destination": "/terms",
+      "permanent": true
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/privacy",
+      "permanent": true
     }
   ],
   "headers": [
@@ -130,6 +140,60 @@
         {
           "key": "Link",
           "value": "<https://www.ace-seek.com/tools/tex-formatter>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/_next/static/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/blog",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/blog>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/offers",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/offers>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/openroad",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/openroad>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/privacy",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/privacy>; rel=\"canonical\""
+        }
+      ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        {
+          "key": "Link",
+          "value": "<https://www.ace-seek.com/terms>; rel=\"canonical\""
         }
       ]
     }

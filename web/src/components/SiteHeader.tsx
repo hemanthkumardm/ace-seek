@@ -247,7 +247,7 @@ export function SiteFooter() {
             <Boxes className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>VLSI & Automation Platforms</span>
           </p>
-          <a href="https://openroad.ace-seek.com" className="block text-xs font-bold text-sky-400 hover:underline">
+          <a href="/openroad" className="block text-xs font-bold text-sky-400 hover:underline">
             OpenROAD Automation & Cloud PnR Studio
           </a>
           <a href="https://vlsi.ace-seek.com" className="block text-xs text-[var(--muted)] hover:text-[var(--accent-cyan)]">
@@ -266,10 +266,13 @@ export function SiteFooter() {
             <Shield className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
             <span>Legal & Compliance</span>
           </p>
-          <a href="/terms-and-conditions" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="/blog" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+            Blog
+          </a>
+          <a href="/terms" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Terms & Conditions
           </a>
-          <a href="/privacy-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
+          <a href="/privacy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
             Privacy Policy
           </a>
           <a href="/refund-policy" className="block text-xs text-[var(--muted)] hover:text-[var(--foreground)]">

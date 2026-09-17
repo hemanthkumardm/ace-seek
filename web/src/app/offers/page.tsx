@@ -12,9 +12,19 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Offers & Deals",
+  title: { absolute: "Ace-Seek Offers & Deals — Trials and Subscription Promotions" },
   description:
     "Max trial, academic grants, and subscription offers for Ace-Seek VLSI and engineering tools.",
+  alternates: { canonical: "https://www.ace-seek.com/offers" },
+  openGraph: {
+    title: "Ace-Seek Offers & Deals",
+    description:
+      "Max trial, academic grants, and subscription offers for Ace-Seek VLSI and engineering tools.",
+    url: "https://www.ace-seek.com/offers",
+    siteName: "Ace-Seek",
+    type: "website",
+  },
+  robots: { index: true, follow: true },
 };
 
 const OFFERS = [

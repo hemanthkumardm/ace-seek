@@ -30,13 +30,14 @@ export const metadata: Metadata = {
     "Zero-install VLSI tapeout",
   ],
   alternates: {
-    canonical: "https://openroad.ace-seek.com",
+    // Prefer www path Google already discovered; subdomain still works
+    canonical: `${SITE_URL}/openroad`,
   },
   openGraph: {
     title: "Cloud OpenROAD Automation & ASIC Physical Design Platform · Ace-Seek",
     description:
       "Run complete OpenROAD physical design automation from RTL to GDSII. Automated macro placement, TritonCTS, FastRoute, and DRC/LVS signoff in cloud containers.",
-    url: "https://openroad.ace-seek.com",
+    url: `${SITE_URL}/openroad`,
     siteName: "Ace-Seek OpenROAD Automation",
     type: "website",
   },

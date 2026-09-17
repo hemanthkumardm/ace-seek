@@ -3,8 +3,18 @@ import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { ShieldCheck, FileText, Building, MapPin, Mail, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Terms and Conditions | Ace-Seek",
+  title: { absolute: "Terms and Conditions | Ace-Seek" },
   description: "Terms and Conditions governing the use of Ace-Seek SaaS portal and services.",
+  alternates: { canonical: "https://www.ace-seek.com/terms" },
+  openGraph: {
+    title: "Terms and Conditions | Ace-Seek",
+    description:
+      "Terms and Conditions governing the use of Ace-Seek SaaS portal and services.",
+    url: "https://www.ace-seek.com/terms",
+    siteName: "Ace-Seek",
+    type: "website",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function TermsPage() {

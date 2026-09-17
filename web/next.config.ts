@@ -55,6 +55,17 @@ const nextConfig: NextConfig = {
       { source: "/script-helper", destination: "/tools/script-helper", permanent: true },
       // Crawlers still request /favicon.ico; site icon is SVG
       { source: "/favicon.ico", destination: "/icon.svg", permanent: false },
+      // Legal aliases → short canonical paths
+      {
+        source: "/terms-and-conditions",
+        destination: "/terms",
+        permanent: true,
+      },
+      {
+        source: "/privacy-policy",
+        destination: "/privacy",
+        permanent: true,
+      },
       // SEO: apex → www
       {
         source: "/:path*",
@@ -87,15 +98,43 @@ const nextConfig: NextConfig = {
       "format-converter",
       "tex-formatter",
     ] as const;
-    return toolsSeo.map((slug) => ({
-      source: `/tools/${slug}`,
-      headers: [
-        {
-          key: "Link",
-          value: `<https://www.ace-seek.com/tools/${slug}>; rel="canonical"`,
-        },
-      ],
-    }));
+    const pageCanonicals = [
+      ["blog", "https://www.ace-seek.com/blog"],
+      ["offers", "https://www.ace-seek.com/offers"],
+      ["openroad", "https://www.ace-seek.com/openroad"],
+      ["privacy", "https://www.ace-seek.com/privacy"],
+      ["terms", "https://www.ace-seek.com/terms"],
+    ] as const;
+    return [
+      ...toolsSeo.map((slug) => ({
+        source: `/tools/${slug}`,
+        headers: [
+          {
+            key: "Link",
+            value: `<https://www.ace-seek.com/tools/${slug}>; rel="canonical"`,
+          },
+        ],
+      })),
+      ...pageCanonicals.map(([path, url]) => ({
+        source: `/${path}`,
+        headers: [
+          {
+            key: "Link",
+            value: `<${url}>; rel="canonical"`,
+          },
+        ],
+      })),
+      // Never index Next.js static assets (GSC crawled a .woff2)
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+    ];
   },
   async rewrites() {
     const isVercel = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);

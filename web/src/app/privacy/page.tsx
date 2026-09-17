@@ -3,8 +3,18 @@ import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { ShieldCheck, Lock, Building, MapPin, Mail, Phone } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Ace-Seek",
+  title: { absolute: "Privacy Policy | Ace-Seek" },
   description: "Privacy Policy detailing data collection, processing, and protection on Ace-Seek.",
+  alternates: { canonical: "https://www.ace-seek.com/privacy" },
+  openGraph: {
+    title: "Privacy Policy | Ace-Seek",
+    description:
+      "Privacy Policy detailing data collection, processing, and protection on Ace-Seek.",
+    url: "https://www.ace-seek.com/privacy",
+    siteName: "Ace-Seek",
+    type: "website",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function PrivacyPage() {
