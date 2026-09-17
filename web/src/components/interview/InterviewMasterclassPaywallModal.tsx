@@ -52,9 +52,31 @@ interface Props {
   onSuccess?: () => void;
 }
 
+function getRazorpayCtor():
+  | (new (opts: unknown) => {
+      open: () => void;
+      on: (
+        event: string,
+        cb: (r: { error?: { description?: string } }) => void
+      ) => void;
+    })
+  | undefined {
+  return (
+    window as unknown as {
+      Razorpay?: new (opts: unknown) => {
+        open: () => void;
+        on: (
+          event: string,
+          cb: (r: { error?: { description?: string } }) => void
+        ) => void;
+      };
+    }
+  ).Razorpay;
+}
+
 function loadRazorpayScript(): Promise<boolean> {
   return new Promise((resolve) => {
-    if (typeof window !== "undefined" && window.Razorpay) {
+    if (typeof window !== "undefined" && getRazorpayCtor()) {
       resolve(true);
       return;
     }
@@ -106,7 +128,7 @@ export function InterviewMasterclassPaywallModal({
       setErrorMessage(null);
 
       const isLoaded = await loadRazorpayScript();
-      if (!isLoaded || typeof window === "undefined" || !window.Razorpay) {
+      if (!isLoaded || typeof window === "undefined" || !getRazorpayCtor()) {
         setErrorMessage("Razorpay payment gateway failed to load. Please check your internet connection.");
         setLoading(false);
         return;
