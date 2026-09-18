@@ -507,8 +507,8 @@ export default function OpenroadProjectPage() {
                           {def.runner === "orfs"
                             ? " Requires OPENROAD_FLOW_ROOT on the worker for asap7/nangate45."
                             : def.runner === "openlane"
-                              ? " Requires matching PDK under PDK_ROOT (volare) on the worker."
-                              : " Scripts export only — not a cloud container target."}
+                              ? " Requires matching PDK on the runner."
+                              : " Scripts export only."}
                         </span>
                         {av && (
                           <span
@@ -518,37 +518,12 @@ export default function OpenroadProjectPage() {
                                 : "text-amber-700"
                             }`}
                           >
-                            {av.available ? "Ready on this host: " : "Not ready: "}
-                            {av.detail}
+                            Status: {av.available ? "Ready" : "Not configured"} · {av.detail}
                           </span>
                         )}
                         {!av?.available && (
                           <span className="block text-slate-500">
-                            Install: {def.installHint}
-                          </span>
-                        )}
-                        {pdkMeta.pdkRoot && (
-                          <span className="block text-slate-500">
-                            PDK_ROOT={pdkMeta.pdkRoot}
-                            {pdkMeta.orfsRoot
-                              ? ` · OPENROAD_FLOW_ROOT=${pdkMeta.orfsRoot}`
-                              : " · OPENROAD_FLOW_ROOT unset (needed for asap7/nangate45)"}
-                          </span>
-                        )}
-                        {pdkMeta.tools && (
-                          <span className="block text-slate-500 mt-1">
-                            Tools:{" "}
-                            <strong className="text-[var(--neu-text)]">
-                              {pdkMeta.tools.effectiveMode || "?"}
-                            </strong>
-                            {" · "}
-                            ACE_TOOLS_MODE={pdkMeta.tools.ACE_TOOLS_MODE || "auto"}
-                            {pdkMeta.tools.hostTools?.ok
-                              ? " · host verilator/yosys OK"
-                              : " · host incomplete"}
-                            {pdkMeta.tools.dockerAvailable
-                              ? " · Docker OK"
-                              : " · no Docker"}
+                            Requirement: {def.installHint}
                           </span>
                         )}
                       </span>

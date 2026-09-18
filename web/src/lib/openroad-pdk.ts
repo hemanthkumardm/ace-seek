@@ -130,6 +130,20 @@ export interface PdkAvailability {
   installHint: string;
 }
 
+function sanitizePath(p: string): string {
+  if (!p) return "";
+  try {
+    const home = os.homedir();
+    if (home) {
+      // Replace all occurrences of home directory in string
+      return p.split(home).join("~");
+    }
+  } catch {
+    /* ignore */
+  }
+  return p;
+}
+
 export function probePdkAvailability(): PdkAvailability[] {
   const pdkRoot = defaultPdkRoot();
   const orfsRoot = defaultOrfsRoot();
@@ -141,7 +155,7 @@ export function probePdkAvailability(): PdkAvailability[] {
         short: def.short,
         runner: def.runner,
         available: true,
-        detail: "Scripts only — always selectable",
+        detail: "Scripts only — selectable for script export",
         openlanePdk: null,
         orfsPlatform: null,
         installHint: def.installHint,
@@ -155,7 +169,7 @@ export function probePdkAvailability(): PdkAvailability[] {
         short: def.short,
         runner: def.runner,
         available: !!r.path,
-        detail: r.path ? `Installed: ${r.path}` : r.reason || "Not installed",
+        detail: r.path ? "Installed & Ready" : "PDK not installed on runner",
         openlanePdk: def.openlanePdk,
         orfsPlatform: def.orfsPlatform,
         installHint: def.installHint,
@@ -168,9 +182,7 @@ export function probePdkAvailability(): PdkAvailability[] {
       short: def.short,
       runner: def.runner,
       available: !!r.path,
-      detail: r.path
-        ? `ORFS platform: ${r.path}`
-        : r.reason || "ORFS not configured",
+      detail: r.path ? "Platform Ready" : "Platform not configured on runner",
       openlanePdk: null,
       orfsPlatform: def.orfsPlatform,
       installHint: def.installHint,

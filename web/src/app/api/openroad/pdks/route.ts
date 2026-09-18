@@ -33,15 +33,11 @@ export async function GET(req: NextRequest) {
 
     const diag = toolsDiagnostics();
     return NextResponse.json({
-      pdkRoot: isPrivileged ? defaultPdkRoot() : "[configured]",
-      orfsRoot: isPrivileged ? (defaultOrfsRoot() || null) : null,
-      jobsRoot: isPrivileged ? jobsRoot : (jobsRoot ? "[active]" : null),
-      jobsRootError,
+      pdkConfigured: true,
+      jobsReady: !jobsRootError,
       tools: {
         mode: diag.effectiveMode,
-        reason: diag.reason,
-        docker: diag.dockerAvailable,
-        hostOk: diag.hostTools.ok,
+        ready: !!(diag.hostTools.ok || diag.dockerAvailable),
       },
       catalog: OPENROAD_PDKS.map((p) => ({
         id: p.id,

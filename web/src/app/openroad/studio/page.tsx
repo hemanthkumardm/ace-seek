@@ -569,7 +569,7 @@ export default function OpenroadPnRStudioPage() {
         "Writing netlist and stats…",
       ],
       floorplan: [
-        "OpenLane Docker preparing design…",
+        "Flow runner preparing design…",
         "Floorplan / IO / PDN…",
       ],
       placement: ["OpenLane placement running…"],
@@ -1513,7 +1513,7 @@ export default function OpenroadPnRStudioPage() {
         }
         const startPayload: StageResultPayload = {
           kind: "generic",
-          summary: `OpenLane Docker · ${stage} running (until stage-limited)…`,
+          summary: `Flow runner · ${stage} running (until stage-limited)…`,
           log: r.log || `[Ace-Seek] ${stage} job ${r.jobId} started…\n`,
         };
         setStageResults((prev) => ({
@@ -2138,7 +2138,7 @@ export default function OpenroadPnRStudioPage() {
                   {(selectedStage === "floorplan" ||
                     selectedStage === "powerplan") && (
                     <p className="text-[10px] font-black text-amber-700 mt-1">
-                      Floorplan Docker step = IO + tap/endcap + PDN. Placement
+                      Floorplan stage execution = IO + tap/endcap + PDN. Placement
                       (GPL) only runs when you click Run on Placement — not here.
                     </p>
                   )}

@@ -164,9 +164,9 @@ export default function OpenroadRunPage() {
             <Play className="w-6 h-6" /> OpenLane job runner
           </h1>
           <p className="text-xs font-bold text-slate-600 mt-1 max-w-2xl">
-            <strong>container</strong> runs real OpenLane Docker: Yosys synth →
-            floorplan → place → CTS → route → Magic GDS.{" "}
-            <strong>dry_run</strong> is synthetic STA only. Jobs can take
+            <strong>Full flow</strong> runs complete RTL-to-GDS synthesis, floorplanning,
+            placement, CTS, routing, and GDS layout generation.{" "}
+            <strong>dry_run</strong> performs fast synthetic STA. Full flow jobs can take
             10–60+ minutes.
           </p>
         </div>
@@ -179,8 +179,8 @@ export default function OpenroadRunPage() {
             }
             disabled={running}
           >
-            <option value="container">container (OpenLane → GDS)</option>
-            <option value="dry_run">dry_run (synthetic)</option>
+            <option value="container">Full flow (RTL → GDS)</option>
+            <option value="dry_run">Dry run (Synthetic STA)</option>
           </select>
           <button
             type="button"
@@ -208,15 +208,39 @@ export default function OpenroadRunPage() {
       </div>
 
       {runnerInfo && (
-        <div className="brutal-panel p-3 border-3 border-black bg-slate-50 text-[10px] font-bold grid sm:grid-cols-2 gap-1">
-          <p className="flex items-center gap-1 sm:col-span-2">
-            <Cpu className="w-3.5 h-3.5" /> Runner diagnostics
-          </p>
-          {Object.entries(runnerInfo).map(([k, v]) => (
-            <p key={k}>
-              <span className="text-slate-500">{k}:</span> {String(v)}
-            </p>
-          ))}
+        <div className="brutal-panel p-3 border-3 border-black bg-slate-50 text-[11px]">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 font-black text-xs">
+              <Cpu className="w-4 h-4 text-emerald-600" />
+              <span>Flow Runner Status</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black rounded text-[10px] font-black ${
+                  runnerInfo.enabled || runnerInfo.runnerReady
+                    ? "bg-emerald-200 text-emerald-950"
+                    : "bg-amber-200 text-amber-950"
+                }`}
+              >
+                Runner: {runnerInfo.enabled || runnerInfo.runnerReady ? "Ready" : "Unavailable"}
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black rounded text-[10px] font-black ${
+                  runnerInfo.pdkExists
+                    ? "bg-emerald-200 text-emerald-950"
+                    : "bg-amber-200 text-amber-950"
+                }`}
+              >
+                PDK: {runnerInfo.pdkExists ? "sky130A Ready" : "sky130A Missing"}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 border-2 border-black rounded text-[10px] font-black bg-slate-200 text-slate-900">
+                Queue:{" "}
+                {typeof runnerInfo.queue === "object" && runnerInfo.queue !== null
+                  ? `${(runnerInfo.queue as any).running || 0} active, ${(runnerInfo.queue as any).queued || 0} queued`
+                  : "Idle"}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 

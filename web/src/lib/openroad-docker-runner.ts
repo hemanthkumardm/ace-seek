@@ -1462,14 +1462,13 @@ export function runnerDiagnostics(): Record<string, string | boolean | object> {
   const pdkRoot = process.env.PDK_ROOT || path.join(os.homedir(), ".volare");
   const pdk = process.env.PDK || "sky130A";
   const availability = probePdkAvailability();
-  let jobsRootPath = "";
   let jobsRootOk = true;
   let jobsRootError = "";
   try {
-    jobsRootPath = jobsRoot();
+    jobsRoot();
   } catch (e) {
     jobsRootOk = false;
-    jobsRootError = e instanceof Error ? e.message : "OPENROAD_JOBS_DIR invalid";
+    jobsRootError = e instanceof Error ? e.message : "Jobs store error";
   }
   const caps = openroadQueueCaps();
   let queueStats: { running: number; queued: number } = { running: 0, queued: 0 };
@@ -1481,29 +1480,22 @@ export function runnerDiagnostics(): Record<string, string | boolean | object> {
   }
   return {
     enabled: isRunnerEnabled(),
-    docker:
-      fs.existsSync("/usr/bin/docker") ||
-      fs.existsSync("/usr/local/bin/docker") ||
-      fs.existsSync("/opt/homebrew/bin/docker"),
-    pdkRoot,
-    pdkPath: path.join(pdkRoot, pdk),
+    runnerReady: isRunnerEnabled(),
     pdkExists: fs.existsSync(path.join(pdkRoot, pdk)),
-    orfsRoot: process.env.OPENROAD_FLOW_ROOT || process.env.ORFS_ROOT || "",
-    workerDir: workerDir(),
-    jobsRoot: jobsRootPath,
+    pdk,
     jobsRootOk,
     jobsRootError,
-    isolation: "owners/<ownerId>/{jobs,checkpoints,uploads}",
     queue: {
       ...caps,
       ...queueStats,
       liveChildren: children.size,
     },
-    openlaneImage:
-      process.env.OPENLANE_IMAGE ||
-      "efabless/openlane:e73fb3c57e687a0023fcd4dcfd1566ecd478362a",
-    sshHost: process.env.OPENROAD_SSH_HOST || "(local docker)",
-    pdks: availability,
+    pdks: availability.map((a) => ({
+      id: a.id,
+      label: a.label,
+      available: a.available,
+      detail: a.detail,
+    })),
   };
 }
 
