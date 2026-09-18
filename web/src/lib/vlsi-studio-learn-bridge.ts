@@ -107,8 +107,11 @@ export const STUDIO_LEARN_LINKS: Record<VlsiStudioId, StudioLearnLink[]> = {
 /** Studio to open when practicing from a Learn track */
 export function studioForLearnTrack(
   trackId: string
-): { studio: VlsiStudioId; href: string; label: string } | null {
-  const map: Record<string, { studio: VlsiStudioId; href: string; label: string }> = {
+): { studio: VlsiStudioId; href: string; label: string; external?: boolean } | null {
+  const map: Record<
+    string,
+    { studio: VlsiStudioId; href: string; label: string; external?: boolean }
+  > = {
     sdc: { studio: "sdc", href: "/vlsi/sdc-studio", label: "Practice in SDC Studio" },
     cdc: { studio: "sdc", href: "/vlsi/sdc-studio", label: "Practice clocks in SDC Studio" },
     sta: { studio: "timing", href: "/vlsi/timing-studio", label: "Practice in Timing Studio" },
@@ -126,6 +129,12 @@ export function studioForLearnTrack(
       studio: "reports",
       href: "/vlsi/openroad-export",
       label: "OpenROAD handoff",
+    },
+    fabrication: {
+      studio: "reports",
+      href: "/die_viewer_3d.html",
+      label: "Launch 3D Silicon Lab (Standalone)",
+      external: true,
     },
   };
   return map[trackId] ?? null;

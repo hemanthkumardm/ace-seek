@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Check, Cpu, PlayCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Cpu, ExternalLink, PlayCircle } from "lucide-react";
 import {
   LEARN_KIND_META,
   learnCourseHref,
@@ -68,19 +68,37 @@ export function LearnLessonView({ session }: { session: LearnSession }) {
         </p>
         {practice && (
           <div className="not-prose mt-4 mb-2">
-            <Link
-              href={practice.href}
-              className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition"
-              style={{
-                background: "var(--ln-accent-soft)",
-                color: "var(--ln-accent)",
-                border: "1px solid var(--ln-border)",
-              }}
-            >
-              <Cpu className="w-3.5 h-3.5" />
-              {practice.label}
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            {"external" in practice && practice.external || practice.href.endsWith(".html") || practice.href.startsWith("http") ? (
+              <a
+                href={practice.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition hover:brightness-110"
+                style={{
+                  background: "var(--ln-accent-soft)",
+                  color: "var(--ln-accent)",
+                  border: "1px solid var(--ln-border)",
+                }}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                {practice.label}
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            ) : (
+              <Link
+                href={practice.href}
+                className="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition hover:brightness-110"
+                style={{
+                  background: "var(--ln-accent-soft)",
+                  color: "var(--ln-accent)",
+                  border: "1px solid var(--ln-border)",
+                }}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                {practice.label}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
         )}
       </article>
