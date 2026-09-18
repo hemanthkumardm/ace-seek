@@ -72,6 +72,7 @@ export type LearnGroupId =
   | "verification"
   | "scripting"
   | "formats"
+  | "fabrication"
   | "cadence_eda"
   | "synopsys_eda"
   | "opensource_eda";
@@ -127,6 +128,11 @@ export const LEARN_GROUPS: LearnGroup[] = [
     id: "formats",
     title: "Data formats",
     blurb: "XML, IP-XACT, and report dumps.",
+  },
+  {
+    id: "fabrication",
+    title: "Semiconductor fabrication",
+    blurb: "Wafer manufacturing, FEOL/BEOL, photolithography, DFM, and 3D packaging.",
   },
   {
     id: "cadence_eda",
@@ -279,6 +285,13 @@ export const LEARN_TRACKS: LearnTrack[] = [
     group: "formats",
     title: "XML",
     blurb: "IP-XACT, QOR dumps, namespaces, and XPath on tool reports.",
+    accent: "cyan",
+  },
+  {
+    id: "fabrication",
+    group: "fabrication",
+    title: "Fabrication & Packaging",
+    blurb: "Wafer processing, photolithography, plasma antenna DFM, 3D die stack, and advanced packaging.",
     accent: "cyan",
   },
 

@@ -9717,5 +9717,249 @@ add_stripes -nets {VDD VSS} -layer M6 -width 2.5 -spacing 2.5 -set_to_set_distan
 `,
     }
   ),
+
+  // ——— Semiconductor Fabrication & 3D Packaging Track ———
+  theory(
+    "fabrication",
+    "beginner",
+    "fab-wafer-process",
+    "Beginner: Silicon Ingot, Wafer Manufacturing & Cleanroom Physics",
+    24,
+    "Electronic-grade silicon, Czochralski crystal growth, wafer slicing, polishing, cleanroom ISO classes, and semiconductor defect yield modeling.",
+    [
+      "Semiconductor manufacturing begins with pure silicon. Quartz sand (SiO2) is reduced with carbon in an electric arc furnace at ~2000°C to create **Metallurgical Grade Silicon (MGS)** with ~98% purity. To achieve the 99.9999999% ('nine-nines') purity required for microelectronics, MGS is reacted with HCl to form trichlorosilane gas (SiHCl3), purified via fractional distillation, and reduced with hydrogen to produce **Electronic Grade Silicon (EGS)**.",
+      "**The Czochralski (CZ) Crystal Growth Method:**\n1. Polycrystalline EGS is melted in a high-purity quartz crucible at ~1425°C under an inert argon atmosphere.\n2. A single-crystal seed of desired crystallographic orientation (typically <100> for planar CMOS or <110> for 3D FinFET side-walls) is dipped into the melt.\n3. The seed is slowly rotated and pulled upwards (1-2 mm/min) while cooling, causing silicon atoms to crystallize onto the seed lattice, forming a massive cylindrical single-crystal **ingot (boule)** up to 2 meters long and 300mm in diameter.",
+      "**Wafer Slicing & Surface Planarization:**\n- Ingot grinding grinds the boule to exact diameter (200mm or 300mm) with a reference notch (or flat) identifying crystal orientation.\n- High-speed diamond wire saws slice the boule into thin wafers (~775µm thickness for 300mm).\n- Edge rounding prevents chipping during automated robotic wafer handling.\n- Lapping and **Chemical-Mechanical Polishing (CMP)** create an atom-level specular mirror finish with root-mean-square (RMS) surface roughness under 0.1 nanometers.",
+      "**Cleanroom Engineering & Particle Control:**\n- Fabrication takes place in pristine cleanrooms classified under **ISO 14644-1**. An **ISO 1 (Class 1)** bay permits fewer than 10 particles $\\ge 0.1\\,\\mu m$ per cubic meter of air.\n- High-Efficiency Particulate Air (HEPA) and Ultra-Low Particulate Air (ULPA) ceiling filters generate non-turbulent vertical laminar airflow, sweeping airborne contaminants down through perforated floor tiles.\n- Wafers travel inside sealed Front Opening Unified Pods (FOUPs) purged with ultra-pure nitrogen to prevent oxidation and Airborne Molecular Contamination (AMC).",
+      "**Defect Density & Yield Modeling:**\n- Not every die on a wafer works. Random dust particles or crystal dislocations cause open/short defects.\n- **Poisson Yield Model:** $Y = e^{-D_0 \\cdot A}$, where $D_0$ is defect density (defects/cm²) and $A$ is die area.\n- **Murphy & Negative Binomial Models:** Real defects cluster together, so clustered yield models: $Y = (1 + D_0 A / \\alpha)^{-\\alpha}$ better predict large die yields.\n- Key Takeaway: As die area doubles, yield drops exponentially! This physical reality drives modern chiplet architectures.",
+    ],
+    {
+      title: "Wafer Geometry & Yield Formula in Python",
+      lang: "python",
+      source: `import math
+
+def calculate_wafer_yield(diameter_mm=300, die_width_mm=12, die_height_mm=10, d0_per_cm2=0.08, cluster_alpha=2.0):
+    wafer_radius = diameter_mm / 2.0
+    wafer_area_mm2 = math.pi * (wafer_radius ** 2)
+    die_area_mm2 = die_width_mm * die_height_mm
+    die_area_cm2 = die_area_mm2 / 100.0
+    
+    # Gross Dies Per Wafer (DPW) - De Vries formula
+    gross_dpw = math.floor((wafer_area_mm2 / die_area_mm2) - (math.pi * diameter_mm / math.sqrt(2 * die_area_mm2)))
+    
+    # Negative Binomial (Clustered) Yield Model
+    yield_fraction = (1.0 + (d0_per_cm2 * die_area_cm2) / cluster_alpha) ** (-cluster_alpha)
+    net_good_dies = math.floor(gross_dpw * yield_fraction)
+    
+    print(f"300mm Wafer: Gross Dies = {gross_dpw}, Yield = {yield_fraction*100:.1f}%, Good Dies = {net_good_dies}")
+    return net_good_dies
+
+calculate_wafer_yield()`,
+    },
+    [
+      "Can explain MGS to EGS nine-nines purification chemistry",
+      "Understands Czochralski seed pulling and <100> vs <110> silicon lattice orientations",
+      "Applies Murphy and Poisson defect yield models to understand why large dies suffer low yield",
+      "Identifies ISO cleanroom classifications and FOUP wafer isolation systems",
+    ]
+  ),
+
+  quiz("fabrication", "beginner", "fab-wafer-process-quiz", "Fabrication — Wafer Manufacturing & Cleanroom Quiz", [
+    { id: "fab_w1", prompt: "Why must single-crystal silicon boules be pulled with specific crystallographic orientations (e.g. <100> or <110>)?", choices: ["Because carrier mobilities and interface trap densities differ across crystal planes, optimizing transistor drive current", "To make the wafer round", "To change the color of the silicon", "To prevent the wafer from melting in the sun"], answer: 0, explain: "Crystallographic planes dictate electron/hole mobilities and surface bond densities crucial for gate oxide quality." },
+    { id: "fab_w2", prompt: "According to Murphy's yield model, what happens to die yield when die area is doubled?", choices: ["Yield drops non-linearly (exponentially), significantly reducing the number of functional dies per wafer", "Yield doubles because the die is larger", "Yield stays exactly the same", "Yield increases by 50%"], answer: 0, explain: "Larger dies have higher probabilities of capturing random particle defects, leading to an exponential decrease in yield." },
+    { id: "fab_w3", prompt: "What is the function of a Front Opening Unified Pod (FOUP) in modern 300mm fabs?", choices: ["To transport wafers in a sealed, nitrogen-purged micro-environment free of airborne contaminants and moisture", "To heat wafers during laser annealing", "To cut wafers into squares", "To package completed chips for retail sales"], answer: 0, explain: "FOUPs provide a sealed Class 1 micro-environment for wafers moving between automated processing tools." },
+    { id: "fab_w4", prompt: "What is Electronic Grade Silicon (EGS) purity required for semiconductor manufacturing?", choices: ["99.9999999% ('nine-nines' purity)", "95% purity", "75% silicon, 25% copper", "50% purity"], answer: 0, explain: "Semiconductors require less than 1 impurity atom per billion silicon atoms to prevent uncontrolled carrier recombination." },
+  ]),
+
+  theory(
+    "fabrication",
+    "standard",
+    "fab-feol-transistor",
+    "Standard: FEOL — Photolithography, Wells, Implantation & FinFETs",
+    26,
+    "Front-End of Line (FEOL) manufacturing: thermal oxidation, DUV/EUV optical lithography, chemical etching, ion implantation, and 3D FinFET gate architectures.",
+    [
+      "**Front-End of Line (FEOL)** refers to all fabrication steps that construct the active transistors, diodes, and well taps directly inside the single-crystal silicon substrate before any interconnect metal layers are deposited.",
+      "**1. Thermal Oxidation & Dielectric Deposition:**\n- High-temperature furnaces (900–1100°C) expose silicon to dry oxygen ($Si + O_2 \\rightarrow SiO_2$) to grow ultra-thin, high-integrity silicon dioxide dielectric layers.\n- Wet oxidation using steam ($H_2O$) grows thicker field oxide layers faster (Deal-Grove parabolic regime).\n- Modern sub-28nm nodes replace $SiO_2$ with **High-k Metal Gate (HKMG)** stacks (hafnium oxide, $HfO_2$, dielectric constant $k \\approx 25$) deposited via **Atomic Layer Deposition (ALD)** with single-atomic-layer thickness control.",
+      "**2. Photolithography Lifecycle (Pattern Transfer):**\n- **Resist Coating:** Liquid photoresist is spin-coated at 3000–5000 RPM onto the wafer, forming a uniform 30–100nm film.\n- **Soft Bake:** Evaporates solvent to solidify the resist film.\n- **Exposure:** Light passes through a photomask (reticle) containing circuit geometries. In 193nm Deep Ultraviolet (DUV) immersion lithography, ultra-pure water ($n=1.44$) between the lens and wafer increases Numerical Aperture ($NA$) to 1.35. In **13.5nm Extreme Ultraviolet (EUV)**, reflective Bragg mirrors (molybdenum/silicon multilayers) focus light in high vacuum.\n- **Post-Exposure Bake (PEB) & Development:** Chemically amplified resists undergo acid-catalyzed deprotection. Developer solution dissolves exposed areas (positive resist) or unexposed areas (negative resist).\n- **Hard Bake:** Cures the remaining patterned resist to withstand harsh etching.",
+      "**3. Plasma Etching vs Wet Etching:**\n- **Wet chemical etching** (e.g. HF acid) is isotropic (etches in all directions equally, causing lateral undercut beneath masks).\n- **Reactive Ion Etching (RIE) / Inductively Coupled Plasma (ICP):** Energetic halogen ions ($CF_4, Cl_2, HBr$) accelerated by an electric field bombard the wafer vertically, achieving purely **anisotropic** directional etching with vertical sidewalls.",
+      "**4. Ion Implantation & Annealing:**\n- High-energy accelerators (keV to MeV) shoot ionized dopant atoms (Boron for p-wells/PMOS, Phosphorus/Arsenic for n-wells/NMOS) into specific depths of the silicon lattice.\n- Heavy ion collisions damage the silicon crystal lattice. **Rapid Thermal Annealing (RTA)** or Laser Spike Annealing (LSA) flashes the wafer to ~1050°C for milliseconds to repair crystal damage and electrically activate dopants while minimizing unwanted dopant diffusion.",
+      "**5. Transistor Architecture Evolution:**\n- **Planar Bulk CMOS:** Suffers from severe drain-induced barrier lowering (DIBL) and subthreshold leakage when gate lengths shrink below 28nm.\n- **3D FinFET (Fin Field-Effect Transistor):** Transistor channel is extruded into a thin vertical silicon 'fin'. The gate wraps around 3 sides of the fin, providing tight electrostatic channel control and suppressing off-state leakage.\n- **Nanosheet / GAAFET (Gate-All-Around):** Multiple horizontally stacked silicon nanosheets with gate material completely surrounding all 4 sides of each channel, enabling scaling down to 2nm nodes.",
+    ],
+    {
+      title: "Rayleigh Resolution Limit in Photolithography",
+      lang: "python",
+      source: `# Rayleigh Equation: Resolution (CD) = k1 * (wavelength / NA)
+def litho_resolution(wavelength_nm, na, k1=0.3):
+    critical_dimension_nm = k1 * (wavelength_nm / na)
+    return critical_dimension_nm
+
+# DUV 193nm Immersion (Water NA = 1.35)
+duv_cd = litho_resolution(193.0, 1.35, k1=0.28)
+# EUV 13.5nm (Vacuum NA = 0.33)
+euv_cd = litho_resolution(13.5, 0.33, k1=0.40)
+# High-NA EUV 13.5nm (Anamorphic NA = 0.55)
+high_na_euv_cd = litho_resolution(13.5, 0.55, k1=0.35)
+
+print(f"193nm Immersion Limit: {duv_cd:.1f} nm (requires multi-patterning)")
+print(f"Standard EUV (0.33 NA): {euv_cd:.1f} nm (single exposure)")
+print(f"High-NA EUV (0.55 NA):  {high_na_euv_cd:.1f} nm (sub-2nm nodes)")`,
+    },
+    [
+      "Understands photolithography steps: spin-coat, exposure, PEB, and develop",
+      "Differentiates isotropic wet etch vs anisotropic plasma reactive ion etching (RIE)",
+      "Explains why High-k Metal Gate (HKMG) was adopted to stop gate tunneling leakage",
+      "Can diagram Planar CMOS vs 3D FinFET vs Gate-All-Around (GAAFET) nanosheets",
+    ]
+  ),
+
+  quiz("fabrication", "standard", "fab-feol-transistor-quiz", "Fabrication — FEOL & Transistor Architecture Quiz", [
+    { id: "fab_f1", prompt: "Why did the semiconductor industry transition from Planar CMOS to 3D FinFETs at the 22nm/16nm nodes?", choices: ["Because the 3D gate wraps around three sides of the fin channel, suppressing short-channel effects and subthreshold leakage", "Because FinFETs are cheaper to produce with fewer masks", "Because planar transistors could not conduct electricity", "Because copper cannot be used on planar transistors"], answer: 0, explain: "Wrapping the gate around a thin vertical fin establishes 3-sided electrostatic control, preventing drain-induced barrier lowering." },
+    { id: "fab_f2", prompt: "What is the primary advantage of Reactive Ion Etching (RIE) over wet chemical etching?", choices: ["RIE is anisotropic, etching vertically with straight sidewalls without undercutting the photoresist mask", "RIE uses cold water instead of electricity", "RIE dissolves the entire silicon wafer", "RIE is 100% isotropic in all directions"], answer: 0, explain: "Directional ion bombardment in RIE enables vertical trench etching without lateral undercut." },
+    { id: "fab_f3", prompt: "What is the purpose of Rapid Thermal Annealing (RTA) following ion implantation?", choices: ["To repair silicon crystal lattice damage caused by ion bombardment and activate dopant atoms into substitutional lattice sites", "To melt the wafer into glass", "To deposit copper interconnects", "To wash away photoresist with water"], answer: 0, explain: "Thermal annealing restores crystallinity and places dopant atoms into active substitutional lattice positions." },
+    { id: "fab_f4", prompt: "In Extreme Ultraviolet (EUV) photolithography, why must all optics be reflective multilayer mirrors rather than refractive glass lenses?", choices: ["13.5nm EUV light is absorbed by almost all matter, including optical glass and air, requiring reflective Mo/Si mirrors in high vacuum", "Glass lenses are too heavy to mount", "EUV light is visible to the human eye", "Mirrors make the light move faster"], answer: 0, explain: "At 13.5nm wavelength, photon absorption is extreme; only specialized Bragg multilayer mirrors can reflect EUV light in vacuum." },
+  ]),
+
+  theory(
+    "fabrication",
+    "expert",
+    "fab-beol-metallization",
+    "Expert: BEOL — Dual-Damascene Copper, Low-k Dielectrics & CMP",
+    28,
+    "Back-End of Line (BEOL) interconnect fabrication: copper electroplating, barrier seed deposition, chemical-mechanical planarization (CMP), and low-k dielectric stacks.",
+    [
+      "**Back-End of Line (BEOL)** begins once the transistors are completed. It encompasses the fabrication of all metallic wiring layers (M1 through M10+) and inter-layer dielectric (ILD) insulating materials that connect billions of transistors into a functioning microchip.",
+      "**Why Copper Replaced Aluminum:**\n- Prior to 130nm, chips used aluminum wires patterned by dry etching. As wires shrank, aluminum suffered from high electrical resistance ($2.65\\,\\mu\\Omega\\cdot\\text{cm}$) and severe **electromigration (EM)**, where electron wind physically displaces aluminum atoms, causing open-circuit voids.\n- Copper offers 40% lower bulk resistivity ($1.68\\,\\mu\\Omega\\cdot\\text{cm}$) and significantly superior electromigration resistance.\n- The Challenge: Copper cannot be etched with plasma gases because copper halogen compounds are non-volatile at fab temperatures! This forced the invention of the **Damascene process**.",
+      "**The Dual-Damascene Process Flow:**\n1. Deposit Inter-Metal Dielectric (IMD) oxide layer.\n2. Lithography & RIE: Pattern and etch via holes and interconnect wire trenches into the dielectric.\n3. **Liner / Barrier Deposition:** Sputter an ultra-thin (1-2nm) Tantalum/Tantalum Nitride (Ta/TaN) or Ruthenium/Cobalt diffusion barrier. Critical: Copper atoms diffuse rapidly through silicon dioxide and poison transistors!\n4. **Copper Seed Layer:** Physical vapor deposition (PVD) of a thin conductive copper seed layer.\n5. **Electrochemical Deposition (ECD):** Copper electroplating fills trenches and vias from the bottom up ('super-fill') with zero voids, overfilling the top surface.\n6. **Chemical-Mechanical Planarization (CMP):** Polishing removes excess overburden copper, leaving perfectly planarized copper wires embedded flush inside the dielectric trenches.",
+      "**Chemical-Mechanical Planarization (CMP) Defect Modes:**\n- **Dishing:** Over-polishing wide metal lines causes the softer copper to erode deeper than the surrounding oxide.\n- **Erosion:** High-density arrays of narrow wires cause both metal and oxide to thin out.\n- **PnR Mitigation (Dummy Metal Fill):** Physical design tools must insert dummy metal fill geometries and slot wide power wires to ensure uniform metal density (e.g. 20%–70% per layer) across every CMP polishing window.",
+      "**Low-k and Ultra-Low-k (ULK) Dielectrics:**\n- Wire delay ($RC = R_{wire} \\cdot C_{wire}$) dominates gate delay in advanced nodes.\n- Standard $SiO_2$ has a dielectric constant of $k \\approx 3.9$. Foundries introduce carbon and microscopic air pores into the glass (SiCOH, fluorosilicate glass) to lower $k$ to 2.5–2.2.\n- Trade-off: Porous low-k materials have poor mechanical strength and lower thermal conductivity, making them vulnerable to delamination and cracking during packaging.",
+    ],
+    {
+      title: "Interconnect RC Delay & Metal Stack Modeling",
+      lang: "python",
+      source: `# BEOL RC Interconnect Delay Comparison
+def wire_rc_delay(length_um, width_um, thickness_um, dielectric_k=2.5, spacing_um=0.04):
+    rho_cu = 0.022  # ohm * um (thin-film Cu resistivity including surface scattering)
+    eps_0 = 8.854e-6 # fF / um
+    
+    # Resistance = rho * L / (W * H)
+    r_wire = (rho_cu * length_um) / (width_um * thickness_um)
+    
+    # Capacitance = Area Cap + Sidewall Fringe Cap
+    c_wire = dielectric_k * eps_0 * (length_um * thickness_um / spacing_um) * 2.0
+    
+    # Elmore delay = 0.5 * R * C
+    elmore_delay_ps = 0.5 * r_wire * c_wire * 1e3
+    return r_wire, c_wire, elmore_delay_ps
+
+r, c, delay = wire_rc_delay(length_um=1000, width_um=0.04, thickness_um=0.08, dielectric_k=2.5)
+print(f"1mm M2 Wire: R = {r:.1f} ohms, C = {c:.2f} fF, Delay = {delay:.2f} ps")`,
+    },
+    [
+      "Explains why copper cannot be dry-etched and requires the Dual-Damascene process",
+      "Names the critical role of Ta/TaN diffusion barriers in preventing copper contamination",
+      "Identifies CMP dishing and erosion defect modes and explains PnR dummy metal fill rules",
+      "Understands the electrical and mechanical trade-offs of low-k (SiCOH) dielectrics",
+    ]
+  ),
+
+  quiz("fabrication", "expert", "fab-beol-metallization-quiz", "Fabrication — BEOL Metallization & CMP Quiz", [
+    { id: "fab_b1", prompt: "Why does copper interconnect fabrication use the Dual-Damascene process instead of traditional subtractive plasma etching?", choices: ["Because volatile copper compounds do not form at fab temperatures, preventing plasma gases from dry-etching copper directly", "Because copper is cheaper to electroplate into trenches", "Because copper melts when exposed to vacuum", "Because aluminum is too strong to cut"], answer: 0, explain: "Copper reaction byproducts with halogens have extremely low volatility, making direct reactive ion etching impossible." },
+    { id: "fab_b2", prompt: "What is the primary function of the Ta/TaN or Ru liner deposited before copper electroplating?", choices: ["It acts as a diffusion barrier preventing copper atoms from migrating into the dielectric and poisoning active transistors", "It makes the copper wires shiny", "It speeds up the clock frequency by 2x", "It insulates the wire against heat"], answer: 0, explain: "Copper diffuses rapidly through silicon and dielectrics, creating deep-level traps that ruin transistor operation unless barred by Ta/TaN." },
+    { id: "fab_b3", prompt: "What is 'dishing' during Chemical-Mechanical Planarization (CMP)?", choices: ["A concave depression formed in wide copper lines when polishing pads erode soft metal faster than hard dielectric oxide", "A crack in the silicon wafer", "A contamination dish left on the wafer", "An increase in wire thickness"], answer: 0, explain: "Wide copper lines polish faster than surrounding dielectric oxides, causing dishing that increases wire resistance." },
+    { id: "fab_b4", prompt: "Why do physical design tools insert dummy metal fill across every metal layer prior to tapeout?", choices: ["To maintain uniform metal density across the wafer, preventing localized CMP over-polishing, dishing, and dielectric erosion", "To connect extra power pins", "To make the chip heavier", "To store extra clock cycles"], answer: 0, explain: "Uniform planarization during CMP requires balanced metal density across all regions of the die." },
+  ]),
+
+  theory(
+    "fabrication",
+    "expert",
+    "fab-plasma-antenna-dfm",
+    "Expert: Plasma Antenna Effect, Gate Rupture & DFM Rules",
+    26,
+    "Physical mechanisms of plasma-induced gate oxide damage during reactive ion etching, antenna ratio design rules, diode protection, and foundry DFM signoff.",
+    [
+      "**The Process Antenna Effect (Plasma-Induced Damage - PID):**\nDuring manufacturing, long metal wires behave like electrostatic antennas. When reactive ion plasma beams etch metal layers, free electrons and ionized radicals strike the exposed conductor, accumulating electrostatic charge on the floating wire network.",
+      "**The Gate Rupture Mechanism:**\n- If a long metal wire connects only to a MOS transistor gate (which is an open-circuit capacitor with an ultra-thin 1–2nm dielectric), the collected plasma charge has no escape path.\n- As wire length and surface area increase, the charge potential climbs to dozens of volts.\n- The intense electric field forces **Fowler-Nordheim tunneling** current through the gate dielectric, creating trap states, increasing gate leakage, shifting threshold voltage ($V_{th}$), or causing catastrophic dielectric rupture (**Time-Dependent Dielectric Breakdown - TDDB**).",
+      "**Antenna Design Rules & Ratios:**\n- Foundries quantify antenna limits as the **Antenna Ratio (AR)**:\n$$AR = \\frac{\\text{Metal Conductor Area}}{\\text{Connected Gate Oxide Area}} \\le AR_{max}$$\n- Typical foundry limits: $AR_{max} \\approx 200\\text{ to }400$ for intermediate metal layers.\n- If a 0.04µm² gate is wired to a 200µm-long metal track with an area of 20µm², the ratio is $20 / 0.04 = 500$, violating the rule and risking gate destruction in the etch chamber!",
+      "**PnR Antenna Fix 1: Metal Layer Hopping (Jumpers):**\n- The antenna effect is an *in-process* hazard: once a higher layer connects to a diffusion pin, charge can safely dissipate.\n- By routing the wire up to a higher metal layer (e.g. M2 $\\rightarrow$ M3 $\\rightarrow$ M2) immediately adjacent to the input gate pin, the long wire segment on M2 is disconnected from the gate while M2 is being etched! The gate is only connected to a tiny stub of M2, slashing the effective antenna ratio to near zero.",
+      "**PnR Antenna Fix 2: Reverse-Biased Antenna Diodes:**\n- If layer hopping causes congestion, physical design tools insert an **antenna diode** connected to the vulnerable net.\n- The antenna diode is a reverse-biased p-n junction connected between the signal line and ground (VSS).\n- During normal chip operation, the diode is reverse-biased with sub-nanoamp leakage.\n- In the plasma etch chamber, the high positive voltage on the wire forward-biases or breaks down the diode into reverse avalanche conduction, safely shunting plasma charge into the substrate before gate oxide can rupture!",
+      "**Foundry DFM Signoff Matrix:**\n| DFM Rule | Failure Mechanism Prevented | PnR Remediation |\n|---|---|---|\n| **Via Doubling** | Random particle open defects | Replace single cut with multi-cut via arrays |\n| **Antenna Ratio** | Gate oxide breakdown during RIE | Insert jumpers or reverse-biased antenna diodes |\n| **Metal Density** | CMP dishing & dielectric erosion | Automated dummy metal fill insertion (20-70%) |\n| **Wide Wire Slotting** | Thermal expansion stress voids | Cut longitudinal slots in metal tracks $>10\\mu m$ wide |",
+    ],
+    {
+      title: "Antenna Ratio Validator & Diode Sizing in Tcl",
+      lang: "tcl",
+      source: `# OpenROAD / Innovus Antenna Rule Check & Diode Insertion
+set_app_var route_antenna_rule_file "foundry_antenna.rules"
+
+# Check design for process antenna violations
+check_antennas -report_file antenna_violations.rpt
+
+# Automatic remediation: Insert ANTENNA_DIODE cells on violating pins
+set_antenna_diode_cell "ANTENNA_1" -diode_pin "A" -ground_pin "VSS"
+repair_antennas -iterations 5 -jump_layers true
+
+# Verify clean antenna signoff
+puts "INFO: Checking final antenna ratio compliance..."
+check_antennas`,
+    },
+    [
+      "Explains the physics of plasma charge accumulation during reactive ion etching",
+      "Calculates Antenna Ratios and explains Fowler-Nordheim oxide tunneling rupture",
+      "Contrasts metal layer hopping (jumpers) vs reverse-biased antenna diode insertion",
+      "Names the four key DFM signoff rules: antenna, via doubling, CMP fill, and wire slotting",
+    ]
+  ),
+
+  quiz("fabrication", "expert", "fab-plasma-antenna-dfm-quiz", "Fabrication — Plasma Antenna & DFM Signoff Quiz", [
+    { id: "fab_a1", prompt: "What causes the Process Antenna Effect during semiconductor wafer manufacturing?", choices: ["Long metal wires collect electrostatic charges during plasma etching that discharge through and rupture thin MOS gate oxides", "Wireless Bluetooth signals interfering with standard cells", "Thermal expansion of copper bondwires", "Magnetic fields inside the wafer stepper"], answer: 0, explain: "Reactive ion plasma beams deposit charge onto conductive metal wires; without a discharge path, high electric fields rupture thin gate dielectrics." },
+    { id: "fab_a2", prompt: "How does 'layer hopping' (inserting a metal jumper) eliminate an antenna violation during PnR?", choices: ["By routing up to a higher metal layer immediately next to the gate, the long lower wire is disconnected from the gate while being etched", "It reduces wire resistance to zero", "It converts the wire into an optical fiber", "It replaces the transistor with a diode"], answer: 0, explain: "Layer hopping ensures the gate is only exposed to a short local metal stub during the etch process of the lower metal layer." },
+    { id: "fab_a3", prompt: "How does an antenna diode protect an input gate without disrupting normal circuit operation?", choices: ["It is reverse-biased during normal operation, but conducts safely in the fab to discharge high positive plasma voltages to ground", "It amplifies the clock signal by 2x", "It permanently grounds the input pin", "It stores digital data like a flip-flop"], answer: 0, explain: "The diode remains reverse-biased with minimal leakage at normal VDD, but shunts plasma charge safely during wafer manufacturing." },
+    { id: "fab_a4", prompt: "Why is 'via doubling' (multi-cut via replacement) mandatory in deep-submicron DFM signoff?", choices: ["Replacing single-cut vias with redundant dual-cut vias prevents chip-killing open circuit failures from random particle defects", "It halves the clock period", "It doubles the number of input pins", "It saves routing layers"], answer: 0, explain: "A single particle defect can cause an open circuit on a single-cut via; a redundant via pair ensures current flow even if one via is defective." },
+  ]),
+
+  theory(
+    "fabrication",
+    "master",
+    "fab-3d-packaging",
+    "Master: 3D Silicon Stack, Advanced Packaging & Chiplet Interposers",
+    30,
+    "Evolution of semiconductor packaging: Wirebond, Flip-Chip BGA, Fan-Out WLP, 2.5D Silicon Interposers (CoWoS, EMIB), High Bandwidth Memory (HBM), and 3D Hybrid Bonding.",
+    [
+      "**The Death of Monolithic Scaling & 'More than Moore':**\n- As Moore's Law slows and maximum reticle limits ($~858\\,\\text{mm}^2$) cap single-die size, monolithic silicon dies have become economically unsustainable for mega-chips (GPUs, AI accelerators, server CPUs).\n- Yield on an 800mm² monolithic die is disastrously low. By disaggregating the chip into modular **chiplets** (e.g. cutting-edge 3nm compute dies paired with mature 6nm/12nm I/O controllers), total manufacturing cost drops by over 40% while maximizing silicon yield.",
+      "**1. Traditional Packaging Technologies:**\n- **Leadframe Wirebonding (QFN/DIP):** Gold or copper wirebonds connect peripheral die pads to leadframe fingers. High parasitics (inductance $>2\\,\\text{nH}$, capacitance $>1\\,\\text{pF}$) and pad pitch limits (>60µm) restrict wirebond packages to low-speed and microcontroller applications.\n- **Flip-Chip Ball Grid Array (FC-BGA):** The die is flipped face-down. Solder bumps (lead-free SAC or copper pillar, 100–150µm pitch) distributed across the entire die surface connect directly to an organic package substrate. Low parasitic inductance ($<0.5\\,\\text{nH}$) and superior thermal heat spreader mounting.",
+      "**2. Wafer-Level Packaging (WLP):**\n- **Fan-In Wafer Level Chip Scale Package (WLCSP):** Redistribution Layers (RDL) route I/O pads to solder balls on the wafer before dicing. Package size = die size.\n- **Fan-Out Wafer Level Packaging (FOWLP / TSMC InFO):** Dies are diced and embedded into an epoxy mold compound to create a 'reconstituted wafer'. RDL lines fan out beyond the die footprint, offering high I/O density without an expensive substrate.",
+      "**3. 2.5D Packaging & Silicon Interposers (CoWoS / EMIB):**\n- When chiplets need to communicate with terabytes/second of bandwidth (such as GPUs to **High Bandwidth Memory - HBM3/HBM3e** stacks), organic substrates lack the required sub-micron routing density.\n- **TSMC CoWoS (Chip-on-Wafer-on-Substrate):** Multiple dies sit side-by-side on a passive silicon interposer. Deep sub-micron copper wires (0.4µm pitch) connect compute dies to HBM stacks, while **Through-Silicon Vias (TSVs)** pass power and ground through the interposer to the package substrate.\n- **Intel EMIB (Embedded Multi-die Interconnect Bridge):** Rather than a massive, expensive silicon interposer covering the entire package, tiny silicon bridge chips are embedded inside the organic substrate only where high-density die-to-die connections are needed.",
+      "**4. True 3D Hybrid Bonding (Wafer-on-Wafer / Die-on-Wafer):**\n- **Micro-Bump vs Bumpless Bonding:** Micro-bumps hit physical limits at ~25µm pitch due to solder bridging shorts.\n- **Direct Copper-to-Copper Hybrid Bonding (TSMC SoIC, AMD 3D V-Cache):** Surfaces are polished with sub-nanometer CMP precision. Dielectric-to-dielectric molecular bonds fuse at room temperature, followed by a 300°C anneal where copper pads expand and fuse together at pad pitches under 1–9µm.\n- Result: Interconnect density increases by $>1000\\times$, parasitic capacitance drops to femtofarads, and latency approaches that of on-die monolithic metal routing!",
+      "**5. Interactive 3D Lab Simulation:**\n- Launch the interactive 3D Silicon Stack viewer embedded in this lab to inspect real 3D metal stacks (M1 through M5), trace simulated clock and power grids, explore the 15-step wafer fab sequence, and observe advanced packaging assembly models in real time.",
+    ],
+    {
+      title: "Package Interconnect Comparison & Bandwidth Density",
+      lang: "python",
+      source: `# Interconnect Density and Parasitics across Packaging Generations
+PACKAGING_METRICS = {
+    "Wirebond": {"pitch_um": 80.0, "inductance_nh": 2.5, "cap_pf": 1.2, "bw_density_gbps_mm": 50},
+    "FC-BGA":   {"pitch_um": 130.0, "inductance_nh": 0.4, "cap_pf": 0.4, "bw_density_gbps_mm": 250},
+    "FOWLP":    {"pitch_um": 40.0,  "inductance_nh": 0.15, "cap_pf": 0.15, "bw_density_gbps_mm": 800},
+    "2.5D_TSV": {"pitch_um": 40.0,  "inductance_nh": 0.05, "cap_pf": 0.05, "bw_density_gbps_mm": 2400},
+    "3D_Hybrid":{"pitch_um": 4.5,   "inductance_nh": 0.002,"cap_pf": 0.002,"bw_density_gbps_mm": 35000}
+}
+
+for name, d in PACKAGING_METRICS.items():
+    print(f"{name:11s} -> Pitch: {d['pitch_um']:5.1f} um | L: {d['inductance_nh']:6.3f} nH | BW: {d['bw_density_gbps_mm']:5d} Gbps/mm")`,
+    },
+    [
+      "Explains why monolithic die yields collapsed and driven the adoption of multi-die chiplets",
+      "Compares Wirebond vs Flip-Chip BGA vs Fan-Out Wafer-Level Packaging (FOWLP)",
+      "Describes 2.5D silicon interposers (CoWoS, EMIB) and Through-Silicon Vias (TSVs)",
+      "Explains copper-to-copper 3D hybrid bonding physics and sub-micron interconnect density",
+    ]
+  ),
+
+  quiz("fabrication", "master", "fab-3d-packaging-quiz", "Fabrication — 3D Silicon & Advanced Packaging Quiz", [
+    { id: "fab_p1", prompt: "Why are modern high-performance processors (like AMD EPYC and Apple Ultra) built as modular multi-die chiplets rather than single monolithic dies?", choices: ["Because disaggregating large chips into smaller dies dramatically improves silicon yield and allows optimal process node pairing per function", "Because chiplets use less software", "Because monolithic dies cannot run at 1 GHz", "Because chiplets eliminate the need for memory"], answer: 0, explain: "Yield drops exponentially with die area; smaller chiplets enjoy high yields and allow pairing expensive 3nm compute with economical 6nm I/O." },
+    { id: "fab_p2", prompt: "What is the primary role of a 2.5D silicon interposer in High Bandwidth Memory (HBM) integration?", choices: ["It provides sub-micron wiring density and Through-Silicon Vias (TSVs) to connect thousands of parallel memory lines between GPU and HBM", "It converts AC power to DC power", "It acts as a mechanical heat sink only", "It runs operating system software"], answer: 0, explain: "Silicon interposers provide ultra-dense sub-micron metal routing and TSVs to connect wide, high-speed HBM bus interfaces." },
+    { id: "fab_p3", prompt: "How does 3D Direct Copper-to-Copper Hybrid Bonding (e.g. TSMC SoIC) differ from traditional micro-bump bonding?", choices: ["It bonds polished copper pads directly without solder micro-bumps, achieving pad pitches under 10µm and 1000x higher interconnect density", "It uses conductive glue instead of metal", "It requires gold wires to connect the dies", "It operates at room temperature without power"], answer: 0, explain: "Hybrid bonding achieves direct metallic and dielectric fusion without solder, dramatically slashing pitch and parasitic capacitance." },
+    { id: "fab_p4", prompt: "What is a major engineering challenge in 3D stacked die configurations (e.g. stacking logic directly on top of logic)?", choices: ["Thermal dissipation: heat generated by the bottom die must pass through the top die, risking thermal throttling and hot-spots", "The package becomes too light", "The chip runs out of clock cycles", "3D chips cannot be stored in boxes"], answer: 0, explain: "Vertical heat stacking is a primary bottleneck in 3D ICs because silicon and low-k dielectrics have finite thermal conductivities." },
+  ]),
 ];
 

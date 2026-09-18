@@ -161,32 +161,6 @@ export default function VlsiLearnHub() {
         </div>
       </header>
 
-      {/* Interactive 3D Silicon & Semiconductor Fabrication Lab */}
-      <div className="rounded-2xl p-5 border border-cyan-500/30 bg-gradient-to-r from-[#031525] via-[#051a2e] to-[#04111d] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xl">
-        <div className="space-y-1.5 max-w-2xl">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-              Interactive 3D Lab · Fabrication & BEOL
-            </span>
-            <span className="text-xs text-slate-400 font-mono">Illustrative Sky130-inspired lab</span>
-          </div>
-          <h3 className="text-lg font-bold text-white tracking-tight">
-            3D Silicon Die, Fabrication & Advanced Packaging Lab
-          </h3>
-          <p className="text-xs leading-relaxed text-slate-300">
-            Master-level Wafer Fab process + plasma antenna curriculum and packaging lab (schematic geometry — not tapeout GDS/DEF): 15-step fab timeline (litho, STI/LOD, WPE, TDDB, CMP, process antenna/PID, EM, IR/SSO) with Process Master HUD, plus Wirebond/QFN → Flip-Chip → WLCSP → FC-BGA → Fan-out → 2.5D+HBM and live 3D RC modeling.
-          </p>
-        </div>
-        <a
-          href="/die_viewer_3d.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0 px-4 py-2.5 rounded-xl font-bold text-xs bg-cyan-500 text-slate-950 hover:bg-cyan-400 transition-all flex items-center gap-2 shadow-lg shadow-cyan-500/20"
-        >
-          Launch 3D Silicon Lab ↗
-        </a>
-      </div>
-
       {/* Core Foundational Courses */}
       <div className="space-y-10">
         <div className="space-y-1">

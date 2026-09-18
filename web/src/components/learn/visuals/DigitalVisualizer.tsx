@@ -58,6 +58,7 @@ import { ConformalInteractiveLab } from "./ConformalInteractiveLab";
 import { VlsiCalculatorHub } from "./calculators/VlsiCalculatorHub";
 import { LangTryLab } from "@/components/learn/LangTryLab";
 import { GvimSandbox } from "@/components/learn/GvimSandbox";
+import { SiliconDieLabVisualizer } from "./SiliconDieLabVisualizer";
 
 export function DigitalVisualizer({ slug }: { slug: string }) {
   switch (slug) {
@@ -504,6 +505,16 @@ export function DigitalVisualizer({ slug }: { slug: string }) {
       return <VlsiCalculatorHub initialDomain="signal_integrity" />;
     case "power-integrity-calculators":
       return <VlsiCalculatorHub initialDomain="power_integrity" />;
+
+    // Semiconductor Fabrication, BEOL & 3D Packaging Track
+    case "fab-3d-packaging":
+    case "fab-beol-metallization":
+    case "fab-plasma-antenna-dfm":
+    case "fab-wafer-process":
+    case "fab-feol-transistor":
+    case "pdk-beginner-formats":
+    case "pdk-expert-def-gds-cdl":
+      return <SiliconDieLabVisualizer />;
 
     default:
       return null;
