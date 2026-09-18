@@ -42,24 +42,57 @@ function loadRazorpayScript(): Promise<boolean> {
 }
 
 /** Footer donate — button label has no amount; modal collects INR (≥ ₹1). */
-export function DonateButton() {
+export function DonateButton({
+  className,
+  label = "Donate",
+  children,
+  modalTitle,
+  modalSubtitle,
+}: {
+  className?: string;
+  label?: string;
+  children?: React.ReactNode;
+  modalTitle?: string;
+  modalSubtitle?: string;
+} = {}) {
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+        className={
+          className ||
+          "inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-rose-300 transition-colors"
+        }
       >
-        <Heart className="w-3.5 h-3.5" />
-        Donate
+        {children || (
+          <>
+            <Heart className="w-3.5 h-3.5" />
+            {label}
+          </>
+        )}
       </button>
-      {open ? <DonateModal onClose={() => setOpen(false)} /> : null}
+      {open ? (
+        <DonateModal
+          title={modalTitle}
+          subtitle={modalSubtitle}
+          onClose={() => setOpen(false)}
+        />
+      ) : null}
     </>
   );
 }
 
-function DonateModal({ onClose }: { onClose: () => void }) {
+export function DonateModal({
+  onClose,
+  title,
+  subtitle,
+}: {
+  onClose: () => void;
+  title?: string;
+  subtitle?: string;
+}) {
   const { user } = useUser();
   const [amountStr, setAmountStr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -209,9 +242,11 @@ function DonateModal({ onClose }: { onClose: () => void }) {
                 <Heart className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Support Ace-Seek</h3>
+                <h3 className="text-base font-bold text-white">
+                  {title || "Support Ace-Seek"}
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Optional contribution — choose any amount that works for you.
+                  {subtitle || "Optional contribution — choose any amount that works for you."}
                 </p>
               </div>
             </div>

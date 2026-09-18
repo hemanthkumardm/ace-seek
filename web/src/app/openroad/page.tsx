@@ -18,6 +18,7 @@ import {
 import { useEntitlements } from "@/hooks/useEntitlements";
 import { PlanPill } from "@/components/FeatureLock";
 import { VLSI_URL } from "@/lib/site";
+import { OpenroadFooter } from "@/components/OpenroadFooter";
 
 export default function OpenroadHome() {
   const router = useRouter();
@@ -448,6 +449,7 @@ export default function OpenroadHome() {
         </section>
 
       </div>
+      <OpenroadFooter />
     </div>
   );
 }

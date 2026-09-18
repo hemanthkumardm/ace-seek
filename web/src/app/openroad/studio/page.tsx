@@ -20,7 +20,9 @@ import {
   Trash2,
   Eraser,
   Lock,
+  Heart,
 } from "lucide-react";
+import { DonateButton } from "@/components/DonateModal";
 import { OpenroadStatusIcon } from "@/components/OpenroadStatusIcon";
 import { OpenroadStudioBottomTabs } from "@/components/OpenroadStudioBottomTabs";
 import {
@@ -2451,6 +2453,24 @@ export default function OpenroadPnRStudioPage() {
                 Project missing RTL — download template on Project page.
               </p>
             )}
+          </div>
+          <div className="neu-panel p-2.5 space-y-1.5 border border-rose-300/60 bg-gradient-to-br from-rose-50/30 to-[var(--neu-bg)] text-[10px] rounded-xl">
+            <div className="flex items-center justify-between gap-1">
+              <span className="font-bold text-rose-800 flex items-center gap-1.5 text-[10px]">
+                <Heart className="w-3 h-3 text-rose-600 fill-rose-500" />
+                Cloud Runner Capacity
+              </span>
+              <DonateButton
+                className="text-[10px] font-black text-rose-600 hover:text-rose-700 underline flex items-center gap-1"
+                modalTitle="Increase OpenROAD Cloud Capacity"
+                modalSubtitle="Your contribution scales maximum concurrent users and high-RAM container runner nodes."
+              >
+                Donate
+              </DonateButton>
+            </div>
+            <p className="text-[9px] text-[var(--neu-text-muted)] leading-tight font-bold">
+              Help us increase maximum concurrent users & high-RAM cloud runners for students and open-source chip designers.
+            </p>
           </div>
         </aside>
       </div>

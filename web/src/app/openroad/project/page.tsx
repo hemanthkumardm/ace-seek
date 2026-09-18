@@ -50,6 +50,7 @@ import {
   type AceFlowProfileId,
 } from "@/lib/openroad-flow-profiles";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { OpenroadFooter } from "@/components/OpenroadFooter";
 
 type PdkAvail = {
   id: string;
@@ -708,6 +709,7 @@ export default function OpenroadProjectPage() {
           </div>
         </div>
       </div>
+      <OpenroadFooter />
     </div>
   );
 }

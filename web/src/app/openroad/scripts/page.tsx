@@ -11,6 +11,7 @@ import {
   buildOpenroadFlowScripts,
   downloadFlowPackZip,
 } from "@/lib/openroad-scripts-engine";
+import { OpenroadFooter } from "@/components/OpenroadFooter";
 
 export default function OpenroadScriptsPage() {
   const [project, setProject] = useState<OpenroadProjectState | null>(null);
@@ -162,6 +163,7 @@ export default function OpenroadScriptsPage() {
           </pre>
         )}
       </div>
+      <OpenroadFooter />
     </div>
   );
 }
