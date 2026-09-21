@@ -171,12 +171,23 @@ const nextConfig: NextConfig = {
             source: "/api/openroad/:path*",
             destination: `${externalBackendUrl}/api/openroad/:path*`,
           },
+          {
+            source: "/",
+            has: [{ type: "host" as const, value: "portfolio.ace-seek.com" }],
+            destination: "/portfolio",
+          },
         ],
         afterFiles: [],
         fallback: [],
       };
     }
-    return [];
+    return [
+      {
+        source: "/",
+        has: [{ type: "host" as const, value: "portfolio.ace-seek.com" }],
+        destination: "/portfolio",
+      },
+    ];
   },
 };
 

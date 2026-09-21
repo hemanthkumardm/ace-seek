@@ -18,7 +18,7 @@
  *   /tools      → Tools intro
  */
 
-export type PlatformId = "vlsi" | "openroad" | "tools" | "portal";
+export type PlatformId = "vlsi" | "openroad" | "tools" | "portal" | "portfolio";
 
 /** Canonical main marketing / signup / dashboard host */
 export const SITE_URL =
@@ -49,6 +49,12 @@ export const TOOLS_URL =
   (process.env.NODE_ENV === "production"
     ? "https://tools.ace-seek.com"
     : "/tools");
+
+export const PORTFOLIO_URL =
+  process.env.NEXT_PUBLIC_PORTFOLIO_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "production"
+    ? "https://portfolio.ace-seek.com"
+    : "/portfolio");
 
 /**
  * SEO canonical for tools workstations.
@@ -291,6 +297,7 @@ HOST_TO_APP.tools = "/tools";
 HOST_TO_APP.vlsi = "/vlsi";
 HOST_TO_APP.openroad = "/openroad";
 HOST_TO_APP.portal = "/portal";
+HOST_TO_APP.portfolio = "/portfolio";
 
 export type PricingTier = {
   id: string;

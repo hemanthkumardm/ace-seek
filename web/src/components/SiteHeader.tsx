@@ -32,7 +32,8 @@ type Props = {
     | "advertise"
     | "blog"
     | "docs"
-    | "dashboard";
+    | "dashboard"
+    | "portfolio";
 };
 
 /** Client-safe auth chrome (useAuth; avoid server-only Show in client trees). */
@@ -111,21 +112,29 @@ export function SiteHeader({ active }: Props) {
     hostname.startsWith("tex") ||
     hostname.startsWith("table");
 
+  const isPortfolio = hostname.startsWith("portfolio");
+
   const brandTitle = isVlsi
     ? "VLSI.ACE-SEEK.COM"
     : isTools
     ? "TOOLS.ACE-SEEK.COM"
+    : isPortfolio
+    ? "HEMANTH / DEV"
     : "Ace-Seek";
 
   const brandSub = isVlsi
     ? "VLSI Integration Suite"
     : isTools
     ? "Utility Tools Suite"
+    : isPortfolio
+    ? "Freelance Web Builder"
     : "SaaS Portal";
 
   const brandHref = isVlsi
     ? "/"
     : isTools
+    ? "/"
+    : isPortfolio
     ? "/"
     : "/";
 
@@ -178,20 +187,49 @@ export function SiteHeader({ active }: Props) {
           </a>
 
           <nav className="hidden lg:flex items-center gap-1 p-1 rounded-lg bg-[var(--surface-recessed)] border border-[var(--bevel-shadow)]">
-            {(isVlsi || isTools) && (
-              <a
-                href="https://www.ace-seek.com/"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--accent-cyan)] hover:bg-[rgba(255,255,255,0.05)] transition-all"
-              >
-                <Terminal className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
-                <span>Main Portal</span>
-              </a>
+            {isPortfolio ? (
+              <>
+                {link("portfolio", "#", "Freelance Portfolio", Cpu)}
+                <a
+                  href="#services"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.03)] transition-all"
+                >
+                  <Boxes className="w-3.5 h-3.5" />
+                  <span>Services</span>
+                </a>
+                <a
+                  href="#work"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.03)] transition-all"
+                >
+                  <Terminal className="w-3.5 h-3.5" />
+                  <span>Featured Work</span>
+                </a>
+                <a
+                  href="#contact"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[rgba(255,255,255,0.03)] transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Hire Me</span>
+                </a>
+              </>
+            ) : (
+              <>
+                {(isVlsi || isTools) && (
+                  <a
+                    href="https://www.ace-seek.com/"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold text-[var(--accent-cyan)] hover:bg-[rgba(255,255,255,0.05)] transition-all"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-[var(--accent-cyan)]" />
+                    <span>Main Portal</span>
+                  </a>
+                )}
+                {link("openroad", "https://openroad.ace-seek.com", "OpenROAD Automation", Boxes)}
+                {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
+                {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
+                {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
+                {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
+              </>
             )}
-            {link("openroad", "https://openroad.ace-seek.com", "OpenROAD Automation", Boxes)}
-            {link("pricing", "https://www.ace-seek.com/pricing", "Pricing", CreditCard)}
-            {link("portal", PORTAL_URL, "Solutions Portal", Sparkles)}
-            {link("offers", "https://www.ace-seek.com/offers", "Offers", Tag)}
-            {link("advertise", "https://www.ace-seek.com/advertise", "Advertise", Megaphone)}
           </nav>
         </div>
 

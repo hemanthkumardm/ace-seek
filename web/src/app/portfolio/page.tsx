@@ -20,298 +20,182 @@ import {
   Server,
   Database,
   Lock,
+  MessageSquare,
+  BarChart3,
+  Rocket,
+  Search,
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Ace-Seek Portfolio — Engineering Projects & Ecosystem Showcase",
+  title: "Hemanth | Freelance Web Developer & Software Engineer Portfolio",
   description:
-    "Explore the complete portfolio of Ace-Seek platforms: cloud-native OpenROAD PnR suites, SDC/MMMC timing studios, zero-token developer tools, and interactive 3D semiconductor labs.",
-  alternates: { canonical: "https://www.ace-seek.com/portfolio" },
+    "Production-grade web application development, custom SaaS solutions, interactive 3D engineering labs, and high-performance digital experiences. Architecting the future of silicon and software.",
+  alternates: { canonical: "https://portfolio.ace-seek.com" },
   openGraph: {
-    title: "Ace-Seek Engineering Portfolio",
+    title: "Hemanth | Freelance Web Developer & Software Engineer",
     description:
-      "Cloud-native VLSI physical design, OpenROAD automation, developer tools, and interactive 3D semiconductor laboratories.",
-    url: "https://www.ace-seek.com/portfolio",
-    siteName: "Ace-Seek",
+      "Expert full-stack development using Next.js 16, React 19, and Supabase. Specialized in engineering tools, SaaS dashboards, and high-performance web apps.",
+    url: "https://portfolio.ace-seek.com",
+    siteName: "Hemanth Portfolio",
     type: "website",
   },
   robots: { index: true, follow: true },
 };
 
-const PORTFOLIO_PROJECTS = [
+const SERVICES = [
   {
-    title: "OpenROAD Cloud PnR Automation Suite",
-    category: "VLSI EDA & Cloud Computing",
-    badge: "FLAGSHIP",
-    description:
-      "End-to-end browser-based ASIC Place and Route (PnR) execution engine powered by OpenROAD. Features live canvas rendering, timing closure inspection, floorplanning, CTS, and routing visualization.",
-    tech: ["Next.js", "Python / C++", "OpenROAD", "WebGL", "Docker", "Tailwind CSS"],
-    metrics: ["Sub-second log streaming", "Live VNC/Web Canvas", "Multi-node runner scaling"],
-    href: "/openroad",
-    icon: Boxes,
-    gradient: "from-cyan-500/20 via-blue-500/10 to-transparent",
-    borderAccent: "group-hover:border-cyan-500/50",
+    title: "Full-Stack SaaS Development",
+    description: "I build end-to-end SaaS products with secure authentication, complex state management, and real-time database integrations using Next.js and Supabase.",
+    icon: Rocket,
+    tags: ["Next.js", "Clerk / Auth", "Stripe / Payments", "Real-time DB"],
   },
   {
-    title: "VLSI Integration & SDC Timing Studio",
-    category: "Semiconductor Engineering",
-    badge: "EDITION 2026",
-    description:
-      "Comprehensive semiconductor fabrication track and interactive studios for SDC constraint authoring, MMMC multi-corner multi-mode setup, UPF power intent design, and Static Timing Analysis (STA).",
-    tech: ["React 19", "TypeScript", "SDC Engine", "Math Solver", "Tailwind CSS"],
-    metrics: ["12+ Fab Curriculum Modules", "Live Math Solution Renderer", "Gvim Sandbox"],
-    href: "/vlsi",
+    title: "Interactive Engineering Labs",
+    description: "Specialized in building complex engineering visualizers, 3D semiconductor labs (Three.js), and data-intensive technical dashboards.",
     icon: Cpu,
-    gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
-    borderAccent: "group-hover:border-emerald-500/50",
+    tags: ["Three.js", "WebGL", "D3.js", "SVG Animation"],
   },
   {
-    title: "Developer Utilities & Document Compilers",
-    category: "Zero-Token Developer Tools",
-    badge: "TOOLS",
-    description:
-      "Suite of specialized utilities hosted at tools.ace-seek.com including LaTeX TeX formatters, Markdown-to-PDF document compilers, intelligent diff comparators, and JSON/YAML/TOML syntax sanitizers.",
-    tech: ["Next.js App Router", "Marked.js", "KaTeX", "JS-YAML", "Smol-TOML"],
-    metrics: ["100% Client-Side Speed", "Zero-Token Overhead", "Instant PDF/TeX Export"],
-    href: "https://tools.ace-seek.com",
-    icon: Terminal,
-    gradient: "from-violet-500/20 via-purple-500/10 to-transparent",
-    borderAccent: "group-hover:border-violet-500/50",
-  },
-  {
-    title: "Interactive 3D Semiconductor Labs",
-    category: "Advanced Visualization",
-    badge: "3D LABS",
-    description:
-      "Standalone interactive 3D visualizers for complex microelectronic phenomena: wafer yield models, photolithography exposure steps, damascene copper trench filling, and plasma antenna charging effects.",
-    tech: ["Three.js / WebGL", "React Three Fiber", "GLSL Shaders", "Interactive Physics"],
-    metrics: ["Real-time 3D Simulation", "Interactive Step-through", "Fabrication Physics"],
-    href: "/vlsi/learn",
-    icon: Sparkles,
-    gradient: "from-amber-500/20 via-orange-500/10 to-transparent",
-    borderAccent: "group-hover:border-amber-500/50",
-  },
-  {
-    title: "Apex SaaS Solutions Portal & Billing",
-    category: "Enterprise Infrastructure",
-    badge: "SAAS",
-    description:
-      "Centralized subscription management portal featuring Clerk authentication, Razorpay & Stripe payment gateways, team seat allocation, custom enterprise invoicing, and automated 7-day Max trial provisioning.",
-    tech: ["Clerk Auth", "Razorpay / Stripe", "Supabase", "Resend API"],
-    metrics: ["Secure Webhook Handlers", "Instant Seat Activation", "Granular RBAC"],
-    href: "https://portal.ace-seek.com",
-    icon: Server,
-    gradient: "from-blue-500/20 via-indigo-500/10 to-transparent",
-    borderAccent: "group-hover:border-blue-500/50",
-  },
-  {
-    title: "Interview Masterclass & VLSI Prep",
-    category: "Career Acceleration",
-    badge: "MASTERCLASS",
-    description:
-      "Curated technical interview prep platform with rigorous questions, timing math solutions, digital design challenges, and physical design scenario walkthroughs for top semiconductor companies.",
-    tech: ["Interactive Quizzes", "Math Renderers", "Progress Tracking"],
-    metrics: ["100+ Curated Problems", "Detailed Timing Derivations", "Expert Guidance"],
-    href: "/vlsi/interview-masterclass",
-    icon: Code2,
-    gradient: "from-rose-500/20 via-pink-500/10 to-transparent",
-    borderAccent: "group-hover:border-rose-500/50",
-  },
-];
-
-const ARCHITECTURE_HIGHLIGHTS = [
-  {
-    title: "High-Performance App Router",
-    description: "Built on Next.js 16 with React 19 server components, streaming rendering, and optimized edge caching.",
-    icon: Zap,
-  },
-  {
-    title: "Tactical Skeuomorphic Design",
-    description: "Immersive dark carbon panels, multi-layer drop shadows, LED status indicators, and cyberpunk accents.",
-    icon: Layers,
-  },
-  {
-    title: "Robust Security & Isolation",
-    description: "Multi-tenant auth via Clerk, secure API proxies, rate-limited compute runners, and encrypted data stores.",
+    title: "Enterprise Custom Portals",
+    description: "Developing robust internal tools, admin consoles, and partner portals with granular RBAC and high-security compliance.",
     icon: ShieldCheck,
+    tags: ["RBAC", "Dashboarding", "Enterprise Auth", "Data Security"],
   },
   {
-    title: "Zero-Token Developer Speed",
-    description: "Optimized client-side tooling that eliminates round-trip latency for syntax sanitization and doc compilation.",
-    icon: Activity,
+    title: "Performance & SEO Audits",
+    description: "Optimizing existing web applications for sub-second load times, Core Web Vitals, and peak search engine visibility.",
+    icon: Search,
+    tags: ["Performance Tuning", "Technical SEO", "Lighthouse 100/100"],
   },
 ];
 
-export default function PortfolioPage() {
+const FEATURED_WORK = [
+  {
+    title: "Ace-Seek Platform Architecture",
+    category: "Full-Stack / Engineering Tooling",
+    description: "Built the entire Ace-Seek ecosystem, including the core SaaS portal, VLSI engineering studios, and the OpenROAD cloud automation engine.",
+    tags: ["Next.js 16", "React 19", "Supabase", "Docker API"],
+    href: "https://www.ace-seek.com",
+    imageAlt: "Ace-Seek Homepage",
+    badge: "CLIENT FAVORITE",
+  },
+  {
+    title: "OpenROAD Cloud PnR Studio",
+    category: "Interactive EDA Visualizer",
+    description: "An interactive browser-based physical design environment with real-time log streaming, floorplan visualization, and timing closure reports.",
+    tags: ["WebGL", "WebSocket", "OpenROAD", "React Three Fiber"],
+    href: "https://openroad.ace-seek.com",
+    imageAlt: "OpenROAD Studio",
+  },
+  {
+    title: "Developer Workstation Suite",
+    category: "Zero-Token Utility Suite",
+    description: "A collection of high-performance client-side developer tools for LaTeX formatting, Markdown compilation, and data sanitization.",
+    tags: ["Client-side WebAssembly", "Tailwind v4", "TypeScript"],
+    href: "https://tools.ace-seek.com",
+    imageAlt: "Tools Suite",
+  },
+];
+
+const PROCESS = [
+  {
+    step: "01",
+    title: "Discovery & Strategy",
+    description: "Deep dive into your business goals, target audience, and technical requirements to define a clear project roadmap.",
+  },
+  {
+    step: "02",
+    title: "Architecture & Design",
+    description: "Defining the system architecture, database schemas, and crafting a tactical, user-centric interface design.",
+  },
+  {
+    step: "03",
+    title: "Rapid Development",
+    description: "Fast-paced, iterative building with continuous deployment and transparent progress reporting via dedicated environments.",
+  },
+  {
+    step: "04",
+    title: "Optimization & Launch",
+    description: "Rigorous testing, security audits, and performance tuning before deploying to global production-grade infrastructure.",
+  },
+];
+
+export default function FreelancePortfolioPage() {
   return (
     <div className="min-h-full flex flex-col bg-[var(--bg-main)] text-white selection:bg-cyan-500/30">
-      <SiteHeader active="portal" />
+      <SiteHeader active="portfolio" />
 
-      <main className="flex-1 space-y-20 py-12 md:py-20">
+      <main className="flex-1 space-y-24 py-12 md:py-24">
         {/* =========================================================================
-            1. PORTFOLIO HERO SECTION
+            1. HERO: FREELANCE PERSONAL BRANDING
            ========================================================================= */}
-        <section className="m-shell">
-          <div className="max-w-4xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)] border border-[var(--border-light)] text-cyan-400 text-xs font-mono tracking-wide shadow-inner">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse text-cyan-400" />
-              <span>Ace-Seek Engineering Portfolio & System Showcase</span>
+        <section className="m-shell relative">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none opacity-50" />
+          
+          <div className="max-w-4xl mx-auto text-center space-y-8 relative z-10">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[var(--surface-raised)] border border-[var(--border-light)] text-cyan-400 text-[10px] font-bold uppercase tracking-widest shadow-inner">
+              <Sparkles className="w-3 h-3 text-cyan-400 animate-pulse" />
+              <span>Available for Hire · Freelance Web Development Specialist</span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1] text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-300">
-              Architecting the Future of Silicon & Software.
+            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-[1.05] text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-cyan-300">
+              Transforming Complex Ideas into <br className="hidden md:block" /> Fast, Modern Web Experiences.
             </h1>
 
-            <p className="text-base md:text-xl text-slate-300 leading-relaxed font-light max-w-2xl mx-auto">
-              A comprehensive curation of high-performance physical design platforms, cloud EDA automation engines, zero-token developer tools, and immersive 3D semiconductor labs.
+            <p className="text-lg md:text-xl text-slate-300 leading-relaxed font-light max-w-2xl mx-auto">
+              I architect production-grade SaaS platforms, interactive engineering tools, and conversion-focused web apps. Bridging the gap between <strong>Technical Excellence</strong> and <strong>Exceptional UI</strong>.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <div className="flex flex-wrap items-center justify-center gap-5 pt-6">
               <a
-                href="/openroad"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 font-black text-sm px-7 py-3 rounded-xl shadow-[0_0_25px_rgba(6,182,212,0.4)] hover:brightness-110 transition-all hover:scale-[1.02]"
+                href="#contact"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 font-black text-sm px-8 py-4 rounded-xl shadow-[0_0_40px_rgba(6,182,212,0.4)] hover:brightness-110 transition-all hover:scale-[1.05] active:scale-95"
               >
-                <span>Launch OpenROAD PnR</span>
+                <span>Hire Me / Start a Project</span>
                 <ArrowRight className="w-4 h-4" />
               </a>
               <a
-                href="https://tools.ace-seek.com"
-                className="inline-flex items-center gap-2 bg-[var(--surface-raised)] border border-[var(--border-light)] text-slate-200 hover:text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-[var(--surface-panel)] transition-all"
+                href="#work"
+                className="inline-flex items-center gap-2 bg-[var(--surface-raised)] border border-[var(--border-light)] text-slate-200 hover:text-white font-bold text-sm px-7 py-4 rounded-xl hover:bg-[var(--surface-panel)] transition-all"
               >
                 <Terminal className="w-4 h-4 text-cyan-400" />
-                <span>Explore Tools Suite</span>
+                <span>View My Work</span>
               </a>
             </div>
           </div>
         </section>
 
         {/* =========================================================================
-            2. METRICS / STATS BAR
+            2. SERVICES GRID
            ========================================================================= */}
-        <section className="m-shell">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 rounded-2xl bg-[var(--surface-panel)] border border-[var(--border-light)] shadow-[var(--shadow-panel)]">
-            <div className="text-center space-y-1 p-4 rounded-xl bg-[var(--surface-recessed)] border border-[var(--border-light)]">
-              <div className="text-2xl md:text-3xl font-black font-mono text-cyan-400">12+</div>
-              <div className="text-xs text-[var(--muted)] font-medium">Fabrication Modules</div>
-            </div>
-            <div className="text-center space-y-1 p-4 rounded-xl bg-[var(--surface-recessed)] border border-[var(--border-light)]">
-              <div className="text-2xl md:text-3xl font-black font-mono text-emerald-400">100%</div>
-              <div className="text-xs text-[var(--muted)] font-medium">Cloud PnR Automation</div>
-            </div>
-            <div className="text-center space-y-1 p-4 rounded-xl bg-[var(--surface-recessed)] border border-[var(--border-light)]">
-              <div className="text-2xl md:text-3xl font-black font-mono text-violet-400">0-Token</div>
-              <div className="text-xs text-[var(--muted)] font-medium">Developer Utilities</div>
-            </div>
-            <div className="text-center space-y-1 p-4 rounded-xl bg-[var(--surface-recessed)] border border-[var(--border-light)]">
-              <div className="text-2xl md:text-3xl font-black font-mono text-amber-400">4.9/5</div>
-              <div className="text-xs text-[var(--muted)] font-medium">Platform Rating</div>
-            </div>
-          </div>
-        </section>
-
-        {/* =========================================================================
-            3. CORE PORTFOLIO PROJECTS GRID
-           ========================================================================= */}
-        <section className="m-shell space-y-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-2">Ecosystem Showcase</div>
-              <h2 className="text-3xl font-black tracking-tight text-white">Featured Platforms & Studios</h2>
-            </div>
-            <p className="text-sm text-[var(--muted)] max-w-md">
-              Each module is architected with modern web primitives, rigorous mathematical modeling, and production-grade reliability.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {PORTFOLIO_PROJECTS.map((proj, idx) => {
-              const IconComponent = proj.icon;
-              return (
-                <div
-                  key={idx}
-                  className={`group relative flex flex-col justify-between p-7 rounded-2xl bg-[var(--surface-panel)] border border-[var(--border-light)] ${proj.borderAccent} shadow-[var(--shadow-panel)] transition-all hover:-translate-y-1 overflow-hidden`}
-                >
-                  {/* Subtle background glow */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${proj.gradient} pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity`} />
-
-                  <div className="relative z-10 space-y-5">
-                    <div className="flex items-center justify-between">
-                      <div className="w-12 h-12 rounded-xl bg-[var(--surface-raised)] border border-[var(--border-light)] flex items-center justify-center shadow-md">
-                        <IconComponent className="w-6 h-6 text-cyan-400" />
-                      </div>
-                      <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md bg-[var(--surface-recessed)] border border-[var(--border-light)] text-cyan-300">
-                        {proj.badge}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2">
-                      <span className="text-xs font-mono text-[var(--muted)] block">{proj.category}</span>
-                      <h3 className="text-xl font-bold tracking-tight text-white group-hover:text-cyan-300 transition-colors">
-                        {proj.title}
-                      </h3>
-                      <p className="text-xs text-slate-300 leading-relaxed font-light">
-                        {proj.description}
-                      </p>
-                    </div>
-
-                    {/* Metrics Pills */}
-                    <div className="space-y-1.5 pt-2 border-t border-[var(--border-light)]">
-                      {proj.metrics.map((m, mIdx) => (
-                        <div key={mIdx} className="flex items-center gap-2 text-[11px] font-mono text-slate-300">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                          <span>{m}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Tech stack tags */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {proj.tech.map((t, tIdx) => (
-                        <span key={tIdx} className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--surface-recessed)] text-[var(--muted)] border border-[var(--border-light)]">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="relative z-10 pt-6 mt-6 border-t border-[var(--border-light)] flex items-center justify-between">
-                    <span className="text-xs font-mono text-[var(--muted)]">Production Ready</span>
-                    <a
-                      href={proj.href}
-                      className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 group-hover:translate-x-1 transition-all"
-                    >
-                      <span>Access Module</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* =========================================================================
-            4. ARCHITECTURE & ENGINEERING PILLARS
-           ========================================================================= */}
-        <section className="m-shell space-y-10">
-          <div className="max-w-2xl mx-auto text-center space-y-3">
-            <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">Engineering Excellence</div>
-            <h2 className="text-3xl font-black tracking-tight text-white">System Architecture Pillars</h2>
-            <p className="text-sm text-[var(--muted)]">
-              Engineered from the ground up for high concurrency, zero latency, and uncompromising reliability.
+        <section id="services" className="m-shell space-y-12 scroll-mt-24">
+          <div className="max-w-2xl space-y-3">
+            <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">Freelance Services</div>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">How I Can Help You</h2>
+            <p className="text-slate-400 text-sm md:text-base font-light">
+              Specialized expertise in building high-performance, developer-centric, and data-intensive web applications.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {ARCHITECTURE_HIGHLIGHTS.map((item, idx) => {
-              const IconComp = item.icon;
+            {SERVICES.map((s, i) => {
+              const Icon = s.icon;
               return (
-                <div key={idx} className="p-6 rounded-2xl bg-[var(--surface-panel)] border border-[var(--border-light)] shadow-[var(--shadow-panel)] space-y-4 hover:border-cyan-500/40 transition-colors">
-                  <div className="w-10 h-10 rounded-lg bg-[var(--surface-raised)] border border-[var(--border-light)] flex items-center justify-center">
-                    <IconComp className="w-5 h-5 text-cyan-400" />
+                <div key={i} className="p-6 rounded-2xl bg-[var(--surface-panel)] border border-[var(--border-light)] shadow-[var(--shadow-panel)] hover:border-cyan-500/40 transition-all hover:-translate-y-1 group">
+                  <div className="w-12 h-12 rounded-xl bg-[var(--surface-raised)] border border-[var(--border-light)] flex items-center justify-center mb-6 group-hover:bg-cyan-500/10 transition-colors">
+                    <Icon className="w-6 h-6 text-cyan-400" />
                   </div>
-                  <h3 className="text-base font-bold text-white">{item.title}</h3>
-                  <p className="text-xs text-[var(--muted)] leading-relaxed">{item.description}</p>
+                  <h3 className="text-lg font-bold text-white mb-3">{s.title}</h3>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed mb-6">
+                    {s.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 mt-auto">
+                    {s.tags.map((t, ti) => (
+                      <span key={ti} className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--surface-recessed)] text-slate-300 border border-[var(--border-light)] uppercase tracking-tight">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               );
             })}
@@ -319,36 +203,138 @@ export default function PortfolioPage() {
         </section>
 
         {/* =========================================================================
-            5. CTA BANNER
+            3. FEATURED WORK / PORTFOLIO SHOWCASE
            ========================================================================= */}
-        <section className="m-shell">
-          <div className="relative rounded-3xl bg-gradient-to-r from-cyan-950 via-slate-900 to-blue-950 border border-cyan-500/30 p-8 md:p-12 overflow-hidden shadow-[0_0_50px_rgba(6,182,212,0.2)] text-center space-y-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(6,182,212,0.15),transparent_50%)] pointer-events-none" />
+        <section id="work" className="m-shell space-y-12 scroll-mt-24">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-2">
+              <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">Portfolio</div>
+              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">Recent Work Showcase</h2>
+            </div>
+            <a href="https://www.ace-seek.com" className="text-xs font-bold text-cyan-400 hover:underline flex items-center gap-1.5 group">
+              <span>View full case studies on Ace-Seek</span>
+              <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+            </a>
+          </div>
 
-            <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                Ready to Experience Ace-Seek?
-              </span>
-              <h2 className="text-3xl md:text-4xl font-black tracking-tight text-white">
-                Deploy Your First ASIC Design in Seconds.
+          <div className="grid md:grid-cols-3 gap-8">
+            {FEATURED_WORK.map((work, i) => (
+              <div key={i} className="flex flex-col rounded-3xl bg-[var(--surface-panel)] border border-[var(--border-light)] overflow-hidden shadow-[var(--shadow-panel)] group hover:border-cyan-500/30 transition-all">
+                <div className="h-48 bg-[var(--surface-recessed)] relative overflow-hidden flex items-center justify-center p-8">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-transparent opacity-50" />
+                  {/* Decorative Project Placeholder Icon */}
+                  <div className="w-20 h-20 rounded-2xl bg-[var(--surface-raised)] border border-[var(--border-light)] shadow-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+                    {i === 0 ? <Globe className="w-10 h-10 text-cyan-400" /> : i === 1 ? <Cpu className="w-10 h-10 text-emerald-400" /> : <Terminal className="w-10 h-10 text-violet-400" />}
+                  </div>
+                  {work.badge && (
+                    <span className="absolute top-4 right-4 text-[9px] font-black px-2 py-1 rounded bg-amber-500 text-black uppercase tracking-widest shadow-lg">
+                      {work.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="p-7 space-y-5">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-mono text-cyan-400 uppercase font-bold tracking-widest">{work.category}</span>
+                    <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition-colors">{work.title}</h3>
+                    <p className="text-xs text-slate-300 leading-relaxed font-light">
+                      {work.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {work.tags.map((t, ti) => (
+                      <span key={ti} className="text-[9px] font-mono px-2 py-1 rounded bg-[var(--surface-recessed)] text-[var(--muted)] border border-[var(--border-light)]">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="pt-4 border-t border-[var(--border-light)]">
+                    <a href={work.href} className="inline-flex items-center gap-2 text-xs font-black text-cyan-400 hover:text-cyan-300 transition-colors uppercase tracking-widest">
+                      <span>Visit Live Project</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* =========================================================================
+            4. PROCESS SECTION
+           ========================================================================= */}
+        <section className="m-shell bg-[var(--surface-panel)] border border-[var(--border-light)] rounded-[40px] p-10 md:p-16 shadow-[var(--shadow-panel)] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="grid lg:grid-cols-12 gap-16 items-center">
+            <div className="lg:col-span-5 space-y-6">
+              <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">Collaboration</div>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+                My Production-First Development Process.
               </h2>
-              <p className="text-sm md:text-base text-slate-300 font-light">
-                Join semiconductor engineers and developers worldwide utilizing Ace-Seek for live cloud PnR, SDC constraint generation, and developer tooling.
+              <p className="text-slate-400 text-sm md:text-lg font-light leading-relaxed">
+                I don't just write code; I architect systems that solve real business challenges. My process is optimized for transparency, speed, and long-term scalability.
               </p>
+              <div className="pt-4">
+                <a href="#contact" className="sk-btn sk-btn-primary !px-8 !py-3.5 !rounded-xl !text-sm !font-black">
+                  Request a Consultation
+                </a>
+              </div>
+            </div>
 
-              <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <div className="lg:col-span-7 grid sm:grid-cols-2 gap-8">
+              {PROCESS.map((p, i) => (
+                <div key={i} className="space-y-4 p-6 rounded-2xl bg-[var(--surface-recessed)] border border-[var(--border-light)] shadow-inner">
+                  <div className="text-4xl font-black text-cyan-500/20 font-mono tracking-tighter">{p.step}</div>
+                  <h3 className="text-lg font-bold text-white">{p.title}</h3>
+                  <p className="text-xs text-[var(--muted)] leading-relaxed">
+                    {p.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            5. CONTACT / CALL TO ACTION
+           ========================================================================= */}
+        <section id="contact" className="m-shell scroll-mt-24">
+          <div className="relative bg-gradient-to-br from-slate-900 to-black border border-cyan-500/20 rounded-[40px] p-10 md:p-20 text-center space-y-8 overflow-hidden shadow-[0_0_60px_rgba(6,182,212,0.15)]">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(6,182,212,0.1),transparent_40%)] pointer-events-none" />
+            <div className="absolute top-0 right-0 w-full h-full bg-[url('/grid.svg')] bg-repeat opacity-5 pointer-events-none" />
+
+            <div className="relative z-10 max-w-2xl mx-auto space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto mb-6">
+                <MessageSquare className="w-8 h-8 text-cyan-400" />
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+                Let's Build Your Next <br /> Success Story Together.
+              </h2>
+              <p className="text-slate-300 text-sm md:text-lg font-light leading-relaxed">
+                Whether you need a high-end SaaS MVP, an interactive engineering dashboard, or a complete digital overhaul, I'm ready to bring your vision to life.
+              </p>
+              
+              <div className="grid md:grid-cols-2 gap-4 pt-6">
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2 hover:bg-white/10 transition-colors cursor-pointer">
+                  <div className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">Fast Track</div>
+                  <div className="text-lg font-bold text-white">Hire for Project</div>
+                  <p className="text-[11px] text-[var(--muted)] leading-normal">Fixed-scope projects or dedicated monthly retainers for ongoing development.</p>
+                </div>
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 text-left space-y-2 hover:bg-white/10 transition-colors cursor-pointer">
+                  <div className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">Consulting</div>
+                  <div className="text-lg font-bold text-white">Architecture Review</div>
+                  <p className="text-[11px] text-[var(--muted)] leading-normal">Performance audits, security reviews, and engineering roadmap consultations.</p>
+                </div>
+              </div>
+
+              <div className="pt-10 flex flex-col items-center gap-4">
                 <a
-                  href="/signup"
-                  className="bg-gradient-to-r from-cyan-500 via-teal-400 to-emerald-400 text-slate-950 font-black text-sm px-8 py-3.5 rounded-xl shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:brightness-110 transition-all hover:scale-[1.02]"
+                  href="mailto:hemanth@ace-seek.com"
+                  className="bg-white text-black font-black text-base px-10 py-4 rounded-2xl hover:bg-cyan-100 transition-all hover:scale-[1.03] active:scale-95 shadow-xl"
                 >
-                  Create Free Account
+                  Contact Me Directly
                 </a>
-                <a
-                  href="/pricing"
-                  className="bg-[var(--surface-raised)] border border-[var(--border-light)] text-slate-200 hover:text-white font-semibold text-sm px-6 py-3.5 rounded-xl transition-all hover:bg-[var(--surface-panel)]"
-                >
-                  View Pricing & Plans
-                </a>
+                <span className="text-[10px] font-mono text-[var(--muted)] uppercase tracking-widest">Usually responds within 24 hours</span>
               </div>
             </div>
           </div>
