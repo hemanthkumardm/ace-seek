@@ -119,7 +119,7 @@ export function SiteHeader({ active }: Props) {
     : isTools
     ? "TOOLS.ACE-SEEK.COM"
     : isPortfolio
-    ? "HEMANTH / DEV"
+    ? "PORTFOLIO / DEV"
     : "Ace-Seek";
 
   const brandSub = isVlsi
