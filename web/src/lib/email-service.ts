@@ -95,7 +95,7 @@ export function generateLicenseEmailHTML(payload: LicenseKeyEmailPayload): strin
     <div class="footer">
       Ace-Seek Technologies (Ace-Seek Inc.)<br>
       #21, 11th main road, 4th G cross, Kamakshipalya, Bangalore - 560079<br>
-      Need help? Contact support@ace-seek.com or +91 84316 70673
+      Need help? Contact support@ace-seek.com
     </div>
   </div>
 </body>
@@ -192,7 +192,7 @@ export function generateWelcomeEmailHTML(payload: WelcomeTrialEmailPayload): str
       <strong>Ace-Seek Technologies Inc.</strong><br>
       Apex SaaS Portal for Hardware & VLSI Engineering<br>
       #21, 11th main road, 4th G cross, Kamakshipalya, Bangalore - 560079<br>
-      Need assistance? Contact support@ace-seek.com or +91 84316 70673
+      Need assistance? Contact support@ace-seek.com
     </div>
   </div>
 </body>
@@ -354,10 +354,10 @@ export async function sendPortalQuoteNotificationEmail(payload: PortalQuoteEmail
                 Thank you for reaching out to Ace-Seek regarding <strong>${payload.category}</strong>. Our engineering leads are reviewing your project requirements and will get in touch with you shortly.
               </p>
               <div style="background: #0f172a; border: 1px solid #1e293b; padding: 16px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 13px; color: #94a3b8;">Want an instant response?</p>
+                <p style="margin: 0; font-size: 13px; color: #94a3b8;">Need assistance with your request?</p>
                 <p style="margin: 8px 0 0 0; font-size: 14px; font-weight: bold;">
-                  <a href="https://wa.me/918431670673?text=${encodeURIComponent(`Hi Ace-Seek, I just submitted a quote request for ${payload.category}`)}" style="color: #10b981; text-decoration: none;">
-                    💬 Connect directly on WhatsApp (+91 84316 70673) &rarr;
+                  <a href="mailto:support@ace-seek.com" style="color: #22d3ee; text-decoration: none;">
+                    ✉ Contact Support Desk (support@ace-seek.com) &rarr;
                   </a>
                 </p>
               </div>

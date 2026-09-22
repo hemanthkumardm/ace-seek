@@ -189,14 +189,26 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const fileQuery = req.nextUrl.searchParams.get("preset");
-  let targetPath = "/Users/hemanth/Desktop/ace-seek/artifacts/soc_100_macros_placed.def";
+  
+  const possiblePaths =
+    fileQuery === "ibex"
+      ? [
+          path.resolve(process.cwd(), "artifacts/placement_top.def"),
+          path.resolve(process.cwd(), "../outputs/placement_top.def"),
+          path.resolve(process.cwd(), "outputs/placement_top.def"),
+        ]
+      : [
+          path.resolve(process.cwd(), "artifacts/soc_100_macros_placed.def"),
+          path.resolve(process.cwd(), "../artifacts/soc_100_macros_placed.def"),
+        ];
 
-  if (fileQuery === "ibex") {
-    targetPath = "/Users/hemanth/Desktop/ibex-sky130-openroad-tapeout/outputs/placement_top.def";
-  }
+  const targetPath = possiblePaths.find((p) => fs.existsSync(p));
 
-  if (!fs.existsSync(targetPath)) {
-    return NextResponse.json({ error: `DEF file not found: ${targetPath}` }, { status: 404 });
+  if (!targetPath) {
+    return NextResponse.json(
+      { error: `DEF file not found for preset: ${fileQuery || "default"}` },
+      { status: 404 }
+    );
   }
 
   const defText = fs.readFileSync(targetPath, "utf8");

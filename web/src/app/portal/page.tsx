@@ -28,15 +28,9 @@ import {
   Check,
   Clock,
   Sparkle,
-  Star
+  Star,
+  Mail
 } from "lucide-react";
-
-// WhatsApp Quick-Connect URL
-const WHATSAPP_NUMBER = "918431670673";
-const WHATSAPP_DEFAULT_MSG = encodeURIComponent(
-  "Hi Ace-Seek, I would like to request a quote for Engineering / Academic / Business Automation solutions."
-);
-const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_DEFAULT_MSG}`;
 
 /**
  * Deterministic Indian Currency / Number Formatter
@@ -96,12 +90,6 @@ export default function PortalLandingPage() {
     }
   };
 
-  const getWhatsAppPackageLink = (packageName: string, price: string) => {
-    const msg = encodeURIComponent(
-      `Hi Ace-Seek, I would like to book the ${packageName} (${price}) for my project.`
-    );
-    return `https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`;
-  };
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -122,8 +110,8 @@ export default function PortalLandingPage() {
       }
       setFormSubmitted(true);
     } catch (err: unknown) {
-      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please message us on WhatsApp.");
-      setFormSubmitted(true); // Still show WhatsApp fallback
+      setSubmitError(err instanceof Error ? err.message : "Submission failed. Please contact support@ace-seek.com.");
+      setFormSubmitted(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -651,7 +639,7 @@ export default function PortalLandingPage() {
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
                   <a
-                    href="https://github.com/hemanthkumardm/ibex"
+                    href="https://github.com/ace-seek/ibex"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-sm transition-all shadow-lg shadow-cyan-500/20"
@@ -661,7 +649,7 @@ export default function PortalLandingPage() {
                     <ArrowRight className="w-3.5 h-3.5" />
                   </a>
                   <a
-                    href="https://github.com/hemanthkumardm/ibex/tree/main/reports"
+                    href="https://github.com/ace-seek/ibex/tree/main/reports"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-sm border border-white/10 transition-all"
@@ -923,13 +911,11 @@ export default function PortalLandingPage() {
                     Book Basic ASIC (₹12,499) →
                   </button>
                   <a
-                    href={getWhatsAppPackageLink("Basic ASIC Package", "₹12,499")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    href="mailto:support@ace-seek.com?subject=Inquiry%20regarding%20Basic%20ASIC%20Package"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Direct Order</span>
+                    <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Inquire via Email</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1005,13 +991,11 @@ export default function PortalLandingPage() {
                     Book Advanced ASIC (₹21,999) →
                   </button>
                   <a
-                    href={getWhatsAppPackageLink("Advanced ASIC Package", "₹21,999")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    href="mailto:support@ace-seek.com?subject=Inquiry%20regarding%20Advanced%20ASIC%20Package"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Direct Order</span>
+                    <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Inquire via Email</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1080,13 +1064,11 @@ export default function PortalLandingPage() {
                     Deploy Complete Inventor Plan →
                   </button>
                   <a
-                    href={getWhatsAppPackageLink("Complete Inventor Package", "₹39,999")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    href="mailto:support@ace-seek.com?subject=Inquiry%20regarding%20Complete%20Inventor%20Package"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Direct Order</span>
+                    <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Inquire via Email</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1155,13 +1137,11 @@ export default function PortalLandingPage() {
                     Request Thesis Quote →
                   </button>
                   <a
-                    href={getWhatsAppPackageLink("Thesis & LaTeX Bundle", "₹14,999")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    href="mailto:support@ace-seek.com?subject=Inquiry%20regarding%20Thesis%20and%20LaTeX%20Bundle"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Direct Inquiry</span>
+                    <Mail className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Inquire via Email</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1233,13 +1213,11 @@ export default function PortalLandingPage() {
                     Deploy Business Portal →
                   </button>
                   <a
-                    href={getWhatsAppPackageLink("Business Automation Setup", "₹9,999")}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/50 border border-emerald-500/40 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                    href="mailto:support@ace-seek.com?subject=Inquiry%20regarding%20Business%20Automation%20Setup"
+                    className="w-full py-2.5 rounded-xl bg-zinc-900/60 hover:bg-zinc-800/80 border border-white/10 text-zinc-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>WhatsApp Direct Inquiry</span>
+                    <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Inquire via Email</span>
                   </a>
                 </div>
               </SpatialTiltCard>
@@ -1278,20 +1256,18 @@ export default function PortalLandingPage() {
                   </div>
                   <div className="flex items-center gap-3 text-sm text-zinc-300">
                     <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0" />
-                    <span>Direct WhatsApp & Video Consultation</span>
+                    <span>Direct Technical Consultation</span>
                   </div>
                 </div>
 
-                {/* Direct WhatsApp Instant Connect */}
+                {/* Email Inquiry Connect */}
                 <div className="pt-4">
                   <a
-                    href={WHATSAPP_LINK}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-300 font-bold text-sm transition-all group"
+                    href="mailto:support@ace-seek.com?subject=Technical%20Consultation%20Inquiry"
+                    className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/50 text-cyan-300 font-bold text-sm transition-all group"
                   >
-                    <MessageSquare className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                    <span>Quick-Connect on WhatsApp</span>
+                    <Mail className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                    <span>Email Engineering Team (support@ace-seek.com)</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </a>
                 </div>
@@ -1306,19 +1282,15 @@ export default function PortalLandingPage() {
                     </div>
                     <h3 className="text-2xl font-bold text-white">Quote Request Received!</h3>
                     <p className="text-zinc-300 text-sm max-w-md mx-auto">
-                      Thank you, <strong>{formState.name}</strong>. Our engineering leads will review your project scope and email or WhatsApp you at <strong>{formState.email || formState.phone}</strong> within 2 hours.
+                      Thank you, <strong>{formState.name}</strong>. Our engineering leads will review your project scope and email you at <strong>{formState.email}</strong> within 2 hours.
                     </p>
                     <div className="pt-4">
                       <a
-                        href={`https://wa.me/918431670673?text=${encodeURIComponent(
-                          `Hi Ace-Seek, I just requested a quote for ${formState.category} (${formState.name}). My email: ${formState.email}`
-                        )}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="mailto:support@ace-seek.com?subject=Project%20Scope%20Follow-up"
                         className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-zinc-950 font-bold text-xs inline-flex items-center gap-1.5 shadow-md hover:scale-[1.02] transition-transform"
                       >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Chat With Us Directly on WhatsApp (+91 84316 70673)</span>
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Contact Support: support@ace-seek.com</span>
                       </a>
                     </div>
                   </div>
@@ -1394,14 +1366,14 @@ export default function PortalLandingPage() {
                         </select>
                       </div>
 
-                      {/* Phone / WhatsApp */}
+                      {/* Contact Phone */}
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-zinc-300">
-                          WhatsApp Phone Number
+                          Phone Number (Optional)
                         </label>
                         <input
                           type="tel"
-                          placeholder="e.g. +91 98765 43210"
+                          placeholder="e.g. +1 555-0199"
                           value={formState.phone}
                           onChange={(e) =>
                             setFormState({ ...formState, phone: e.target.value })
@@ -1567,13 +1539,11 @@ export default function PortalLandingPage() {
                 Request a Quote
               </a>
               <a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-emerald-400 transition-colors flex items-center gap-1"
+                href="mailto:support@ace-seek.com"
+                className="hover:text-cyan-400 transition-colors flex items-center gap-1"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
-                <span>WhatsApp Direct</span>
+                <Mail className="w-3.5 h-3.5" />
+                <span>Contact Support</span>
               </a>
             </div>
 

@@ -918,7 +918,7 @@ export const TEMPUS_DOMAINS: TempusDomain[] = {json.dumps(DOMAINS, indent=2)};
 export const TEMPUS_SCENARIOS: TempusScenario[] = {json.dumps(scenarios, indent=2)};
 """
 
-with open('/home/hemanth/Desktop/ace-seek/ace-seek/web/src/lib/tempus-scenarios-data.ts', 'w') as f:
+with open('src/lib/tempus-scenarios-data.ts', 'w') as f:
     f.write(ts_content)
 
 print(f"Successfully generated 70 scenarios in web/src/lib/tempus-scenarios-data.ts!")

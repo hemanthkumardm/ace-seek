@@ -82,11 +82,11 @@ export default function ContactUsPage() {
             </div>
 
             <div className="sk-recessed p-4 space-y-2">
-              <Phone className="w-5 h-5 text-[var(--accent-cyan)]" />
-              <span className="font-bold text-white text-xs block">Phone Support</span>
-              <a href="tel:+918431670673" className="text-[var(--accent-cyan)] underline text-[11px] block">
-                +91 84316 70673
-              </a>
+              <Building className="w-5 h-5 text-[var(--accent-cyan)]" />
+              <span className="font-bold text-white text-xs block">Online Support</span>
+              <p className="text-slate-400 text-[11px]">
+                Support portal & ticketing
+              </p>
             </div>
 
             <div className="sk-recessed p-4 space-y-2">
