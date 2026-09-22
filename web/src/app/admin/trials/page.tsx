@@ -11,6 +11,7 @@ import {
   Copy,
   KeyRound,
   Lock,
+  Sparkles,
 } from "lucide-react";
 
 type TrialRow = {
@@ -45,6 +46,14 @@ export default function AdminTrialsPage() {
   const [busy, setBusy] = useState<string>("");
   const [copied, setCopied] = useState("");
   const [flash, setFlash] = useState("");
+
+  // Quick Entitlement Grant
+  const [grantTarget, setGrantTarget] = useState("");
+  const [grantPlan, setGrantPlan] = useState("max");
+  const [grantMasterclass, setGrantMasterclass] = useState(true);
+  const [granting, setGranting] = useState(false);
+  const [grantMsg, setGrantMsg] = useState("");
+  const [grantErr, setGrantErr] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -126,6 +135,34 @@ export default function AdminTrialsPage() {
     }
   };
 
+  const handleGrant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantTarget.trim()) return;
+    setGranting(true);
+    setGrantMsg("");
+    setGrantErr("");
+    try {
+      const res = await fetch("/api/admin/grant", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: grantTarget.trim(),
+          plan: grantPlan,
+          hasInterviewMasterclass: grantMasterclass,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to grant entitlements.");
+      setGrantMsg(data.message || "Entitlements granted successfully!");
+      setGrantTarget("");
+    } catch (err: unknown) {
+      setGrantErr(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGranting(false);
+    }
+  };
+
   const copyKey = (key: string) => {
     navigator.clipboard.writeText(key);
     setCopied(key);
@@ -141,10 +178,10 @@ export default function AdminTrialsPage() {
             <div className="sk-icon-well">
               <Shield className="w-4 h-4 text-[var(--accent-cyan)]" />
             </div>
-            <h1 className="text-xl font-black">Max trial inbox</h1>
+            <h1 className="text-xl font-black">Admin Management & Trial Inbox</h1>
           </div>
           <p className="text-xs text-[var(--muted)]">
-            Review trial requests. Approve emails a 7-day Max API key from Ace-Seek Licensing.
+            Review trial requests and instantly grant Max, Pro, Team or Interview Masterclass to any engineer.
           </p>
         </div>
 
@@ -155,7 +192,7 @@ export default function AdminTrialsPage() {
             </div>
             <h2 className="text-center text-base font-bold">Staff sign-in</h2>
             <p className="text-xs text-center text-[var(--muted)]">
-              Enter the admin password to open the trial inbox.
+              Enter the admin password to open the admin panel.
             </p>
             <input
               type="password"
@@ -178,21 +215,108 @@ export default function AdminTrialsPage() {
           </form>
         ) : (
           <>
-            <div className="flex flex-wrap gap-3 items-end">
-              <select
-                className="sk-input"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as typeof status)}
-              >
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="all">All</option>
-              </select>
-              <button type="button" onClick={() => void load()} className="sk-btn sk-btn-ghost !text-xs">
-                <RefreshCw className="w-3.5 h-3.5" />
-                Refresh
-              </button>
+            {/* Quick Entitlements Grant Card */}
+            <div className="sk-panel p-6 space-y-4 border border-[var(--accent-cyan)]/30 bg-[var(--bg-card)]">
+              <div className="flex items-center gap-2">
+                <div className="sk-icon-well">
+                  <Sparkles className="w-4 h-4 text-[var(--accent-cyan)]" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black uppercase tracking-wider text-[var(--foreground)]">
+                    Instant User Entitlements (Grant Plan & Masterclass)
+                  </h2>
+                  <p className="text-[11px] text-[var(--muted)]">
+                    Directly unlock Max, Pro, Team, or Interview Masterclass for any registered user.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleGrant} className="grid sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-5 space-y-1">
+                  <label className="text-[10px] font-mono uppercase text-[var(--muted)]">
+                    User Email or Clerk ID
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. user@gmail.com or user_3J..."
+                    value={grantTarget}
+                    onChange={(e) => setGrantTarget(e.target.value)}
+                    className="sk-input w-full !text-xs font-mono"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="text-[10px] font-mono uppercase text-[var(--muted)]">
+                    Plan Tier
+                  </label>
+                  <select
+                    value={grantPlan}
+                    onChange={(e) => setGrantPlan(e.target.value)}
+                    className="sk-input w-full !text-xs font-mono"
+                  >
+                    <option value="max">Max (Full EDA & STA)</option>
+                    <option value="pro">Pro</option>
+                    <option value="team">Team</option>
+                    <option value="free">Free</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-3 flex items-center gap-2 pb-2">
+                  <input
+                    type="checkbox"
+                    id="chk-masterclass"
+                    checked={grantMasterclass}
+                    onChange={(e) => setGrantMasterclass(e.target.checked)}
+                    className="rounded border-[var(--bevel-shadow)] text-[var(--accent-cyan)] focus:ring-[var(--accent-cyan)]"
+                  />
+                  <label htmlFor="chk-masterclass" className="text-xs font-medium cursor-pointer">
+                    + Interview Masterclass (280+)
+                  </label>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <button
+                    type="submit"
+                    disabled={granting || !grantTarget.trim()}
+                    className="sk-btn sk-btn-primary !text-xs w-full justify-center"
+                  >
+                    {granting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Grant Privileges
+                  </button>
+                </div>
+              </form>
+
+              {grantMsg && (
+                <p className="text-xs text-emerald-400 font-mono bg-emerald-950/30 border border-emerald-800/50 p-2.5 rounded-lg">
+                  ✅ {grantMsg}
+                </p>
+              )}
+              {grantErr && (
+                <p className="text-xs text-red-400 font-mono bg-red-950/30 border border-red-800/50 p-2.5 rounded-lg">
+                  ❌ {grantErr}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3 items-end justify-between pt-2">
+              <div className="flex items-center gap-3">
+                <select
+                  className="sk-input"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as typeof status)}
+                >
+                  <option value="pending">Pending Requests</option>
+                  <option value="approved">Approved Requests</option>
+                  <option value="rejected">Rejected Requests</option>
+                  <option value="all">All Requests</option>
+                </select>
+                <button type="button" onClick={() => void load()} className="sk-btn sk-btn-ghost !text-xs">
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Refresh
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={async () => {

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { SiteFooter, SiteHeader } from "@/components/SiteHeader";
 import {
   KeyRound,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   ArrowRight,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 
 const QUALIFICATIONS = [
@@ -37,7 +39,10 @@ const AFFILIATIONS: { id: string; label: string }[] = [
 const PUBLIC_MAIL =
   /@(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|proton|aol|gmx|yandex|rediffmail|mail)\./i;
 
-export default function TrialRequestPage() {
+function TrialContent() {
+  const searchParams = useSearchParams();
+  const isGrant = searchParams.get("grant") === "1" || searchParams.get("plan") === "team";
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -48,8 +53,8 @@ export default function TrialRequestPage() {
     email: "",
     qualification: QUALIFICATIONS[0],
     organization: "",
-    affiliation: "student",
-    reason: "",
+    affiliation: isGrant ? "researcher" : "student",
+    reason: isGrant ? "Applying for Startup / Academic Grant (Team Tier): " : "",
   });
 
   const publicMail = form.email.length > 5 && PUBLIC_MAIL.test(form.email);
@@ -96,18 +101,25 @@ export default function TrialRequestPage() {
         <div className="sk-panel p-8 md:p-12 space-y-4">
           <div className="flex items-center gap-2">
             <div className="sk-icon-well">
-              <KeyRound className="w-4 h-4 text-[var(--accent-cyan)]" />
+              {isGrant ? (
+                <Sparkles className="w-4 h-4 text-[var(--accent-cyan)]" />
+              ) : (
+                <KeyRound className="w-4 h-4 text-[var(--accent-cyan)]" />
+              )}
             </div>
             <span className="text-xs font-bold uppercase tracking-wider text-[var(--accent-cyan)]">
-              7-day Max trial
+              {isGrant ? "Startup & Academic Grant (Team Tier)" : "7-day Max trial"}
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight">
-            Request Max access — we verify, then activate your account
+            {isGrant
+              ? "Apply for sponsored Team access — we verify, then activate your account"
+              : "Request Max access — we verify, then activate your account"}
           </h1>
           <p className="text-xs md:text-sm text-[var(--muted)] max-w-2xl leading-relaxed">
-            Max is not turned on automatically. Tell us who you are (college or company
-            email). After we verify, we activate Max on your Ace-Seek account for 7 days.
+            {isGrant
+              ? "Early-stage semiconductor startups and university labs can apply for sponsored Team access. Tell us about your startup or research lab below. After verification, we activate Team privileges on your Ace-Seek account."
+              : "Max is not turned on automatically. Tell us who you are (college or company email). After we verify, we activate Max on your Ace-Seek account for 7 days."}
           </p>
         </div>
 
@@ -116,7 +128,9 @@ export default function TrialRequestPage() {
             {
               icon: FileText,
               title: "1. Request",
-              body: "Name, college/company email, qualification, and why you need Max.",
+              body: isGrant
+                ? "Name, institutional/work email, qualification, and project/startup scope."
+                : "Name, college/company email, qualification, and why you need Max.",
             },
             {
               icon: ShieldCheck,
@@ -124,9 +138,11 @@ export default function TrialRequestPage() {
               body: "Manual review within 7 days. You’ll get a confirmation email either way.",
             },
             {
-              icon: KeyRound,
+              icon: isGrant ? Building2 : KeyRound,
               title: "3. Account activated",
-              body: "Once approved, Max is enabled on your signed-in account for 7 days.",
+              body: isGrant
+                ? "Once approved, sponsored Team access is enabled on your signed-in account."
+                : "Once approved, Max is enabled on your signed-in account for 7 days.",
             },
           ].map((s) => (
             <div key={s.title} className="sk-panel p-5 space-y-2">
@@ -144,9 +160,12 @@ export default function TrialRequestPage() {
             <div className="sk-icon-well mx-auto w-12 h-12">
               <CheckCircle2 className="w-6 h-6 text-[var(--accent-cyan)]" />
             </div>
-            <h2 className="text-xl font-bold">Request received</h2>
+            <h2 className="text-xl font-bold">
+              {isGrant ? "Grant Application Received" : "Request received"}
+            </h2>
             <p className="text-sm text-[var(--muted)] leading-relaxed">
-              We’ll verify your details and activate Max on the account for{" "}
+              We’ll verify your details and activate {isGrant ? "sponsored Team tier" : "Max"}{" "}
+              on the account for{" "}
               <span className="font-mono text-[var(--accent-cyan)]">{form.email}</span>{" "}
               within 7 days. If we cannot approve, you’ll get an email for that too.
             </p>
@@ -156,25 +175,33 @@ export default function TrialRequestPage() {
               </p>
             ) : (
               <p className="text-xs text-amber-300 leading-relaxed">
-                Your request is saved. If the confirmation email is delayed, we still
-                review it and activate Max after approval.
+                Your application is saved. If the confirmation email is delayed, our team still
+                reviews it and activates access after approval.
               </p>
             )}
-            <p className="text-xs text-[var(--muted)] flex items-center justify-center gap-2">
-              <Clock className="w-3.5 h-3.5" />
-              Nothing unlocks until approval. Free plan still works today.
-            </p>
-            <a href="/pricing" className="sk-btn sk-btn-ghost !text-xs inline-flex">
-              Back to pricing
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+            <div className="pt-2">
+              <a href="/dashboard" className="sk-btn sk-btn-primary !text-xs inline-flex">
+                <span>Go to Dashboard</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
         ) : (
           <form
             onSubmit={onSubmit}
-            noValidate
-            className="sk-panel p-8 space-y-5 max-w-xl mx-auto"
+            className="sk-panel p-8 md:p-10 max-w-2xl mx-auto space-y-6"
           >
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold">
+                {isGrant ? "Applicant & Organization Details" : "Your details"}
+              </h2>
+              <p className="text-xs text-[var(--muted)]">
+                {isGrant
+                  ? "We evaluate semiconductor startup pitch/stage or university lab workload before activating Team access."
+                  : "We use this to verify student or company status before activating Max."}
+              </p>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase text-[var(--muted)] flex items-center gap-1.5">
                 <User className="w-3 h-3" /> Full name
@@ -184,7 +211,7 @@ export default function TrialRequestPage() {
                 value={form.name}
                 onChange={onChange}
                 className="sk-input w-full"
-                placeholder="Your name"
+                placeholder="e.g. Priya Sharma"
                 required
                 autoComplete="name"
               />
@@ -251,28 +278,34 @@ export default function TrialRequestPage() {
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase text-[var(--muted)] flex items-center gap-1.5">
-                <Building2 className="w-3 h-3" /> College / university / company
+                <Building2 className="w-3 h-3" /> College / university / startup
               </label>
               <input
                 name="organization"
                 value={form.organization}
                 onChange={onChange}
                 className="sk-input w-full"
-                placeholder="e.g. NITK Surathkal, IIT Madras, Qualcomm"
+                placeholder="e.g. NITK Surathkal, IIT Madras, Fabless Startup"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold uppercase text-[var(--muted)]">
-                Why do you need Max?
+                {isGrant
+                  ? "Describe your startup, research project & why you need Team tier"
+                  : "Why do you need Max?"}
               </label>
               <textarea
                 name="reason"
                 value={form.reason}
                 onChange={onChange}
                 className="sk-input w-full min-h-[120px] resize-y"
-                placeholder="Course / project / job — what you’ll use SDC, timing, docs for…"
+                placeholder={
+                  isGrant
+                    ? "Tell us about your chip design project, team size, tools needed, and current progress…"
+                    : "Course / project / job — what you’ll use SDC, timing, docs for…"
+                }
                 required
                 minLength={30}
               />
@@ -300,13 +333,14 @@ export default function TrialRequestPage() {
               ) : (
                 <>
                   <Send className="w-3.5 h-3.5" />
-                  <span>Submit trial request</span>
+                  <span>{isGrant ? "Submit Grant Application" : "Submit trial request"}</span>
                 </>
               )}
             </button>
             <p className="text-[11px] text-[var(--muted)] leading-relaxed text-center">
-              Submitting does not unlock Max. You will get a confirmation mail; Max
-              activates on your account only after we approve.
+              {isGrant
+                ? "Submitting does not automatically activate Team access. We will review and notify you via email."
+                : "Submitting does not unlock Max. You will get a confirmation mail; Max activates on your account only after we approve."}
             </p>
           </form>
         )}
@@ -314,5 +348,19 @@ export default function TrialRequestPage() {
 
       <SiteFooter />
     </div>
+  );
+}
+
+export default function TrialRequestPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-full flex items-center justify-center p-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[var(--accent-cyan)]" />
+        </div>
+      }
+    >
+      <TrialContent />
+    </Suspense>
   );
 }
