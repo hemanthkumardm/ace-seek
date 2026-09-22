@@ -68,8 +68,18 @@ function RtlLabBody() {
           </p>
           <h1 className="text-2xl font-black uppercase text-slate-900">RTL Lab</h1>
           <p className="text-xs font-bold text-slate-700">
-            Write DUT + testbench, simulate on this host, inspect console and VCD.
-            {host && !host.iverilog ? " Icarus is not installed on this machine." : ""}
+            Write DUT + testbench, simulate, inspect console and VCD waveforms.
+            {host ? (
+              host.iverilog ? (
+                <span className="text-[11px] font-mono text-emerald-600 block sm:inline sm:ml-2 font-bold">
+                  ✓ Native Icarus Verilog active
+                </span>
+              ) : (
+                <span className="text-[11px] font-mono text-cyan-600 block sm:inline sm:ml-2 font-bold" title="Install iverilog on server host for custom compilation">
+                  ⚡ Cloud Simulation Engine active
+                </span>
+              )
+            ) : null}
           </p>
         </div>
         <div className="flex items-center gap-2">
