@@ -29,7 +29,8 @@ import {
   Clock,
   Sparkle,
   Star,
-  Mail
+  Mail,
+  Play
 } from "lucide-react";
 
 /**
@@ -699,6 +700,145 @@ export default function PortalLandingPage() {
                   <span className="text-[11px] text-zinc-500 mt-0.5">sky130_fd_sc_hd</span>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          FRONTEND RTL DESIGN & UVM VERIFICATION ACCELERATOR
+          ========================================================================= */}
+      <section id="dv-rtl-track" className="relative z-10 py-24 bg-zinc-950/90 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-bold text-cyan-400 uppercase tracking-widest">
+              <Cpu className="w-3.5 h-3.5" />
+              <span>Frontend RTL &amp; Verification Track</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
+              Production RTL Design &amp; <br />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400">
+                UVM Verification Accelerator
+              </span>
+            </h2>
+            <p className="text-zinc-400 text-base sm:text-lg">
+              Go beyond textbook syntax. Simulate synthesizable IP cores in your browser with live waveforms, and master Staff/Principal-level SystemVerilog &amp; UVM interview architectures.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            {/* Card 1: Browser-Based RTL Lab */}
+            <div className="relative group rounded-3xl p-6 sm:p-8 bg-zinc-900/60 border border-cyan-500/20 hover:border-cyan-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl -z-10 group-hover:bg-cyan-500/20 transition-all" />
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-6">
+                  <Play className="w-6 h-6" />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-mono text-cyan-400 uppercase tracking-wider bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">Interactive Lab</span>
+                  <span className="text-xs font-mono text-emerald-400">Live Simulation</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">Browser-Based RTL Simulation Lab</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Compile, simulate, and inspect real Verilog IP cores directly in your browser. Zero local EDA license setup required with integrated interactive VCD waveform rendering.
+                </p>
+                <div className="space-y-2 mb-6">
+                  {[
+                    "AXI4 Skid Buffer (Zero-bubble backpressure)",
+                    "Dual-Clock Asynchronous FIFO with Gray CDC",
+                    "Round-Robin Arbiter with rotating priority",
+                    "Glitch-Free Moore FSMs & PRBS LFSRs"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300 font-mono">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Link
+                href="/vlsi/rtl-lab"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-sm font-semibold transition-all group-hover:shadow-[0_0_20px_rgba(6,182,212,0.25)]"
+              >
+                <span>Launch Interactive RTL Lab</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            {/* Card 2: UVM & SV Verification Deep Dives */}
+            <div className="relative group rounded-3xl p-6 sm:p-8 bg-zinc-900/60 border border-indigo-500/20 hover:border-indigo-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl -z-10 group-hover:bg-indigo-500/20 transition-all" />
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-6">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-mono text-indigo-400 uppercase tracking-wider bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20">DV Masterclass</span>
+                  <span className="text-xs font-mono text-purple-400">Staff / Principal Level</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">SystemVerilog &amp; UVM Verification</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Master the exact questions asked by NVIDIA, Qualcomm, Apple, and Broadcom DV interview loops with architectural code snippets and scoring criteria.
+                </p>
+                <div className="space-y-2 mb-6">
+                  {[
+                    "UVM Phases, Objections & Drop Latencies",
+                    "UVM Factory Polymorphism & Type/Instance Overrides",
+                    "Constrained Random: solve before & distribution weights",
+                    "SVA Handshake Stability & Concurrent Assertions"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300 font-mono">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Link
+                href="/vlsi/interview-masterclass?domain=design-verification"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 text-sm font-semibold transition-all group-hover:shadow-[0_0_20px_rgba(99,102,241,0.25)]"
+              >
+                <span>Explore DV Question Bank</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            {/* Card 3: Synthesizable Microarchitecture & CDC */}
+            <div className="relative group rounded-3xl p-6 sm:p-8 bg-zinc-900/60 border border-sky-500/20 hover:border-sky-500/50 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-sky-500/10 rounded-full blur-3xl -z-10 group-hover:bg-sky-500/20 transition-all" />
+              <div>
+                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 mb-6">
+                  <Terminal className="w-6 h-6" />
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs font-mono text-sky-400 uppercase tracking-wider bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">RTL Architecture</span>
+                  <span className="text-xs font-mono text-cyan-400">Silicon Proven</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">RTL Microarchitecture &amp; CDC</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed mb-6">
+                  Design synthesizable hardware free of metastability and timing bottlenecks. Understand full datapath pipelining, CDC depth math, and bus arbiters.
+                </p>
+                <div className="space-y-2 mb-6">
+                  {[
+                    "Dual-Clock FIFO Depth Derivation & Gray Coding",
+                    "AXI4 Full/Ready Bubble Elimination Microarchitectures",
+                    "Glitch-Free Moore/Mealy State Encoding Patterns",
+                    "5-Stage Pipelined Datapath Forwarding & Interlocks"
+                  ].map((feat, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs text-zinc-300 font-mono">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Link
+                href="/vlsi/interview-masterclass?domain=rtl-verilog-architecture"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-sm font-semibold transition-all group-hover:shadow-[0_0_20px_rgba(14,165,233,0.25)]"
+              >
+                <span>Explore RTL Question Bank</span>
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              </Link>
             </div>
           </div>
         </div>

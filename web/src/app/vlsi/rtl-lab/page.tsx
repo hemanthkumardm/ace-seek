@@ -106,6 +106,18 @@ function RtlLabBody() {
         </div>
       </div>
 
+      {(() => {
+        const activeEx = RTL_EXAMPLES.find((e) => e.id === exId);
+        return activeEx ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs bg-white border-2 border-black p-2.5 rounded shadow-[2px_2px_0px_0px_#000]">
+            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-black text-white tracking-wider">
+              {activeEx.category}
+            </span>
+            <span className="text-slate-800 font-bold">{activeEx.description}</span>
+          </div>
+        ) : null;
+      })()}
+
       <div className="grid md:grid-cols-2 gap-3">
         <label className="space-y-1">
           <span className="text-[10px] font-black uppercase text-slate-400">DUT (dut.v)</span>

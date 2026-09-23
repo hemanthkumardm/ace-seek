@@ -6,6 +6,7 @@
 
 import "server-only";
 import { ADDITIONAL_INTERVIEW_QUESTIONS } from "./vlsi-interview-masterclass-additions";
+import { DV_RTL_INTERVIEW_QUESTIONS } from "./vlsi-interview-dv-rtl";
 import type { InterviewQuestion } from "./interview-meta";
 
 export type {
@@ -6900,6 +6901,7 @@ report_timing -group R2R -max_paths 5 > reports/timing_r2r_clean.rpt`,
     ],
     tags: ["sta", "qor-triage", "rapid-fire", "whiteboard-checklist", "story-problems", "interview-prep"],
   },
+  ...DV_RTL_INTERVIEW_QUESTIONS,
   ...ADDITIONAL_INTERVIEW_QUESTIONS,
 ];
 
